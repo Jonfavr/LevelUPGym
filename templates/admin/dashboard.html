@@ -1,0 +1,83 @@
+<!-- templates/admin/dashboard.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Dashboard - LevelUp Gym{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Admin Dashboard</h1>
+    <p>Gym Management Overview</p>
+</div>
+
+<div class="grid grid-3">
+    <div class="card stat-card">
+        <div class="stat-value">{{ total_clients }}</div>
+        <div class="stat-label">Total Active Clients</div>
+    </div>
+    
+    <div class="card stat-card">
+        <div class="stat-value">{{ todays_attendance }}</div>
+        <div class="stat-label">Today's Check-ins</div>
+    </div>
+    
+    <div class="card stat-card">
+        <div class="stat-value">{{ weekly_visits }}</div>
+        <div class="stat-label">This Week's Visits</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Today's Attendance</h2>
+    {% if attendance_list %}
+    <table>
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>Phone</th>
+                <th>Check-in Time</th>
+                <th>Status</th>
+                <th>EXP Earned</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in attendance_list %}
+            <tr>
+                <td><strong>{{ record.client_name }}</strong></td>
+                <td>{{ record.phone_number }}</td>
+                <td>{{ record.check_in_time }}</td>
+                <td>
+                    {% if record.check_out_time %}
+                        <span style="color: #6b7280;">Checked out</span>
+                    {% else %}
+                        <span style="color: #10b981; font-weight: bold;">In gym 💪</span>
+                    {% endif %}
+                </td>
+                <td><strong style="color: #667eea;">{{ record.exp_earned }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #6b7280; padding: 20px;">No check-ins today yet.</p>
+    {% endif %}
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h3>Quick Actions</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+            <a href="{{ url_for('admin_add_client') }}" class="btn btn-primary">+ Add New Client</a>
+            <a href="{{ url_for('admin_attendance') }}" class="btn btn-success">Check-in Client</a>
+            <a href="{{ url_for('admin_add_exercise') }}" class="btn btn-primary">+ Add Exercise</a>
+            <a href="{{ url_for('admin_add_routine') }}" class="btn btn-primary">+ Create Routine</a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>System Info</h3>
+        <p><strong>Server Status:</strong> <span style="color: #10b981;">● Online</span></p>
+        <p><strong>Database:</strong> SQLite (levelup_gym.db)</p>
+        <p><strong>Admin User:</strong> {{ session.admin_username }}</p>
+    </div>
+</div>
+{% endblock %}

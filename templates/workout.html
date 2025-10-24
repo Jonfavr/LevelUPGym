@@ -1,0 +1,560 @@
+
+<!-- templates/workout.html -->
+{% extends "base.html" %}
+
+{% block title %}Workout - {{ routine.routine_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .exercise-card {
+        border-left: 5px solid #667eea;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    .exercise-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .exercise-number {
+        background: #667eea;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+    }
+    
+    .set-input-group {
+        display: grid;
+        grid-template-columns: 1fr 2fr 2fr 1fr;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 10px;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+    
+    .set-input-group input {
+        padding: 8px;
+        border: 2px solid #e5e7eb;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    
+    .set-input-group.completed {
+        background: #d1fae5;
+        border: 2px solid #10b981;
+    }
+    
+    .exp-badge {
+        background: #fbbf24;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        max-width: 500px;
+        text-align: center;
+    }
+    
+    .level-up-animation {
+        font-size: 100px;
+        animation: bounce 1s infinite;
+    }
+
+    .modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 4px 25px rgba(0,0,0,0.3);
+    }
+    .close-btn {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        font-size: 28px;
+        color: #f58f8f;
+        background-color: #ca3333;
+        height: 30px;
+        width: 30px;
+        line-height: 30px;
+        border-radius: 5px;
+        vertical-align: middle;
+        text-align: center;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .close-btn:hover {
+        color: #cc5b5b;
+        background-color: #a52222;
+    }
+    .btn-info {
+        background-color: #3b82f6;
+        color: #fff;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn-info:hover {
+        background-color: #2563eb;
+    }
+    
+    /* ✅ RESPONSIVE FIXES FOR SMALL DEVICES */
+    @media (max-width: 768px) {
+        .set-input-group {
+            grid-template-columns: 1fr;
+        }
+
+        .set-input-group label,
+        .set-input-group input,
+        .btn-success {
+            grid-column: span 1;
+            width: 100%;
+        }
+
+        .set-input-group input {
+            font-size: 14px;
+            padding: 6px;
+        }
+
+        .btn-success {
+            width: 100%;
+        }
+
+        .exercise-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .exercise-card {
+            padding: 12px;
+        }
+
+        .exp-badge {
+            font-size: 13px;
+            padding: 4px 8px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .exercise-number {
+            width: 35px;
+            height: 35px;
+            font-size: 16px;
+        }
+
+        .set-input-group {
+            grid-template-columns: 1fr;
+        }
+
+        .set-input-group label,
+        .set-input-group input,
+        .btn-success {
+            grid-column: span 1;
+            width: 100%;
+        }
+
+        .set-input-group input {
+            font-size: 14px;
+            padding: 6px;
+        }
+
+        .modal-content {
+            width: 95%;
+            padding: 15px;
+        }
+
+        .btn-info {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1>{{ routine.routine_name }}</h1>
+            <p>{{ routine.description }}</p>
+        </div>
+        <div class="progress"style="text-align: right;">
+            {% if session_info.status == 'completed' %}
+            <span style="background: #10b981; color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold; white-space: nowrap;">
+                 Completed
+            </span>
+            {% elif session_info.status == 'in_progress' %}
+            <span style="background: #fbbf24; color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold; white-space: nowrap;">
+                 In Progress
+            </span>
+            {% else %}
+            <span style="background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold; white-space: nowrap;">
+                 New Session
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span><strong>Overall Progress</strong></span>
+            <span><strong id="progress-text">{{ progress.completed_sets }} / {{ progress.total_sets }} sets</strong></span>
+        </div>
+        <div style="background: #e5e7eb; height: 30px; border-radius: 15px; overflow: hidden;">
+            <div id="progress-bar" style="background: linear-gradient(90deg, #10b981 0%, #059669 100%); height: 100%; width: {{ progress.completion_percentage }}%; transition: width 0.5s;">
+            </div>
+        </div>
+        <p style="text-align: center; margin-top: 8px; color: #6b7280;">
+            <span id="progress-percentage">{{ "%.1f"|format(progress.completion_percentage) }}%</span> Complete
+        </p>
+    </div>
+    
+    <p style="margin-top: 15px;"><strong>Total Base EXP:</strong> {{ routine.calculate_total_exp() }}</p>
+
+<div id="workout-container">
+    {% if session_info.status == 'completed' %}
+    <div style="text-align:center; background:#d1fae5; padding:20px; border-radius:10px; margin-bottom:20px;">
+        <h2>🎉 Workout Completed!</h2>
+        <p>You finished all sets for <strong>{{ routine.routine_name }}</strong>.</p>
+    </div>
+    {% endif %}
+
+    {% for exercise in exercises %}
+    <div class="card exercise-card" data-exercise-id="{{ exercise.exercise_id }}">
+        <div class="exercise-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="exercise-number">{{ loop.index }}</div>
+                <div>
+                    <h3 style="margin: 0;">{{ exercise.name }}</h3>
+                    <p style="color: #6b7280; margin: 5px 0;">{{ exercise.target_muscle }} - {{ exercise.exercise_type.title() }}</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="exp-badge">{{ exercise.base_exp }} EXP/set</span>
+                <!-- 🆕 Exercise Info Button -->
+                {% if exercise.image_path %}
+                <button class="btn btn-info btn-sm" onclick="showExerciseImage('{{ exercise.name }}', '{{ url_for('static', filename=exercise.image_path) }}')">
+                    View Exercise
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <p><strong>Target Sets:</strong> {{ exercise.sets }} x {{ exercise.reps }} {{ 'seconds' if exercise.measurement == 'seconds' else 'reps' }} | 
+        <strong>Rest:</strong> {{ exercise.rest_seconds }}s</p>
+
+        <div class="sets-container" id="sets-{{ exercise.exercise_id }}">
+            {% for set_num in range(1, exercise.sets + 1) %}
+            {% set set_key = exercise.exercise_id|string + '-' + set_num|string %}
+            {% set is_completed = set_key in progress.completion_map %}
+            
+            <div class="set-input-group {% if is_completed %}completed{% endif %}" data-set="{{ set_num }}">
+                <input type="text" class="measurement" style="display: none;" value="{{ exercise.measurement }}">
+                <label><strong>Set {{ set_num }}</strong></label>
+                <input type="number" placeholder="{{ 'Seconds' if exercise.measurement == 'seconds' else 'Reps' }}" 
+                    class="reps-input"
+                    value="{% if is_completed %}{{ progress.completion_map[set_key].reps }}{% endif %}"
+                    {% if is_completed %}disabled{% endif %}>
+                <input type="number" placeholder="Weight (kg)" min="0" step="0.5" class="weight-input" value="{% if is_completed %}{{ progress.completion_map[set_key].weight }}{% else %}{{ exercise.weight }}{% endif %}" 
+                    {% if is_completed %}disabled{% endif %} {% if exercise.measurement == 'seconds' %}style="display:none;"{% endif %}>
+                <button class="{% if is_completed %} btn btn-disabled btn-log {% else %} btn btn-success btn-log {% endif %}" onclick="logSet({{ exercise.exercise_id }}, {{ set_num }})"
+                    {% if is_completed or session_info.status == 'completed' %}disabled{% endif %}>
+                    {% if is_completed %}✓ Logged{% else %}✓ Log{% endif %}
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Weight recommendation area -->
+        <div id="recommendation-{{ exercise.exercise_id }}" class="recommendation-box"
+             style="display: none; margin-top: 10px; padding: 12px; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px;">
+            <strong>💡 Recommendation:</strong> <span class="rec-message"></span>
+        </div>
+
+        <div class="exp-earned" style="margin-top: 15px; font-weight: bold; color: #10b981; display: none;">
+            Total EXP Earned: <span class="exp-total">0</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Exercise Image Modal -->
+<div id="exercise-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeExerciseImage()">&times;</span>
+        <h2 id="exercise-modal-title" style="margin-bottom: 10px;"></h2>
+        <img id="exercise-modal-img" src="" alt="Exercise Image" style="max-width: 100%; border-radius: 10px;">
+    </div>
+</div>
+
+<div class="card" style="text-align: center;">
+    <button class="btn btn-primary" onclick="finishWorkout()" style="font-size: 18px; padding: 15px 40px;" id="finish-btn">
+        Finish Workout
+    </button>
+    <p style="margin-top: 10px; color: #6b7280;">Complete all sets to finish your workout</p>
+</div>
+
+<!-- Level Up Modal -->
+<div id="levelUpModal" class="modal">
+    <div class="modal-content">
+        <div class="level-up-animation">🎉</div>
+        <h1 style="color: #667eea; margin: 20px 0;">LEVEL UP!</h1>
+        <p style="font-size: 24px; font-weight: bold;">You reached Level <span id="newLevel"></span>!</p>
+        <button class="btn btn-primary" onclick="closeModal()" style="margin-top: 20px;">Awesome!</button>
+    </div>
+</div>
+
+<!-- Achievement Modal -->
+<div id="achievementModal" class="modal">
+    <div class="modal-content">
+        <div style="font-size: 100px;">🏆</div>
+        <h1 style="color: #fbbf24; margin: 20px 0;">Achievement Unlocked!</h1>
+        <p style="font-size: 20px; font-weight: bold;" id="achievementName"></p>
+        <p style="color: #6b7280; margin-top: 10px;" id="achievementDesc"></p>
+        <button class="btn btn-primary" onclick="closeModal()" style="margin-top: 20px;">Continue</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let totalExpEarned = 0;
+
+async function logSet(exerciseId, setNumber) {
+    const container = document.querySelector(`#sets-${exerciseId}`);
+    const setGroup = container.querySelector(`[data-set="${setNumber}"]`);
+    const repsInput = setGroup.querySelector('.reps-input');
+    const weightInput = setGroup.querySelector('.weight-input');
+    const button = setGroup.querySelector('.btn-log');
+    
+    const reps = parseInt(repsInput.value);
+    const weight = parseFloat(weightInput.value) || null;
+    const measurement = setGroup.querySelector('.measurement').value;
+    
+    if (!reps || reps <= 0) {
+        alert('Please enter valid reps');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/log_set', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                exercise_id: exerciseId,
+                set_number: setNumber,
+                reps: reps,
+                weight: weight,
+                measurement: measurement
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Mark set as completed
+            setGroup.classList.add('completed');
+            button.textContent = '✓ Logged';
+            button.disabled = true;
+            button.classList.add('btn-disabled');
+            button.classList.remove('btn-success');
+            repsInput.disabled = true;
+            weightInput.disabled = true;
+            
+            // Update EXP display
+            const expEarnedDiv = document.querySelector(`[data-exercise-id="${exerciseId}"] .exp-earned`);
+            const expTotal = expEarnedDiv.querySelector('.exp-total');
+            const currentExp = parseInt(expTotal.textContent) || 0;
+            expTotal.textContent = currentExp + result.exp_earned;
+            expEarnedDiv.style.display = 'block';
+            
+            totalExpEarned += result.exp_earned;
+            
+            // 🆕 NEW: Show weight recommendation
+            if (result.recommendation) {
+                const recBox = document.getElementById(`recommendation-${exerciseId}`);
+                if (recBox) {
+                    recBox.querySelector('.rec-message').textContent = result.recommendation.message;
+                    recBox.style.display = 'block';
+                }
+            }
+            
+            // Check for level up
+            if (result.level_info.leveled_up) {
+                document.getElementById('newLevel').textContent = result.level_info.new_level;
+                document.getElementById('levelUpModal').classList.add('active');
+            }
+            
+            // Show EXP animation
+            showExpAnimation(result.exp_earned);
+            updateProgressBar();
+        }
+    } catch (error) {
+        alert('Failed to log set. Please try again.');
+        console.error(error);
+    }
+}
+
+function showExpAnimation(exp) {
+    const badge = document.createElement('div');
+    badge.style.position = 'fixed';
+    badge.style.top = '50%';
+    badge.style.left = '50%';
+    badge.style.transform = 'translate(-50%, -50%)';
+    badge.style.background = '#10b981';
+    badge.style.color = 'white';
+    badge.style.padding = '20px 40px';
+    badge.style.borderRadius = '10px';
+    badge.style.fontSize = '24px';
+    badge.style.fontWeight = 'bold';
+    badge.style.zIndex = '999';
+    badge.style.animation = 'fadeInOut 1.5s';
+    badge.textContent = `+${exp} EXP`;
+    
+    document.body.appendChild(badge);
+    
+    setTimeout(() => {
+        badge.remove();
+    }, 1500);
+}
+
+function closeModal() {
+    document.getElementById('levelUpModal').classList.remove('active');
+    document.getElementById('achievementModal').classList.remove('active');
+}
+
+async function finishWorkout() {
+    const sessionId = {{ session_info.session_id }};
+    if (!sessionId) {
+        alert("No active session found.");
+        return;
+    }
+
+    if (confirm(`Workout complete! You earned ${totalExpEarned} EXP. Ready to finish?`)) {
+        try {
+            const response = await fetch('/finish_workout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ session_id: sessionId })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Workout marked as completed! 🎉');
+                window.location.href = '/dashboard';
+            } else {
+                alert('Failed to complete workout: ' + (result.message || 'Unknown error.'));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error finishing workout. Please try again.');
+        }
+    }
+}
+
+function updateProgressBar() {
+    // Get all sets that exist and completed ones
+    const allSets = document.querySelectorAll('.set-input-group');
+    const completedSets = document.querySelectorAll('.set-input-group.completed');
+
+    const total = allSets.length;
+    const done = completedSets.length;
+    const percent = total > 0 ? (done / total) * 100 : 0;
+
+    // Update text values
+    const progressText = document.getElementById('progress-text');
+    const progressPercentage = document.getElementById('progress-percentage');
+    const progressBar = document.getElementById('progress-bar');
+
+    if (progressText) progressText.textContent = `${done} / ${total} sets`;
+    if (progressPercentage) progressPercentage.textContent = `${percent.toFixed(1)}%`;
+    if (progressBar) progressBar.style.width = `${percent}%`;
+
+    // Optional: animate color when completed
+    if (percent >= 100) {
+        progressBar.style.background = 'linear-gradient(90deg, #10b981 0%, #059669 100%)';
+        document.getElementById('finish-btn').disabled = false;
+    } else {
+        progressBar.style.background = 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)';
+    }
+}
+// Add CSS animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+`;
+document.head.appendChild(style);
+
+function showExerciseImage(name, imageUrl) {
+    const modal = document.getElementById('exercise-modal');
+    document.getElementById('exercise-modal-title').textContent = name;
+    document.getElementById('exercise-modal-img').src = imageUrl;
+    modal.style.display = 'flex';
+}
+
+function closeExerciseImage() {
+    document.getElementById('exercise-modal').style.display = 'none';
+}
+
+// Optional: close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('exercise-modal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+};
+
+</script>
+{% endblock %}

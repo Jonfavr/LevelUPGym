@@ -1,0 +1,47 @@
+<!-- templates/admin/routines.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}Routines - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Routine Management</h1>
+        <a href="{{ url_for('admin_add_routine') }}" class="btn btn-primary">+ Create Routine</a>
+    </div>
+</div>
+
+<div class="card">
+    {% if routines %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Routine Name</th>
+                <th>Description</th>
+                <th>Created By</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for routine in routines %}
+            <tr>
+                <td>{{ routine.routine_id }}</td>
+                <td><strong>{{ routine.routine_name }}</strong></td>
+                <td>{{ routine.description or 'No description' }}</td>
+                <td>{{ routine.created_by or 'N/A' }}</td>
+                <td>
+                    <a href="{{ url_for('admin_routine_details', routine_id=routine.routine_id) }}" class="btn btn-primary btn-sm">View</a>
+                    <form method="POST" action="{{ url_for('admin_delete_routine', routine_id=routine.routine_id) }}" style="display: inline;" onsubmit="return confirm('Delete this routine?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #6b7280; padding: 20px;">No routines created yet. Click "Create Routine" to get started.</p>
+    {% endif %}
+</div>
+{% endblock %}

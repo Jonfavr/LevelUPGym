@@ -1,0 +1,154 @@
+<!-- templates/admin/client_form.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}{% if client %}Edit{% else %}Add{% endif %} Client - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{% if client %}Edit Client{% else %}Add New Client{% endif %}</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <h3>Personal Information</h3>
+        
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="first_name">First Name *</label>
+                <input type="text" id="first_name" name="first_name" value="{{ client.first_name if client else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name *</label>
+                <input type="text" id="last_name" name="last_name" value="{{ client.last_name if client else '' }}" required>
+            </div>
+        </div>
+        
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="phone">Phone Number *</label>
+                <input type="text" id="phone" name="phone" value="{{ client.phone_number if client else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ client.email if client else '' }}">
+            </div>
+        </div>
+        
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="dob">Date of Birth (YYYY-MM-DD)</label>
+                <input type="date" id="dob" name="dob" value="{{ client.date_of_birth if client else '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender">
+                    <option value="Male" {% if client and client.gender == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if client and client.gender == 'Female' %}selected{% endif %}>Female</option>
+                    <option value="Other" {% if client and client.gender == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+        </div>
+        
+        {% if not client %}
+        <div class="form-group">
+            <label for="pin">4-Digit PIN *</label>
+            <input type="password" id="pin" name="pin" maxlength="4" placeholder="Enter 4-digit PIN" required>
+        </div>
+        {% endif %}
+        
+        <h3 style="margin-top: 30px;">Physical Data</h3>
+
+        <div class="grid grid-3">
+            <div class="form-group">
+                <label for="height">Height (cm)</label>
+                <input type="number" id="height" name="height" step="0.1"
+                    value="{{ physical_data.height_cm if physical_data else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="weight">Weight (kg)</label>
+                <input type="number" id="weight" name="weight" step="0.1"
+                    value="{{ physical_data.weight_kg if physical_data else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="bodyfat">Body Fat %</label>
+                <input type="number" id="bodyfat" name="bodyfat" step="0.1"
+                    value="{{ physical_data.body_fat_percentage if physical_data else '' }}">
+            </div>
+        </div>
+
+        {% if physical_data %}
+        <p style="color: #6b7280; font-size: 14px; margin-top: 5px;">
+            Last updated: {{ physical_data.measurement_date }}
+        </p>
+        {% endif %}
+                
+        <h3 style="margin-top: 30px;">Training Schedule</h3>
+
+        <div id="schedule-builder" style="display: grid; gap: 15px; margin: 20px 0;">
+            {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+            <div class="card" style="padding: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: bold;">
+                    <input type="checkbox" class="day-checkbox" name="days" value="{{ day }}" {% if availability and day in availability %}checked{% endif %}>
+                    <span>{{ day }}</span>
+                </label>
+
+                <div style="margin-left: 25px; margin-top: 10px;">
+                    <label>Assign Routine:</label>
+                    <select name="routine_{{ day|lower }}" class="routine-selector" data-day="{{ day }}" style="width: 100%; padding: 6px;">
+                        <option value="">-- Select Routine --</option>
+                        {% for routine in all_routines %}
+                        <option value="{{ routine.routine_id }}"
+                            {% if weekly_schedule and weekly_schedule.get(day) and weekly_schedule[day].routine_id == routine.routine_id %}
+                                selected
+                            {% endif %}>
+                            {{ routine.routine_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-primary">{% if client %}Update{% else %}Create{% endif %} Client</button>
+            <a href="{{ url_for('admin_clients') }}" class="btn btn-danger">Cancel</a>
+        </div>
+    </form>
+</div>
+
+
+<script>
+const checkboxes = document.querySelectorAll('.day-checkbox');
+const selectors = document.querySelectorAll('.routine-selector');
+const preview = document.getElementById('preview-container');
+
+function updatePreview() {
+    preview.innerHTML = '';
+    let count = 0;
+    checkboxes.forEach(box => {
+        if (box.checked) {
+            const sel = document.querySelector(`select[data-day="${box.value}"]`);
+            const name = sel.options[sel.selectedIndex].text;
+            const routineText = name !== '-- Select Routine --' ? name : 'No routine selected';
+            preview.innerHTML += `<p><strong>${box.value}:</strong> ${routineText}</p>`;
+            count++;
+        }
+    });
+    if (count === 0) {
+        preview.innerHTML = '<p style="color:#6b7280;">No routines assigned yet</p>';
+    }
+}
+
+checkboxes.forEach(chk => chk.addEventListener('change', updatePreview));
+selectors.forEach(sel => sel.addEventListener('change', updatePreview));
+
+updatePreview();
+</script>
+
+{% endblock %}

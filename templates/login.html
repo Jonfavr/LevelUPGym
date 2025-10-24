@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Login - LevelUp Gym{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        text-align: center;
+        transition: all 0.4s ease;
+    }
+
+    .login-header img {
+        height: 25vh;
+        margin-bottom: 10px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+        text-align: left;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .btn-block {
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    /* ---------- NUMPAD STYLE ---------- */
+    .pin-container {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pin-display {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .pin-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid #667eea;
+        background-color: transparent;
+        transition: background-color 0.2s ease;
+    }
+
+    .pin-dot.filled {
+        background-color: #667eea;
+    }
+
+    .numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 80px);
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .numpad button {
+        height: 70px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 24px;
+        font-weight: 600;
+        border: none;
+        background: #667eea;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .numpad button:hover {
+        background: #c7d2fe;
+    }
+
+    .numpad .delete {
+        background: #ef4444;
+        color: white;
+    }
+
+    .numpad .delete:hover {
+        background: #f87171;
+    }
+
+    .fade {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    @media (max-width: 480px) {
+        .numpad button {
+            height: 60px;
+            font-size: 22px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <img src="/static/image/Untitled design.png">
+            <p style="color: #6b7280;">Client Portal</p>
+        </div>
+
+        <!-- STEP 1: PHONE ENTRY -->
+        <form id="phone-form">
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="text" id="phone" name="phone" placeholder="Enter your phone number" required autofocus>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="continue-btn">Continue</button>
+        </form>
+
+        <!-- STEP 2: PIN ENTRY -->
+        <div class="pin-container" id="pin-step">
+            <h3>Enter your 4-digit PIN</h3>
+            <div class="pin-display" id="pin-display">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            <div class="numpad">
+                <button class="num" data-num="1">1</button>
+                <button class="num" data-num="2">2</button>
+                <button class="num" data-num="3">3</button>
+                <button class="num" data-num="4">4</button>
+                <button class="num" data-num="5">5</button>
+                <button class="num" data-num="6">6</button>
+                <button class="num" data-num="7">7</button>
+                <button class="num" data-num="8">8</button>
+                <button class="num" data-num="9">9</button>
+                <div></div>
+                <button class="num" data-num="0">0</button>
+                <button class="delete">⌫</button>
+            </div>
+        </div>
+
+        <form id="hidden-login-form" method="POST" action="{{ url_for('login') }}" style="display:none;">
+            <input type="hidden" name="phone" id="hidden-phone">
+            <input type="hidden" name="pin" id="hidden-pin">
+        </form>
+
+        <p style="text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px;">
+            First time? Ask the staff to create your account.
+        </p>
+    </div>
+</div>
+
+<script>
+    const phoneForm = document.getElementById('phone-form');
+    const pinStep = document.getElementById('pin-step');
+    const continueBtn = document.getElementById('continue-btn');
+    const hiddenForm = document.getElementById('hidden-login-form');
+    const hiddenPhone = document.getElementById('hidden-phone');
+    const hiddenPin = document.getElementById('hidden-pin');
+    const pinDisplay = document.querySelectorAll('.pin-dot');
+    const numButtons = document.querySelectorAll('.num');
+    const deleteBtn = document.querySelector('.delete');
+
+    let pinInput = '';
+
+    continueBtn.addEventListener('click', () => {
+        const phoneValue = document.getElementById('phone').value.trim();
+        if (!phoneValue) {
+            alert('Please enter your phone number');
+            return;
+        }
+        // Store the phone and move to PIN step
+        hiddenPhone.value = phoneValue;
+        phoneForm.classList.add('fade');
+        setTimeout(() => {
+            phoneForm.style.display = 'none';
+            pinStep.style.display = 'flex';
+        }, 300);
+    });
+
+    numButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (pinInput.length < 4) {
+                pinInput += btn.dataset.num;
+                updateDots();
+                if (pinInput.length === 4) {
+                    // Auto-submit after 4 digits
+                    hiddenPin.value = pinInput;
+                    hiddenForm.submit();
+                }
+            }
+        });
+    });
+
+    deleteBtn.addEventListener('click', () => {
+        pinInput = pinInput.slice(0, -1);
+        updateDots();
+    });
+
+    function updateDots() {
+        pinDisplay.forEach((dot, idx) => {
+            dot.classList.toggle('filled', idx < pinInput.length);
+        });
+    }
+</script>
+{% endblock %}

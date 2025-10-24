@@ -1,0 +1,47 @@
+<!-- templates/admin/exercises.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}Exercises - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Exercise Library</h1>
+        <a href="{{ url_for('admin_add_exercise') }}" class="btn btn-primary">+ Add Exercise</a>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Target Muscle</th>
+                <th>Difficulty</th>
+                <th>Base EXP</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exercise in exercises %}
+            <tr>
+                <td>{{ exercise.exercise_id }}</td>
+                <td><strong>{{ exercise.name }}</strong></td>
+                <td>{{ exercise.exercise_type or 'N/A' }}</td>
+                <td>{{ exercise.target_muscle or 'N/A' }}</td>
+                <td>{{ exercise.difficulty_level or 'N/A' }}</td>
+                <td><strong style="color: #667eea;">{{ exercise.base_exp }}</strong></td>
+                <td>
+                    <a href="{{ url_for('admin_edit_exercise', exercise_id=exercise.exercise_id) }}" class="btn btn-success btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('admin_delete_exercise', exercise_id=exercise.exercise_id) }}" style="display: inline;" onsubmit="return confirm('Delete this exercise?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+<!-- templates/admin/routine_form.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}Create Routine - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Create New Routine</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Routine Name *</label>
+            <input type="text" id="name" name="name" placeholder="e.g., Push Day, Leg Day, Full Body" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="3" placeholder="Describe the focus and goals of this routine"></textarea>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-primary">Create Routine</button>
+            <a href="{{ url_for('admin_routines') }}" class="btn btn-danger">Cancel</a>
+        </div>
+    </form>
+    
+    <p style="margin-top: 20px; color: #6b7280; font-style: italic;">
+        ℹ️ After creating the routine, you'll be able to add exercises to it with sets, reps, and rest times.
+    </p>
+</div>
+{% endblock %}

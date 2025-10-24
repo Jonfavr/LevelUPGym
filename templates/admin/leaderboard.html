@@ -1,0 +1,62 @@
+{% extends "admin/base.html" %}
+{% block title %}Leaderboard - LevelUp Gym{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>🏆 Leaderboards</h1>
+  <p>Top 10 performers across the gym</p>
+</div>
+<div class="grid grid-3">
+  <!-- EXP -->
+  <div class="card">
+    <h2 style="color:#fbbf24;">💥 Top 10 by EXP</h2>
+    <table class="table">
+      <thead><tr><th>Rank</th><th>Client</th><th>EXP</th></tr></thead>
+      <tbody>
+      {% for row in top_exp %}
+        <tr>
+          <td>#{{ loop.index }}</td>
+          <td>{{ row.full_name }}</td>
+          <td>{{ row.total_exp }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- REPS -->
+  <div class="card">
+    <h2 style="color:#10b981;">💪 Top 10 by Reps</h2>
+    <table class="table">
+      <thead><tr><th>Rank</th><th>Client</th><th>Reps</th></tr></thead>
+      <tbody>
+      {% for row in top_reps %}
+        <tr>
+          <td>#{{ loop.index }}</td>
+          <td>{{ row.full_name }}</td>
+          <td>{{ row.total_reps }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- STREAKS -->
+  <div class="card">
+    <h2 style="color:#3b82f6;">🔥 Top 10 by Streak</h2>
+    <table class="table">
+      <thead><tr><th>Rank</th><th>Client</th><th>Streak</th></tr></thead>
+      <tbody>
+      {% for row in top_streaks %}
+        <tr>
+          <td>#{{ loop.index }}</td>
+          <td>{{ row.full_name }}</td>
+          <td>{{ row.current_streak }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

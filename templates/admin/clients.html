@@ -1,0 +1,48 @@
+<!-- templates/admin/clients.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}Clients - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Client Management</h1>
+        <a href="{{ url_for('admin_add_client') }}" class="btn btn-primary">+ Add New Client</a>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Level</th>
+                <th>Rank</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr>
+                <td>{{ client.client_id }}</td>
+                <td><strong>{{ client.full_name }}</strong></td>
+                <td>{{ client.phone_number }}</td>
+                <td>{{ client.email or 'N/A' }}</td>
+                <td><span style="color: #667eea; font-weight: bold;">{{ client.level }}</span></td>
+                <td><span style="color: #10b981; font-weight: bold;">{{ client.rank }}</span></td>
+                <td>
+                    <a href="{{ url_for('admin_client_details', client_id=client.client_id) }}" class="btn btn-primary btn-sm">View</a>
+                    <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-success btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('admin_delete_client', client_id=client.client_id) }}" style="display: inline;" onsubmit="return confirm('Are you sure?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

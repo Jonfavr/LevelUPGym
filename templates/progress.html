@@ -1,0 +1,118 @@
+<!-- templates/progress.html -->
+{% extends "base.html" %}
+
+{% block title %}Progress - LevelUp Gym{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Your Progress</h1>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2>Level Progress</h2>
+        <div style="text-align: center; margin: 20px 0;">
+            <div style="font-size: 72px; font-weight: bold; color: #667eea;">{{ progress.level }}</div>
+            <div style="color: #6b7280;">Current Level</div>
+        </div>
+        <div style="margin: 20px 0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>{{ progress.current_exp }} EXP</span>
+                <span>{{ progress.next_level_exp }} EXP</span>
+            </div>
+            <div style="background: #e5e7eb; height: 30px; border-radius: 15px; overflow: hidden;">
+                <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: {{ progress.progress_percentage }}%;"></div>
+            </div>
+        </div>
+        <p><strong>Total EXP:</strong> {{ progress.total_exp }}</p>
+        <p><strong>Rank:</strong> {{ progress.rank }}</p>
+        {% if progress.class %}
+        <p><strong>Class:</strong> {{ progress.class }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="card">
+        <h2>Attendance Stats</h2>
+        {% if attendance_stats %}
+        <p><strong>Total Visits:</strong> {{ attendance_stats.total_visits }}</p>
+        <p><strong>First Visit:</strong> {{ attendance_stats.first_visit }}</p>
+        <p><strong>Last Visit:</strong> {{ attendance_stats.last_visit }}</p>
+        <p><strong>Avg Visits/Week:</strong> {{ attendance_stats.avg_visits_per_week }}</p>
+        <p><strong>Current Streak:</strong> {{ progress.streak }} days 🔥</p>
+        <p><strong>Longest Streak:</strong> {{ progress.longest_streak }} days</p>
+        {% else %}
+        <p>No attendance data yet. Start your journey today!</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Workout Statistics</h2>
+    {% if workout_stats %}
+    <div class="grid grid-3">
+        <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 36px; font-weight: bold; color: #667eea;">{{ workout_stats.total_workouts }}</div>
+            <div style="color: #6b7280;">Total Workouts</div>
+        </div>
+        <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 36px; font-weight: bold; color: #10b981;">{{ workout_stats.total_sets }}</div>
+            <div style="color: #6b7280;">Total Sets</div>
+        </div>
+        <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 36px; font-weight: bold; color: #f59e0b;">{{ workout_stats.total_reps }}</div>
+            <div style="color: #6b7280;">Total Reps</div>
+        </div>
+    </div>
+    {% if workout_stats.favorite_exercise %}
+    <p style="text-align: center; margin-top: 20px;"><strong>Favorite Exercise:</strong> {{ workout_stats.favorite_exercise }}</p>
+    {% endif %}
+    {% else %}
+    <p>Start working out to see your stats!</p>
+    {% endif %}
+</div>
+
+{% if personal_records %}
+<div class="card">
+    <h2>Personal Records 🏆</h2>
+    <div style="display: grid; gap: 15px;">
+        {% for record in personal_records %}
+        <div style="padding: 15px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #667eea;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>{{ record.exercise }}</strong>
+                    <div style="color: #6b7280; font-size: 14px;">{{ record.target_muscle }}</div>
+                </div>
+                <div style="text-align: right;">
+                    {% if record.max_weight %}
+                    <div style="font-size: 20px; font-weight: bold; color: #667eea;">{{ record.max_weight }} kg</div>
+                    {% endif %}
+                    <div style="color: #6b7280; font-size: 14px;">Max Reps: {{ record.max_reps }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Recent Workouts</h2>
+    {% if workout_history %}
+    <div style="display: grid; gap: 10px;">
+        {% for workout in workout_history %}
+        <div style="padding: 15px; background: #f9fafb; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between;">
+                <strong>{{ workout.date }}</strong>
+                <span style="color: #10b981; font-weight: bold;">+{{ workout.total_exp }} EXP</span>
+            </div>
+            <div style="color: #6b7280; margin-top: 5px;">
+                {{ workout.exercises_count }} exercises • {{ workout.total_sets }} sets
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No workout history yet. Complete your first workout!</p>
+    {% endif %}
+</div>
+{% endblock %}

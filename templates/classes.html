@@ -1,0 +1,33 @@
+<!-- templates/classes.html -->
+{% extends "base.html" %}
+
+{% block title %}Choose Your Class - LevelUp Gym{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center;">
+    <h1>Choose Your Class!</h1>
+    <p>You've reached Level 5! Choose a specialized class to gain bonus EXP.</p>
+    <p style="color: #ef4444; font-weight: bold; margin-top: 10px;">⚠️ This choice is permanent!</p>
+</div>
+
+<div class="grid grid-2">
+    {% for class_name, class_info in classes.items() %}
+    <div class="card" style="border: 3px solid #667eea;">
+        <h2 style="color: #667eea;">{{ class_name }}</h2>
+        <p style="font-size: 18px; margin: 15px 0;">{{ class_info.description }}</p>
+        <p style="background: #fef3c7; padding: 15px; border-radius: 8px; font-weight: bold;">
+            💫 {{ class_info.bonus }}
+        </p>
+        <p style="margin-top: 15px; color: #10b981; font-weight: bold;">
+            {{ class_info.multiplier }}x EXP Multiplier
+        </p>
+        <form method="POST" action="{{ url_for('choose_class', class_name=class_name) }}" style="margin-top: 20px;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;" 
+                    onclick="return confirm('Are you sure you want to choose {{ class_name }}? This cannot be changed!')">
+                Choose {{ class_name }}
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

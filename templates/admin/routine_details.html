@@ -1,0 +1,144 @@
+<!-- templates/admin/routine_details.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}{{ routine.routine_name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ routine.routine_name }}</h1>
+    <p style="color: #6b7280;">{{ routine.description or 'No description provided' }}</p>
+    <p style="margin-top: 10px;">
+        <strong>Total Base EXP:</strong>
+        <span style="color: #667eea; font-size: 20px;">{{ total_exp }}</span>
+    </p>
+    <div style="margin-top: 15px;">
+        <a href="{{ url_for('admin_routines') }}" class="btn btn-success">← Back to Routines</a>
+    </div>
+</div>
+
+<!-- Add new exercise -->
+<div class="card">
+    <h2>Add Exercise to Routine</h2>
+    <form method="POST" action="{{ url_for('admin_add_exercise_to_routine', routine_id=routine.routine_id) }}">
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="routine_exercise_id" style="white-space: nowrap;">Select Exercise *</label>
+                <select id="routine_exercise_id" name="exercise_id" required>
+                    <option value="">-- Choose Exercise --</option>
+                    {% for ex in all_exercises %}
+                    <option value="{{ ex.exercise_id }}">{{ ex.name }} ({{ ex.target_muscle }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label for="sets" style="white-space: nowrap;">Sets *</label>
+                    <input type="number" id="sets" name="sets" value="3" min="1" max="10" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="reps" style="white-space: nowrap;">Reps/Sec *</label>
+                    <input type="number" id="reps" name="reps" value="10" min="1" max="1000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="measurement" style="white-space: nowrap;">Measurement *</label>
+                    <select id="measurement" name="measurement" required>
+                        <option value="reps">Reps</option>
+                        <option value="seconds">Seconds</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="rest_seconds" style="white-space: nowrap;">Rest (s) *</label>
+                    <input type="number" id="rest_seconds" name="rest" value="60" min="0" max="300" required>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">+ Add Exercise</button>
+    </form>
+</div>
+
+<!-- Routine Exercises List -->
+<div class="card">
+    <h2>Exercises in This Routine ({{ exercises|length }})</h2>
+
+    {% if exercises %}
+    <div style="display: grid; gap: 15px; margin-top: 20px;">
+        {% for exercise in exercises %}
+        <div style="padding: 20px; border: 2px solid #e5e7eb; border-radius: 10px; border-left: 5px solid #667eea; background: #f9fafb;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                
+                <div style="flex: 1;">
+                    <h3 style="margin: 0; color: #667eea;">
+                        {{ loop.index }}. {{ exercise.name }}
+                    </h3>
+                    <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 14px;">
+                        <strong>Target:</strong> {{ exercise.target_muscle }} |
+                        <strong>Type:</strong> {{ exercise.exercise_type }}
+                    </p>
+
+                    <!-- Editable Fields -->
+                    <form method="POST" action="{{ url_for('update_routine_exercise') }}"
+                        style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <input type="hidden" name="routine_exercise_id" value="{{ exercise.routine_exercise_id }}">
+                        
+                        <label>Sets:</label>
+                        <input type="number" name="sets" value="{{ exercise.sets }}" min="1" style="width: 70px; padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+
+                        <label>Reps/Sec:</label>
+                        <input type="number" name="reps" value="{{ exercise.reps }}" min="0" style="width: 90px; padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+
+                        <label>Rest (s):</label>
+                        <input type="number" name="rest_seconds" value="{{ exercise.rest_seconds }}" min="0" style="width: 90px; padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+
+                        <label>Measurement:</label>
+                        <select name="measurement" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+                            <option value="reps" {% if exercise.measurement == 'reps' %}selected{% endif %}>Reps</option>
+                            <option value="seconds" {% if exercise.measurement == 'seconds' %}selected{% endif %}>Seconds</option>
+                        </select>
+
+                        <button type="submit" class="btn btn-primary btn-sm" style="margin-left: auto;">Save</button>
+                    </form>
+
+                    <!-- Info Badges -->
+                    <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 15px;">
+                        <span style="background: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 6px; font-weight: 600;">
+                            {{ exercise.sets }} sets × {{ exercise.reps }} {{ exercise.measurement }}
+                        </span>
+                        <span style="background: #fef3c7; color: #92400e; padding: 6px 12px; border-radius: 6px; font-weight: 600;">
+                            Rest: {{ exercise.rest_seconds }}s
+                        </span>
+                        <span style="background: #d1fae5; color: #065f46; padding: 6px 12px; border-radius: 6px; font-weight: 600;">
+                            {{ exercise.base_exp }} EXP/set
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Delete Exercise -->
+                <form method="POST" 
+                action="{{ url_for('delete_routine_exercise', routine_exercise_id=exercise.routine_exercise_id) }}"
+                onsubmit="return confirm('Are you sure you want to remove this exercise from the routine?')">
+                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Routine Summary -->
+    <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; text-align: center;">
+        <p style="font-size: 14px; margin-bottom: 5px;">Total Routine Experience</p>
+        <p style="font-size: 32px; font-weight: bold; margin: 0;">{{ total_exp }} EXP</p>
+        <p style="font-size: 12px; margin-top: 5px; opacity: 0.9;">Base experience (before multipliers)</p>
+    </div>
+
+    {% else %}
+    <p style="color: #6b7280; padding: 20px; text-align: center; font-style: italic;">
+        No exercises added yet. Use the form above to add exercises to this routine.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

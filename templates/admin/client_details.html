@@ -1,0 +1,91 @@
+<!-- templates/admin/client_details.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}{{ client.full_name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ client.full_name }}</h1>
+    <p>Client ID: {{ client.client_id }} | Member since: {{ client.registration_date }}</p>
+    <div style="margin-top: 15px;">
+        <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-primary">Edit Client</a>
+        <a href="{{ url_for('admin_clients') }}" class="btn btn-success">Back to List</a>
+    </div>
+</div>
+
+<div class="grid grid-3">
+    <div class="card stat-card">
+        <div class="stat-value">{{ progress.current_level }}</div>
+        <div class="stat-label">Level</div>
+    </div>
+    
+    <div class="card stat-card">
+        <div class="stat-value">{{ progress.rank }}</div>
+        <div class="stat-label">Rank</div>
+    </div>
+    
+    <div class="card stat-card">
+        <div class="stat-value">{{ progress.streak }}</div>
+        <div class="stat-label">Current Streak</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2>Personal Information</h2>
+        <p><strong>Phone:</strong> {{ client.phone_number }}</p>
+        <p><strong>Email:</strong> {{ client.email or 'Not provided' }}</p>
+        <p><strong>Date of Birth:</strong> {{ client.date_of_birth or 'Not provided' }}</p>
+        <p><strong>Age:</strong> {{ client.age or 'N/A' }}</p>
+        <p><strong>Gender:</strong> {{ client.gender or 'Not specified' }}</p>
+    </div>
+    
+    <div class="card">
+        <h2>Physical Data</h2>
+        {% if physical_data %}
+        <p><strong>Height:</strong> {{ physical_data.height_cm }} cm</p>
+        <p><strong>Weight:</strong> {{ physical_data.weight_kg }} kg</p>
+        <p><strong>Body Fat:</strong> {{ physical_data.body_fat_percentage or 'N/A' }}%</p>
+        <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
+        {% else %}
+        <p>No physical data recorded</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Progress</h2>
+    <p><strong>Current EXP:</strong> {{ progress.current_exp }} / {{ progress.next_level_exp }}</p>
+    <p><strong>Total EXP:</strong> {{ progress.total_exp }}</p>
+    {% if progress.class %}
+    <p><strong>Class:</strong> {{ progress.class }}</p>
+    {% endif %}
+    <p><strong>Streak Multiplier:</strong> {{ progress.streak_multiplier }}x</p>
+</div>
+
+<div class="card">
+    <h2>Training Days</h2>
+    <p>{{ ', '.join(availability) if availability else 'No days set' }}</p>
+</div>
+
+<div class="card">
+    <h2>Weekly Schedule</h2>
+    {% if weekly_schedule %}
+        {% for day, routine in weekly_schedule.items() %}
+        <p><strong>{{ day }}:</strong> {{ routine.routine_name }}</p>
+        {% endfor %}
+    {% else %}
+    <p>No routines assigned</p>
+    {% endif %}
+</div>
+
+{% if attendance_stats %}
+<div class="card">
+    <h2>Attendance Statistics</h2>
+    <p><strong>Total Visits:</strong> {{ attendance_stats.total_visits }}</p>
+    <p><strong>First Visit:</strong> {{ attendance_stats.first_visit }}</p>
+    <p><strong>Last Visit:</strong> {{ attendance_stats.last_visit }}</p>
+    <p><strong>Avg Visits/Week:</strong> {{ attendance_stats.avg_visits_per_week }}</p>
+</div>
+{% endif %}
+{% endblock %}

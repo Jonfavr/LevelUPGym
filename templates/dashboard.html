@@ -1,0 +1,211 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Dashboard - LevelUp Gym{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .welcome-banner h1 {
+        color: white;
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+    
+    .stat-card {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .stat-value {
+        font-size: 48px;
+        font-weight: bold;
+        color: #667eea;
+        display: block;
+    }
+    
+    .stat-label {
+        color: #6b7280;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    .progress-bar {
+        background: #e5e7eb;
+        height: 30px;
+        border-radius: 15px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+    
+    .progress-fill {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        height: 100%;
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .routine-card {
+        border-left: 4px solid #667eea;
+    }
+    
+    .achievement-badge {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .new-badge {
+        background: #ef4444;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+</style>
+{% endblock %}
+
+{% if notification %}
+<div class="alert alert-warning" style="background:#FEF3C7; padding:10px; border-radius:6px;">
+  {{ notification }}
+</div>
+{% endif %}
+
+{% block content %}
+<div class="welcome-banner">
+    <h1>Welcome back, {{ client.first_name }}! 💪</h1>
+    <p>Ready to level up today?</p>
+</div>
+
+{% if newly_unlocked %}
+    {% for achievement in newly_unlocked %}
+    <div class="alert alert-success">
+        🎉 <strong>Achievement Unlocked!</strong> {{ achievement.achievement_name }} - {{ achievement.description }} (+{{ achievement.exp_earned }} EXP)
+    </div>
+    {% endfor %}
+{% endif %}
+
+{% if progress.class %}
+<div class="grid grid-4">
+    <div class="card stat-card">
+        <span class="stat-value">{{ progress.level }}</span>
+        <span class="stat-label">Level</span>
+    </div>
+    
+    <div class="card stat-card">
+        <span class="stat-value">{{ progress.rank }}</span>
+        <span class="stat-label">Rank</span>
+    </div>
+
+    <div class="card stat-card">
+        <span class="stat-value">{{ progress.class }}</span>
+        <span class="stat-label">Class</span>
+    </div>
+    
+    <div class="card stat-card">
+        <span class="stat-value">{{ streak_data.current_streak if streak_data else 0 }}</span>
+        <span class="stat-label">Day Streak 🔥</span>
+    </div>
+
+</div>
+{% else %}
+<div class="grid grid-3">
+    <div class="card stat-card">
+        <span class="stat-value">{{ progress.level }}</span>
+        <span class="stat-label">Level</span>
+    </div>
+    
+    <div class="card stat-card">
+        <span class="stat-value">{{ progress.rank }}</span>
+        <span class="stat-label">Rank</span>
+    </div>
+    
+    <div class="card stat-card">
+        <span class="stat-value">{{ streak_data.current_streak if streak_data else 0 }}</span>
+        <span class="stat-label">Day Streak 🔥</span>
+    </div>
+</div>
+{% endif %}
+<div class="card">
+    <h2>Your Progress</h2>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span>Level {{ progress.level }}</span>
+        <span>{{ progress.current_exp }} / {{ progress.next_level_exp }} EXP</span>
+    </div>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ progress.progress_percentage }}%">
+            {{ "%.1f"|format(progress.progress_percentage) }}%
+        </div>
+    </div>
+    
+    {% if progress.class %}
+    <p><strong>Class Specialty:</strong> {{ progress.class_info.description }}</p>
+    {% elif progress.can_choose_class %}
+    <a href="{{ url_for('classes') }}" class="btn btn-primary" style="margin-top: 10px;">Choose Your Class!</a>
+    {% endif %}
+</div>
+
+<div class="card routine-card">
+    <h2>Today's Workout - {{ today }}</h2>
+    {% if today_routine %}
+        <h3>{{ today_routine.routine_name }}</h3>
+        <p>{{ today_routine.description }}</p>
+        <p><strong>Total Base EXP:</strong> {{ today_routine.calculate_total_exp() }}</p>
+
+        {% if status == 'completed' %}
+            <span style="color: #10b981; font-weight: bold;">
+                <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" 
+                   class="btn btn-disabled" style="margin-top: 10px;">
+                    Workout Completed
+                </a>
+            </span>
+
+        {% elif status == 'in_progress' %}
+            <span style="color: #fbbf24; font-weight: bold;">
+                <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" 
+                   class="btn btn-progress" style="margin-top: 10px;">
+                    Continue Workout  →
+                </a>
+            </span>
+
+        {% else %}
+            <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" 
+               class="btn btn-success" style="margin-top: 10px;">
+                Start Workout →
+            </a>
+        {% endif %}
+
+    {% else %}
+        <p>No routine scheduled for today. Enjoy your rest day! 😊</p>
+    {% endif %}
+</div>
+
+{% if recent_achievements %}
+<div class="card">
+    <h2>Recent Achievements</h2>
+    {% for achievement in recent_achievements %}
+    <div class="achievement-badge">
+        <strong>🏆 {{ achievement.name }}</strong>
+        <p style="margin-top: 5px; opacity: 0.9;">{{ achievement.description }}</p>
+    </div>
+    {% endfor %}
+    <a href="{{ url_for('achievements') }}" class="btn btn-primary" style="margin-top: 10px;">View All Achievements</a>
+</div>
+{% endif %}
+{% endblock %}

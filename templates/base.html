@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LevelUp Gym{% endblock %}</title>
+    <link rel="icon" href="/image/favicon.ico" type="image/x-icon">
+    <!-- Add icons (Font Awesome or any set you prefer) -->
+    <script src="https://kit.fontawesome.com/5a7f2f7363.js" crossorigin="anonymous"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding-bottom: 80px; /* space for bottom nav */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 🔹 Top nav - only logout */
+        .top-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-content .nav-links a {
+            background: #ef4444;
+            color: white;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .nav-content .nav-links a:hover {
+            background: #dc2626;
+            transform: translateY(-3px);
+        }
+
+        .nav-content .nav-links a img {
+            transform: translateY(5px);
+            filter: brightness(0) saturate(100%) invert(100%) sepia(94%) saturate(0%) hue-rotate(293deg) brightness(108%) contrast(105%);
+        }
+        
+        .nav-content .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .nav-content .logo img {
+            width: 25px;
+        }
+
+        /* 🔹 Bottom nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px 0;
+            border-top: 2px solid #e5e7eb;
+            z-index: 1000;
+        }
+
+        .bottom-nav a {
+            text-decoration: none;
+            color:  #374151;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .bottom-nav a i {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .bottom-nav a:hover {
+            color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        .bottom-nav a img {
+            filter: brightness(0) saturate(100%) invert(22%) sepia(22%) saturate(534%) hue-rotate(178deg) brightness(100%) contrast(94%);
+        }
+
+        .bottom-nav a img:hover {
+            filter: brightness(0) saturate(100%) invert(45%) sepia(89%) saturate(1581%) hue-rotate(210deg) brightness(96%) contrast(91%);
+        }
+
+        .bottom-nav a.active img {
+            filter: brightness(0) saturate(100%) invert(45%) sepia(89%) saturate(1581%) hue-rotate(210deg) brightness(96%) contrast(91%);
+        }
+        
+        /* Active link styling */
+        .bottom-nav a.active {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* 🔹 General buttons & cards (unchanged from your style) */
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
+
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .alert-info { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
+        .alert-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+
+        h1, h2, h3 { color: #1f2937; margin-bottom: 15px; }
+
+        @media (max-width: 600px) {
+            .bottom-nav a i { font-size: 18px; }
+            .bottom-nav a span { font-size: 11px; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if session.client_id %}
+        <!-- 🔺 Top Logout -->
+        <div class="top-nav">
+            <div class="nav-content">
+                <div class="logo" style="color: #3B4651;"><img src="/static/image/Untitled design - Copy.png" style="width: 40px; height: auto;"> LEVELUP GYM</div>
+                <div class="nav-links">
+                    <a href="{{ url_for('logout') }}"><img src="/static/icons/logout.png"></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔻 Bottom Navigation -->
+        <div class="bottom-nav">
+            <a href="{{ url_for('progress') }}" class="{% if request.endpoint == 'progress' %}active{% endif %}">
+                <img src="/static/icons/progress.png">
+            </a>
+            <a href="{{ url_for('schedule') }}" class="{% if request.endpoint == 'schedule' %}active{% endif %}">
+                <img src="/static/icons/schedule.png">
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <img src="/static/icons/home.png">
+            </a>
+            <a href="{{ url_for('profile') }}" class="{% if request.endpoint == 'profile' %}active{% endif %}">
+                <img src="/static/icons/profile.png">
+            </a>
+            <a href="{{ url_for('achievements') }}" class="{% if request.endpoint == 'achievements' %}active{% endif %}">
+                <img src="/static/icons/achievment.png">
+            </a>
+        </div>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

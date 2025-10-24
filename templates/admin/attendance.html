@@ -1,0 +1,91 @@
+<!-- templates/admin/attendance.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}Attendance - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Attendance Management</h1>
+    <p>Manually check clients in and out, or view today's attendance</p>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2>✓ Check-in Client</h2>
+        <form method="POST" action="{{ url_for('admin_checkin') }}">
+            <div class="form-group">
+                <label for="checkin_client_id">Select Client</label>
+                <select id="checkin_client_id" name="client_id" required>
+                    <option value="">-- Choose Client --</option>
+                    {% for client in clients %}
+                    <option value="{{ client.client_id }}">{{ client.full_name }} ({{ client.phone_number }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success" style="width: 100%;">Check In Client</button>
+        </form>
+    </div>
+    
+    <div class="card">
+        <h2>← Check-out Client</h2>
+        <form method="POST" action="{{ url_for('admin_checkout') }}">
+            <div class="form-group">
+                <label for="checkout_client_id">Select Client</label>
+                <select id="checkout_client_id" name="client_id" required>
+                    <option value="">-- Choose Client --</option>
+                    {% for client in clients %}
+                    <option value="{{ client.client_id }}">{{ client.full_name }} ({{ client.phone_number }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Check Out Client</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Today's Attendance ({{ attendance_list|length }} clients)</h2>
+    {% if attendance_list %}
+    <table>
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>Phone</th>
+                <th>Check-in Time</th>
+                <th>Check-out Time</th>
+                <th>Status</th>
+                <th>EXP Earned</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in attendance_list %}
+            <tr>
+                <td><strong>{{ record.client_name }}</strong></td>
+                <td>{{ record.phone_number }}</td>
+                <td>{{ record.check_in_time }}</td>
+                <td>
+                    {% if record.check_out_time %}
+                        {{ record.check_out_time }}
+                    {% else %}
+                        <span style="color: #9ca3af;">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if record.check_out_time %}
+                        <span style="color: #6b7280; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">Completed</span>
+                    {% else %}
+                        <span style="color: #10b981; background: #d1fae5; padding: 4px 8px; border-radius: 4px; font-weight: 600;">💪 In Gym</span>
+                    {% endif %}
+                </td>
+                <td><strong style="color: #667eea; font-size: 16px;">{{ record.exp_earned }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #6b7280; padding: 40px; text-align: center; font-size: 16px;">
+        No attendance records for today yet. Start checking in clients! 👋
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

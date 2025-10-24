@@ -1,0 +1,60 @@
+<!-- templates/profile.html -->
+{% extends "base.html" %}
+
+{% block title %}Profile - LevelUp Gym{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ client.full_name }}</h1>
+    <p>Member since {{ client.registration_date }}</p>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2>Personal Information</h2>
+        <p><strong>Phone:</strong> {{ client.phone_number }}</p>
+        <p><strong>Email:</strong> {{ client.email or 'Not provided' }}</p>
+        <p><strong>Date of Birth:</strong> {{ client.date_of_birth or 'Not provided' }}</p>
+        <p><strong>Age:</strong> {{ client.age or 'N/A' }}</p>
+        <p><strong>Gender:</strong> {{ client.gender or 'Not specified' }}</p>
+    </div>
+    
+    <div class="card">
+        <h2>Physical Data</h2>
+        {% if physical_data %}
+        <p><strong>Height:</strong> {{ physical_data.height_cm }} cm</p>
+        <p><strong>Weight:</strong> {{ physical_data.weight_kg }} kg</p>
+        <p><strong>Body Fat:</strong> {{ physical_data.body_fat_percentage or 'N/A' }}%</p>
+        <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
+        {% else %}
+        <p>No physical data recorded yet</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Gamification Stats</h2>
+    {% if gam_data %}
+    <div class="grid grid-4">
+        <div style="text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #667eea;">{{ gam_data.current_level }}</div>
+            <div>Level</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #10b981;">{{ gam_data.rank }}</div>
+            <div>Rank</div>
+        </div>
+        {% if gam_data.client_class %}
+        <div style="text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #c00b0b;">{{ gam_data.client_class }}</div>
+            <div>Class</div>
+        </div>
+        {% endif %}
+        <div style="text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #f59e0b;">{{ gam_data.total_exp }}</div>
+            <div>Total EXP</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

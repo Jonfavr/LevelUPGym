@@ -1,0 +1,63 @@
+<!-- templates/admin/exercise_form.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}{% if exercise %}Edit{% else %}Add{% endif %} Exercise - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{% if exercise %}Edit Exercise{% else %}Add New Exercise{% endif %}</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Exercise Name *</label>
+            <input type="text" id="name" name="name" value="{{ exercise.name if exercise else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="3">{{ exercise.description if exercise else '' }}</textarea>
+        </div>
+        
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="type">Exercise Type</label>
+                <select id="type" name="type">
+                    <option value="strength" {% if exercise and exercise.exercise_type == 'strength' %}selected{% endif %}>Strength</option>
+                    <option value="cardio" {% if exercise and exercise.exercise_type == 'cardio' %}selected{% endif %}>Cardio</option>
+                    <option value="hiit" {% if exercise and exercise.exercise_type == 'hiit' %}selected{% endif %}>HIIT</option>
+                    <option value="core" {% if exercise and exercise.exercise_type == 'core' %}selected{% endif %}>Core</option>
+                    <option value="flexibility" {% if exercise and exercise.exercise_type == 'flexibility' %}selected{% endif %}>Flexibility</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="muscle">Target Muscle</label>
+                <input type="text" id="muscle" name="muscle" value="{{ exercise.target_muscle if exercise else '' }}">
+            </div>
+        </div>
+        
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="difficulty">Difficulty Level</label>
+                <select id="difficulty" name="difficulty">
+                    <option value="beginner" {% if exercise and exercise.difficulty_level == 'beginner' %}selected{% endif %}>Beginner</option>
+                    <option value="intermediate" {% if exercise and exercise.difficulty_level == 'intermediate' %}selected{% endif %}>Intermediate</option>
+                    <option value="advanced" {% if exercise and exercise.difficulty_level == 'advanced' %}selected{% endif %}>Advanced</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="exp">Base EXP *</label>
+                <input type="number" id="exp" name="exp" value="{{ exercise.base_exp if exercise else '10' }}" required>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-primary">{% if exercise %}Update{% else %}Create{% endif %} Exercise</button>
+            <a href="{{ url_for('admin_exercises') }}" class="btn btn-danger">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

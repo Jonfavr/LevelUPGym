@@ -1,0 +1,41 @@
+<!-- templates/schedule.html -->
+{% extends "base.html" %}
+
+{% block title %}My Schedule - LevelUp Gym{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Weekly Schedule</h1>
+    <p>Your personalized workout plan</p>
+</div>
+
+{% for day in all_days %}
+<div class="card" style="{% if day in schedule %}border-left: 5px solid #667eea;{% else %}opacity: 0.6;{% endif %}">
+    <h2>{{ day }}</h2>
+    
+    {% if day in schedule %}
+        <h3 style="color: #667eea;">{{ schedule[day].routine_name }}</h3>
+        <p>{{ schedule[day].description or 'No description' }}</p>
+        {% set status = schedule[day].status if 'status' in schedule[day] else 'not_started' %}
+        {% if status == 'completed' %}
+        <span style="color: #6b7280; font-weight:bold;"><a href="{{ url_for('workout', routine_id=schedule[day].routine_id) }}" class="btn btn-disabled" style="margin-top: 10px;">
+            Workout Completed
+        </a></span>
+        {% elif status == 'in_progress' %}
+        <span style="color:#fbbf24; font-weight:bold;">
+            <a href="{{ url_for('workout', routine_id=schedule[day].routine_id) }}" class="btn btn-progress" style="margin-top: 10px;">
+            Continue Workout →
+        </a></span>
+        {% else %}
+        <a href="{{ url_for('workout', routine_id=schedule[day].routine_id) }}" class="btn btn-success" style="margin-top: 10px;">
+            Start Workout →
+        </a>
+        {% endif %}
+    {% elif day in availability %}
+        <p style="color: #6b7280;">No routine assigned yet</p>
+    {% else %}
+        <p style="color: #9ca3af;">Rest Day - Not in your training schedule</p>
+    {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

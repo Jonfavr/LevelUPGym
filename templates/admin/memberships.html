@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+{% block title %}Memberships - LevelUp Gym{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>📋 Membership Management</h1>
+  <p>Monitor, renew, and manage client memberships</p>
+</div>
+
+<div class="card">
+    <table class="table">
+    <thead>
+        <tr>
+        <th>Client</th>
+        <th>Start Date</th>
+        <th>End Date</th>
+        <th>Status</th>
+        <th>Days Left</th>
+        <th>Renewals</th>
+        <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for m in memberships %}
+        <tr>
+        <td>{{ m.full_name }}</td>
+        <td>{{ m.start_date }}</td>
+        <td>{{ m.end_date }}</td>
+        <td>
+            {% if m.status == 'active' %}
+            <span style="color: #10b981;">🟢 Active</span>
+            {% elif m.status == 'expired' %}
+            <span style="color: #ef4444;">🔴 Expired</span>
+            {% else %}
+            <span style="color: #fbbf24;">🟡 {{ m.status|title }}</span>
+            {% endif %}
+        </td>
+        <td>
+            {% if m.days_remaining <= 0 %}
+            0
+            {% else %}
+            {{ m.days_remaining }}
+            {% endif %}
+        </td>
+        <td>{{ m.renewal_count }}</td>
+        <td>
+            {% if m.status != 'expired' %}
+            <form action="{{ url_for('renew_membership') }}" method="post" style="display:inline;">
+            <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
+            <button type="submit" class="btn btn-success">🔁 Renew</button>
+            </form>
+            {% else %}
+            <form action="{{ url_for('reactivate_membership') }}" method="post" style="display:inline;">
+            <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
+            <button type="submit" class="btn btn-primary">♻️ Reactivate</button>
+            </form>
+            {% endif %}
+        </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</div>
+{% endblock %}
