@@ -967,16 +967,6 @@ def get_local_ip():
 
 if __name__ == '__main__':
     local_ip = get_local_ip()
-    print("\n" + "="*70)
-    print("🏋️  LevelUp Gym - Web Portal Server")
-    print("="*70)
-    print(f"\n📱 Client Portal:")
-    print(f"   http://{local_ip}:5000")
-    print(f"\n👨‍💼 Admin Portal:")
-    print(f"   http://{local_ip}:5000/admin")
-    print(f"   Username: admin | Password: admin123")
-    print(f"\n   (Use these URLs on devices connected to the same WiFi)")
-    print("\n" + "="*70 + "\n")
     
     # Run on all network interfaces
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run()
