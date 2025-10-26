@@ -147,6 +147,7 @@ def dashboard():
     if membership:
         end_date = datetime.strptime(membership['end_date'], '%Y-%m-%d').date()
         days_left = (end_date - date.today()).days
+        print("Days Left", days_left)
         if 0 < days_left <= 5:
             notification = f"⚠️ Your membership expires in {days_left} days. Please renew soon!"
         elif days_left <= 0:
@@ -158,7 +159,8 @@ def dashboard():
     except Exception as e:
         print(f"Achievement check error for client {client_id}: {e}")
         newly_unlocked = []
-
+    
+    print("Notification:",notification)
     # --- Render dashboard ---
     return render_template(
         'dashboard.html',

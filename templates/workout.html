@@ -130,12 +130,29 @@
         padding: 6px 12px;
         border-radius: 6px;
         cursor: pointer;
-        transition: 0.2s;
+        transition: all 0.3s;
     }
     .btn-info:hover {
         background-color: #2563eb;
+        transform: translateY(-2px);
     }
-    
+
+    .rest-timer {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: none;
+    background: #1f2937;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 18px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: background 0.3s, color 0.3s;
+    }
+
     /* ✅ RESPONSIVE FIXES FOR SMALL DEVICES */
     @media (max-width: 768px) {
         .set-input-group {
@@ -215,6 +232,11 @@
 {% endblock %}
 
 {% block content %}
+<!-- 🕒 REST TIMER DISPLAY -->
+<div id="rest-timer" class="rest-timer">
+    🕒 Rest Time: <span id="rest-seconds">0</span>s
+</div>
+
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
@@ -264,7 +286,7 @@
     {% endif %}
 
     {% for exercise in exercises %}
-    <div class="card exercise-card" data-exercise-id="{{ exercise.exercise_id }}">
+    <div class="card exercise-card" data-exercise-id="{{ exercise.exercise_id }}" data-rest="{{ exercise.rest_seconds }}">
         <div class="exercise-header">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="exercise-number">{{ loop.index }}</div>
@@ -406,6 +428,14 @@ async function logSet(exerciseId, setNumber) {
             button.classList.remove('btn-success');
             repsInput.disabled = true;
             weightInput.disabled = true;
+
+            // Get rest time from the exercise data (if available)
+            const exerciseElement = document.querySelector(`.exercise-card[data-exercise-id='${exerciseId}']`);
+            console.log((exerciseElement.dataset))
+            const restTime = parseInt(exerciseElement.dataset.rest) || 60; // default to 60s
+
+            // 🕒 Restart smart rest timer
+            startRestTimer(restTime);
             
             // Update EXP display
             const expEarnedDiv = document.querySelector(`[data-exercise-id="${exerciseId}"] .exp-earned`);
@@ -470,6 +500,7 @@ function closeModal() {
 }
 
 async function finishWorkout() {
+    hideRestTimer();
     const sessionId = {{ session_info.session_id }};
     if (!sessionId) {
         alert("No active session found.");
@@ -488,6 +519,8 @@ async function finishWorkout() {
 
             const result = await response.json();
             if (result.success) {
+                if (restTimerInterval) clearInterval(restTimerInterval);
+                hideRestTimer()
                 alert('Workout marked as completed! 🎉');
                 window.location.href = '/dashboard';
             } else {
@@ -546,6 +579,50 @@ function showExerciseImage(name, imageUrl) {
 
 function closeExerciseImage() {
     document.getElementById('exercise-modal').style.display = 'none';
+}
+
+// 🕒 REST TIMER VARIABLES
+let restSeconds = 0;
+let restTimerInterval = null;
+let targetRestTime = 0;
+
+// Initialize rest timer display
+const restTimerEl = document.getElementById("rest-timer");
+const restSecondsEl = document.getElementById("rest-seconds");
+
+function startRestTimer(restTime) {
+    // Reset timer
+    restSeconds = 0;
+    targetRestTime = restTime;
+    restTimerEl.style.display = "block";
+    restTimerEl.style.background = "#1f2937";
+    restTimerEl.style.color = "white";
+    restTimerEl.innerHTML = `🕒 Rest Time: <span id="rest-seconds">0</span>s`;
+    const innerSeconds = restTimerEl.querySelector("#rest-seconds");
+
+    // Clear previous interval
+    if (restTimerInterval) clearInterval(restTimerInterval);
+
+    // Start counting
+    restTimerInterval = setInterval(() => {
+        restSeconds++;
+        innerSeconds.textContent = restSeconds;
+
+        if (restSeconds >= targetRestTime && targetRestTime > 0) {
+            restTimerEl.style.background = "#10b981"; // Green
+            restTimerEl.innerHTML = `✅ Start Next Set!`;
+        } else {
+            restTimerEl.style.background = "#1f2937";
+            restTimerEl.innerHTML = `🕒 Rest Time: <span id="rest-seconds">${restSeconds}</span>s`;
+        }
+    }, 1000);
+}
+
+function hideRestTimer() {
+    if (restTimerInterval) clearInterval(restTimerInterval);
+    restTimerEl.style.display = "none";
+    restSeconds = 0;
+    restSecondsEl.textContent = "0";
 }
 
 // Optional: close modal when clicking outside

@@ -81,13 +81,14 @@
 </style>
 {% endblock %}
 
+{% block content %}
+
 {% if notification %}
 <div class="alert alert-warning" style="background:#FEF3C7; padding:10px; border-radius:6px;">
   {{ notification }}
 </div>
 {% endif %}
 
-{% block content %}
 <div class="welcome-banner">
     <h1>Welcome back, {{ client.first_name }}! 💪</h1>
     <p>Ready to level up today?</p>

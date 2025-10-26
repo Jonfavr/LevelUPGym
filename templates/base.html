@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}LevelUp Gym{% endblock %}</title>
     <link rel="icon" href="/image/favicon.ico" type="image/x-icon">
-    <!-- Add icons (Font Awesome or any set you prefer) -->
-    <script src="https://kit.fontawesome.com/5a7f2f7363.js" crossorigin="anonymous"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -157,10 +155,16 @@
         .btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
 
         .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; }
+        .btn-success:hover { background: #059669; transform: translateY(-2px); }
+
+        .btn-progress { background: #fbbf24; color: white; }
+        .btn-progress:hover { background: #cf980c; transform: translateY(-2px); }
 
         .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-2px); }
+
+        .btn-disabled { background: #6b7280; color: white; }
+        .btn-disabled:hover { cursor: default; }
 
         .alert {
             padding: 15px 20px;

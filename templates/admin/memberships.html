@@ -53,14 +53,15 @@
           <form action="{{ url_for('renew_membership') }}" method="post" style="display:inline;">
             <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
 
-            <select name="duration_days" class="duration-select">
-            <option value="7">1 Week</option>
-            <option value="30" selected>1 Month</option>
-            <option value="90">3 Months</option>
-            <option value="365">1 Year</option>
-            </select>
-
-            <button type="submit" class="btn btn-success" style="margin-left:5px;">🔁 Renew</button>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <select name="duration_days" class="duration-select">
+                    <option value="7">1 Week</option>
+                    <option value="30" selected>1 Month</option>
+                    <option value="90">3 Months</option>
+                    <option value="365">1 Year</option>
+                </select>
+                <button type="submit" class="btn btn-success">🔁 Renew</button>
+            </div>
           </form>
 
           {% if m.status == 'expired' %}
