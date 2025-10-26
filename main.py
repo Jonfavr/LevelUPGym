@@ -923,7 +923,8 @@ def renew_membership():
     from controllers.membership_controller import MembershipController
     mc = MembershipController()
     membership_id = request.form.get('membership_id')
-    mc.renew_membership(membership_id)
+    duration_days = int(request.form.get('duration_days', 30))
+    mc.renew_membership(membership_id, duration_days)
     return redirect(url_for('admin_memberships'))
 
 @app.route('/admin/membership/reactivate', methods=['POST'])

@@ -7,7 +7,7 @@ class MembershipController:
         self.db = DatabaseManager()
 
     def get_all_memberships(self):
-        """Fetch all memberships; auto-create missing ones"""
+        """Fetch all memberships; auto-create missing ones and update expired ones"""
         clients = self.db.execute_query("SELECT client_id FROM clients")
         for c in clients:
             has_membership = self.db.execute_query(
@@ -21,7 +21,14 @@ class MembershipController:
                     VALUES (?, ?, ?, 'active', 0, ?, 'Auto-created')
                 ''', (c["client_id"], start, end, start))
 
-        # Now fetch full membership list
+        # --- NEW: Automatically mark expired memberships ---
+        self.db.execute_update("""
+            UPDATE client_memberships
+            SET status = 'expired'
+            WHERE DATE(end_date) < DATE('now') AND status = 'active'
+        """)
+
+        # Fetch updated memberships list
         query = """
             SELECT 
                 m.membership_id, m.client_id,
@@ -50,8 +57,24 @@ class MembershipController:
         return {"success": True, "message": f"Membership created for {client_id} until {end}"}
 
     def renew_membership(self, membership_id, duration_days=30):
-        """Renew membership by extending the end_date"""
-        new_end = (date.today() + timedelta(days=duration_days)).strftime("%Y-%m-%d")
+        """Renew membership by extending from current or end date"""
+        # Get current end date
+        current = self.db.execute_query(
+            "SELECT end_date FROM client_memberships WHERE membership_id = ?",
+            (membership_id,)
+        )
+
+        if not current:
+            return {"success": False, "message": "Membership not found"}
+
+        current_end = datetime.strptime(current[0]["end_date"], "%Y-%m-%d").date()
+        today = date.today()
+
+        # If expired, start from today; otherwise extend from current end date
+        base_date = today if current_end < today else current_end
+
+        new_end = base_date + timedelta(days=int(duration_days))
+
         query = """
             UPDATE client_memberships
             SET end_date = ?, status = 'active', renewal_count = renewal_count + 1, last_renewal_date = DATE('now')

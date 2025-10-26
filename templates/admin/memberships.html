@@ -2,15 +2,27 @@
 {% block title %}Memberships - LevelUp Gym{% endblock %}
 
 {% block content %}
+<style>
+.duration-select {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: white;
+  color: #1f2937;
+  font-size: 0.9rem;
+  width: 120px;
+}
+</style>
+
 <div class="card">
   <h1>📋 Membership Management</h1>
   <p>Monitor, renew, and manage client memberships</p>
 </div>
 
 <div class="card">
-    <table class="table">
+  <table class="table">
     <thead>
-        <tr>
+      <tr>
         <th>Client</th>
         <th>Start Date</th>
         <th>End Date</th>
@@ -18,47 +30,49 @@
         <th>Days Left</th>
         <th>Renewals</th>
         <th>Actions</th>
-        </tr>
+      </tr>
     </thead>
     <tbody>
-        {% for m in memberships %}
-        <tr>
+      {% for m in memberships %}
+      <tr>
         <td>{{ m.full_name }}</td>
         <td>{{ m.start_date }}</td>
         <td>{{ m.end_date }}</td>
         <td>
-            {% if m.status == 'active' %}
-            <span style="color: #10b981;">🟢 Active</span>
-            {% elif m.status == 'expired' %}
-            <span style="color: #ef4444;">🔴 Expired</span>
-            {% else %}
-            <span style="color: #fbbf24;">🟡 {{ m.status|title }}</span>
-            {% endif %}
+          {% if m.status == 'active' %}
+          <span style="color: #10b981;">🟢 Active</span>
+          {% elif m.status == 'expired' %}
+          <span style="color: #ef4444;">🔴 Expired</span>
+          {% else %}
+          <span style="color: #fbbf24;">🟡 {{ m.status|title }}</span>
+          {% endif %}
         </td>
-        <td>
-            {% if m.days_remaining <= 0 %}
-            0
-            {% else %}
-            {{ m.days_remaining }}
-            {% endif %}
-        </td>
+        <td>{{ m.days_remaining if m.days_remaining > 0 else 0 }}</td>
         <td>{{ m.renewal_count }}</td>
         <td>
-            {% if m.status != 'expired' %}
-            <form action="{{ url_for('renew_membership') }}" method="post" style="display:inline;">
+          <form action="{{ url_for('renew_membership') }}" method="post" style="display:inline;">
             <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
-            <button type="submit" class="btn btn-success">🔁 Renew</button>
-            </form>
-            {% else %}
-            <form action="{{ url_for('reactivate_membership') }}" method="post" style="display:inline;">
+
+            <select name="duration_days" class="duration-select">
+            <option value="7">1 Week</option>
+            <option value="30" selected>1 Month</option>
+            <option value="90">3 Months</option>
+            <option value="365">1 Year</option>
+            </select>
+
+            <button type="submit" class="btn btn-success" style="margin-left:5px;">🔁 Renew</button>
+          </form>
+
+          {% if m.status == 'expired' %}
+          <form action="{{ url_for('reactivate_membership') }}" method="post" style="display:inline;">
             <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
-            <button type="submit" class="btn btn-primary">♻️ Reactivate</button>
-            </form>
-            {% endif %}
+            <button type="submit" class="btn btn-primary" style="margin-left:5px;">♻️ Reactivate</button>
+          </form>
+          {% endif %}
         </td>
-        </tr>
-        {% endfor %}
+      </tr>
+      {% endfor %}
     </tbody>
-    </table>
+  </table>
 </div>
 {% endblock %}
