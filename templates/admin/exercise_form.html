@@ -25,9 +25,14 @@
                 <label for="type">Exercise Type</label>
                 <select id="type" name="type">
                     <option value="strength" {% if exercise and exercise.exercise_type == 'strength' %}selected{% endif %}>Strength</option>
+                    <option value="power" {% if exercise and exercise.exercise_type == 'power' %}selected{% endif %}>Power</option>
                     <option value="cardio" {% if exercise and exercise.exercise_type == 'cardio' %}selected{% endif %}>Cardio</option>
-                    <option value="hiit" {% if exercise and exercise.exercise_type == 'hiit' %}selected{% endif %}>HIIT</option>
+                    <option value="endurance" {% if exercise and exercise.exercise_type == 'endurance' %}selected{% endif %}>Endurance</option>
                     <option value="core" {% if exercise and exercise.exercise_type == 'core' %}selected{% endif %}>Core</option>
+                    <option value="functional" {% if exercise and exercise.exercise_type == 'functional' %}selected{% endif %}>Functional</option>
+                    <option value="hiit" {% if exercise and exercise.exercise_type == 'hiit' %}selected{% endif %}>HIIT</option>
+                    <option value="agility" {% if exercise and exercise.exercise_type == 'agility' %}selected{% endif %}>Agility</option>
+                    <option value="balance" {% if exercise and exercise.exercise_type == 'balance' %}selected{% endif %}>Balance</option>
                     <option value="flexibility" {% if exercise and exercise.exercise_type == 'flexibility' %}selected{% endif %}>Flexibility</option>
                 </select>
             </div>

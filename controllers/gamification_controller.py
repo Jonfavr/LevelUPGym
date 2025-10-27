@@ -313,11 +313,11 @@ class GamificationController:
         
         # Simplified class bonuses based on exercise type
         class_bonuses = {
-            'Warrior': ['strength', 'power', 'weights'],
-            'Ranger': ['cardio', 'endurance', 'running'],
-            'Tank': ['compound', 'full-body', 'functional'],
-            'Assassin': ['hiit', 'speed', 'agility'],
-            'Mage': ['balance', 'flexibility', 'technique']
+            'Warrior': ['strength', 'power'],
+            'Ranger': ['cardio', 'endurance'],
+            'Tank': ['core', 'functional'],
+            'Assassin': ['hiit', 'agility'],
+            'Mage': ['balance', 'flexibility']
         }
         
         if client_class in class_bonuses:

@@ -140,7 +140,7 @@
     .rest-timer {
     position: fixed;
     top: 20px;
-    left: 20px;
+    left: 30px;
     display: none;
     background: #1f2937;
     color: white;
@@ -299,7 +299,7 @@
                 <span class="exp-badge">{{ exercise.base_exp }} EXP/set</span>
                 <!-- 🆕 Exercise Info Button -->
                 {% if exercise.image_path %}
-                <button class="btn btn-info btn-sm" onclick="showExerciseImage('{{ exercise.name }}', '{{ url_for('static', filename=exercise.image_path) }}')">
+                <button class="btn btn-info btn-sm" onclick="showExerciseImage('{{ exercise.name }}', '{{ exercise.description }}', '{{ url_for('static', filename=exercise.image_path) }}')">
                     View Exercise
                 </button>
                 {% endif %}
@@ -349,6 +349,8 @@
     <div class="modal-content">
         <span class="close-btn" onclick="closeExerciseImage()">&times;</span>
         <h2 id="exercise-modal-title" style="margin-bottom: 10px;"></h2>
+        <p><strong>Description:</strong></p>
+        <p  id="exercise-modal-description"></p>
         <img id="exercise-modal-img" src="" alt="Exercise Image" style="max-width: 100%; border-radius: 10px;">
     </div>
 </div>
@@ -570,9 +572,10 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-function showExerciseImage(name, imageUrl) {
+function showExerciseImage(name, description, imageUrl) {
     const modal = document.getElementById('exercise-modal');
     document.getElementById('exercise-modal-title').textContent = name;
+    document.getElementById('exercise-modal-description').textContent = description;
     document.getElementById('exercise-modal-img').src = imageUrl;
     modal.style.display = 'flex';
 }

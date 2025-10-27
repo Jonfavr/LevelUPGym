@@ -394,11 +394,24 @@ def profile():
     
     # Get gamification data
     gam_data = client.get_gamification_data()
+
+    # --- Membership notification ---
+    mc = MembershipController()
+    membership = mc.get_client_membership(client_id)
+    if membership:
+        start_date = datetime.strptime(membership['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(membership['end_date'], '%Y-%m-%d').date()
+        days_left = (end_date - date.today()).days
+        
     
     return render_template('profile.html',
                          client=client,
                          physical_data=physical_data,
-                         gam_data=gam_data)
+                         gam_data=gam_data,
+                         membership=membership,
+                         start_date=start_date,
+                         end_date=end_date,
+                         days_left=days_left)
 
 
 # ==================== ADMIN ROUTES ====================
@@ -970,6 +983,16 @@ def get_local_ip():
 
 if __name__ == '__main__':
     local_ip = get_local_ip()
+    print("\n" + "="*70)
+    print("🏋️  LevelUp Gym - Web Portal Server")
+    print("="*70)
+    print(f"\n📱 Client Portal:")
+    print(f"   http://{local_ip}:5000")
+    print(f"\n👨‍💼 Admin Portal:")
+    print(f"   http://{local_ip}:5000/admin")
+    print(f"   Username: admin | Password: admin123")
+    print(f"\n   (Use these URLs on devices connected to the same WiFi)")
+    print("\n" + "="*70 + "\n")
     
     # Run on all network interfaces
-    app.run()
+    app.run(host='0.0.0.0', port=5000, debug=True)

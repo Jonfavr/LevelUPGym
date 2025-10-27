@@ -18,43 +18,39 @@
         <p><strong>Age:</strong> {{ client.age or 'N/A' }}</p>
         <p><strong>Gender:</strong> {{ client.gender or 'Not specified' }}</p>
     </div>
-    
+
     <div class="card">
-        <h2>Physical Data</h2>
-        {% if physical_data %}
-        <p><strong>Height:</strong> {{ physical_data.height_cm }} cm</p>
-        <p><strong>Weight:</strong> {{ physical_data.weight_kg }} kg</p>
-        <p><strong>Body Fat:</strong> {{ physical_data.body_fat_percentage or 'N/A' }}%</p>
-        <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
+        <h2>Membership Info</h2>
+        {% if membership %}
+        <p><strong>Start Date:</strong> {{ start_date }}</p>
+        <p><strong>End Date:</strong> {{ end_date }}</p>
+        <p><strong>Days Left:</strong> {{ days_left }}</p>
         {% else %}
         <p>No physical data recorded yet</p>
         {% endif %}
     </div>
+    
+</div>
+
+<div class="card">
+    <h2>Physical Data</h2>
+    {% if physical_data %}
+    <p><strong>Height:</strong> {{ physical_data.height_cm }} cm</p>
+    <p><strong>Weight:</strong> {{ physical_data.weight_kg }} kg</p>
+    <p><strong>Body Fat:</strong> {{ physical_data.body_fat_percentage or 'N/A' }}%</p>
+    <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
+    {% else %}
+    <p>No physical data recorded yet</p>
+    {% endif %}
 </div>
 
 <div class="card">
     <h2>Gamification Stats</h2>
     {% if gam_data %}
-    <div class="grid grid-4">
-        <div style="text-align: center;">
-            <div style="font-size: 48px; font-weight: bold; color: #667eea;">{{ gam_data.current_level }}</div>
-            <div>Level</div>
-        </div>
-        <div style="text-align: center;">
-            <div style="font-size: 48px; font-weight: bold; color: #10b981;">{{ gam_data.rank }}</div>
-            <div>Rank</div>
-        </div>
-        {% if gam_data.client_class %}
-        <div style="text-align: center;">
-            <div style="font-size: 48px; font-weight: bold; color: #c00b0b;">{{ gam_data.client_class }}</div>
-            <div>Class</div>
-        </div>
-        {% endif %}
-        <div style="text-align: center;">
-            <div style="font-size: 48px; font-weight: bold; color: #f59e0b;">{{ gam_data.total_exp }}</div>
-            <div>Total EXP</div>
-        </div>
-    </div>
+    <p><strong>Level:</strong> {{ gam_data.current_level }}</p>
+    <p><strong>Rank:</strong> {{ gam_data.rank }}</p>
+    <p><strong>Class:</strong> {{ gam_data.client_class }}</p>
+    <p><strong>Total EXP:</strong> {{ gam_data.total_exp }}</p>
     {% endif %}
 </div>
 {% endblock %}

@@ -39,6 +39,7 @@
         <p><strong>Last Visit:</strong> {{ attendance_stats.last_visit }}</p>
         <p><strong>Avg Visits/Week:</strong> {{ attendance_stats.avg_visits_per_week }}</p>
         <p><strong>Current Streak:</strong> {{ progress.streak }} days 🔥</p>
+        <p><strong>Streak Multiplier:</strong> x {{ progress.streak_multiplier }}</p>
         <p><strong>Longest Streak:</strong> {{ progress.longest_streak }} days</p>
         {% else %}
         <p>No attendance data yet. Start your journey today!</p>
