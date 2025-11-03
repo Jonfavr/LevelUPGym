@@ -624,25 +624,10 @@ def populate_default_exercises_part1():
             base_exp=12
         ),
     ]
-
-    added = 0
-    skipped = 0
-
+    print("\n✅ Part 1!")
     for exercise in default_exercises:
-        try:
-            existing = Exercise.get_by_name(exercise.name)
-            if existing:
-                print(f"⚠️ Skipped (exists): {exercise.name}")
-                skipped += 1
-                continue
-
-            exercise.save()
-            print(f"✅ Added: {exercise.name} ({exercise.base_exp} EXP)")
-            added += 1
-        except Exception as e:
-            print(f"❌ Error adding {exercise.name}: {e}")
-
-    print(f"\n=== Part 1 complete. Added: {added}, Skipped: {skipped} ===")
+        print(f"Name: {exercise.name}")
+        print(f"  Type: {exercise.exercise_type}")
 
 def populate_default_exercises_part2():
     """Populate Legs, Glutes, Functional, and Core exercises."""
@@ -697,19 +682,10 @@ def populate_default_exercises_part2():
         Exercise(name="Toe Touches", description="Lie on back, raise legs straight up, reach for toes with controlled crunch.", exercise_type="core", target_muscle="Abs", difficulty_level="beginner", base_exp=10),
         Exercise(name="Jackknife Sit-Up", description="Lie flat, bring arms and legs together in one movement, reaching toward toes.", exercise_type="core", target_muscle="Abs, Core", difficulty_level="intermediate", base_exp=15),
     ]
-
+    print("\n✅ Part 2!")
     for exercise in default_exercises:
-        try:
-            exercise_check = exercise.get_by_name(exercise.name)
-            if exercise_check:
-                print(f"Skipping {exercise.name}")
-            else:
-                exercise.save()
-                print(f"✅ Added: {exercise.name}")
-        except Exception as e:
-            print(f"⚠️ Skipped {exercise.name}: {e}")
-
-    print("\n✅ Part 2: Legs, Glutes, Functional & Core exercises populated!")
+        print(f"Name: {exercise.name}")
+        print(f"  Type: {exercise.exercise_type}")
 
 def populate_default_exercises_part3():
     """Populate Cardio, HIIT, Mobility, Stability, Speed, and Agility exercises."""
@@ -775,19 +751,10 @@ def populate_default_exercises_part3():
         Exercise(name="Heel-to-Toe Walk", description="Walk in a straight line placing heel directly in front of toes to train balance.", exercise_type="balance", target_muscle="Legs, Core", difficulty_level="beginner", base_exp=10),
         Exercise(name="Balance Board Shift", description="Stand on balance board and shift weight side to side to improve stability.", exercise_type="balance", target_muscle="Core, Ankles, Legs", difficulty_level="intermediate", base_exp=15),
     ]
-
+    print("\n✅ Part 3!")
     for exercise in default_exercises:
-        try:
-            exercise_check = exercise.get_by_name(exercise.name)
-            if exercise_check:
-                print(f"Skipping {exercise.name}")
-            else:
-                exercise.save()
-                print(f"✅ Added: {exercise.name}")
-        except Exception as e:
-            print(f"⚠️ Skipped {exercise.name}: {e}")
-
-    print("\n✅ Part 3: Cardio, HIIT, Mobility, and Stability exercises populated!")
+        print(f"Name: {exercise.name}")
+        print(f"  Type: {exercise.exercise_type}")
 
 def populate_default_exercises_part4():
     """Populate Compound, Machine, Advanced Functional, and Isolation exercises."""
@@ -854,24 +821,14 @@ def populate_default_exercises_part4():
         Exercise(name="Resistance Band Sprint", description="Sprint forward against band resistance for explosive drive.", exercise_type="speed", target_muscle="Legs, Glutes, Core", difficulty_level="advanced", base_exp=35),
         Exercise(name="Single-Arm Kettlebell Clean and Press", description="Clean kettlebell to shoulder and press overhead using single arm.", exercise_type="functional", target_muscle="Full Body", difficulty_level="advanced", base_exp=35),
     ]
-
+    print("\n✅ Part 4!")
     for exercise in default_exercises:
-        try:
-            exercise_check = exercise.get_by_name(exercise.name)
-            if exercise_check:
-                print(f"Skipping {exercise.name}")
-            else:
-                exercise.save()
-                print(f"✅ Added: {exercise.name}")
-        except Exception as e:
-            print(f"⚠️ Skipped {exercise.name}: {e}")
+        print(f"Name: {exercise.name}")
+        print(f"  Type: {exercise.exercise_type}")
 
-    print("\n✅ Part 4: Compound, Machine, and Advanced Functional exercises populated!")
-
-
-def populate_all_exercises():
-    #populate_default_exercises_part1()
-    #populate_default_exercises_part2()
+def print_all_exercises():
+    populate_default_exercises_part1()
+    populate_default_exercises_part2()
     populate_default_exercises_part3()
     populate_default_exercises_part4()
 
@@ -884,8 +841,8 @@ if __name__ == "__main__":
     db = DatabaseManager()
     db.initialize_database()
     
-    print("=== Populating Exercise Database ===\n")
-    populate_all_exercises()
+    print("=== Printing Exercise Database ===\n")
+    print_all_exercises()
     
     print("\n=== Testing Exercise Model ===\n")
     
@@ -896,11 +853,77 @@ if __name__ == "__main__":
     # Search by type
     print("\n--- Strength Exercises ---")
     strength = Exercise.search_by_type('strength')
-    for ex in strength[:5]:
-        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")
+    print(f"Strength Exercises: {len(strength)}")
+    ''' for ex in strength[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+    # Search by type
+    print("\n--- Power Exercises ---")
+    power = Exercise.search_by_type('power')
+    print(f"Power Exercises: {len(power)}")
+    ''' for ex in power[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''    
+
+    # Search by type
+    print("\n--- Cardio Exercises ---")
+    cardio = Exercise.search_by_type('cardio')
+    print(f"Cardio Exercises: {len(cardio)}")
+    ''' for ex in cardio[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
     
+    # Search by type
+    print("\n--- Endurance Exercises ---")
+    endurance = Exercise.search_by_type('endurance')
+    print(f"Endurance Exercises: {len(endurance)}")
+    ''' for ex in endurance[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+
+    # Search by type
+    print("\n--- Core Exercises ---")
+    core = Exercise.search_by_type('core')
+    print(f"Core Exercises: {len(core)}")
+    ''' for ex in core[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+
+    # Search by type
+    print("\n--- Functional Exercises ---")
+    functional = Exercise.search_by_type('functional')
+    print(f"Functional Exercises: {len(functional)}")
+    ''' for ex in functional[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+
+    # Search by type
+    print("\n--- Hiit Exercises ---")
+    hiit = Exercise.search_by_type('hiit')
+    print(f"Hiit Exercises: {len(hiit)}")
+    ''' for ex in hiit[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+
+    # Search by type
+    print("\n--- Agility Exercises ---")
+    agility = Exercise.search_by_type('agility')
+    print(f"Agility Exercises: {len(agility)}")
+    ''' for ex in agility[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+
+    # Search by type
+    print("\n--- Balance Exercises ---")
+    balance = Exercise.search_by_type('balance')
+    print(f"Balance Exercises: {len(balance)}")
+    ''' for ex in balance[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+
+    # Search by type
+    print("\n--- Flexibility Exercises ---")
+    flexibility = Exercise.search_by_type('flexibility')
+    print(f"Flexibility Exercises: {len(flexibility)}")
+    ''' for ex in flexibility[:5]:
+        print(f"  • {ex.name} - {ex.target_muscle} ({ex.base_exp} EXP)")'''
+    
+    print(len(strength) + len(power) + len(cardio) + len(endurance) + len(core) + len(functional) + len(hiit) + len(agility) + len(balance) + len(flexibility))
+    
+
     # Search by muscle
-    print("\n--- Chest Exercises ---")
+    '''print("\n--- Chest Exercises ---")
     chest = Exercise.search_by_muscle('Chest')
     for ex in chest:
         print(f"  • {ex.name} - {ex.description}")
@@ -913,4 +936,4 @@ if __name__ == "__main__":
         print(f"Type: {squat.exercise_type}")
         print(f"Target: {squat.target_muscle}")
         print(f"Difficulty: {squat.difficulty_level}")
-        print(f"Base EXP: {squat.base_exp}")
+        print(f"Base EXP: {squat.base_exp}")'''

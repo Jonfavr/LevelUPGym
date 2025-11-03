@@ -87,7 +87,7 @@ class Client:
     # 🧠 PHYSICAL DATA IMPROVEMENT #
     # ----------------------------- #
 
-    def add_or_update_physical_data(self, height_cm, weight_kg, body_fat_percentage=None, notes=None):
+    def add_or_update_physical_data(self, height_cm, weight_kg, body_fat_percentage, activity, chest_cm, arms_cm, forearms_cm, waist_cm, hips_cm, thighs_cm, claf_cm, notes=None):
         """
         Add or update the client's physical data (merged logic)
         Automatically updates if record exists; inserts otherwise.
@@ -101,10 +101,10 @@ class Client:
         if existing:
             query = '''
                 UPDATE client_physical_data
-                SET height_cm=?, weight_kg=?, body_fat_percentage=?, notes=?, measurement_date=DATE('now')
+                SET height_cm=?, weight_kg=?, body_fat_percentage=?, activity=?, chest_cm=?, arms_cm=?, forearms_cm=?, waist_cm=?, hips_cm=?, thighs_cm=?, claf_cm=?, notes=?, measurement_date=DATE('now')
                 WHERE physical_id=?
             '''
-            db.execute_update(query, (height_cm, weight_kg, body_fat_percentage, notes, existing[0]['physical_id']))
+            db.execute_update(query, (height_cm, weight_kg, body_fat_percentage, activity, chest_cm, arms_cm, forearms_cm, waist_cm, hips_cm,thighs_cm, claf_cm, notes, existing[0]['physical_id']))
         else:
             query = '''
                 INSERT INTO client_physical_data 

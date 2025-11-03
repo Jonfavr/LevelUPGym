@@ -395,6 +395,26 @@ def profile():
     # Get gamification data
     gam_data = client.get_gamification_data()
 
+    #calculated physical data
+    physical_data_calculated = {}
+    if physical_data:
+        physical_data_calculated['bmi_value'] = round((physical_data['weight_kg'] / ((physical_data['height_cm'] / 100) ** 2)), 2)
+        physical_data_calculated['mhr_value'] = int(208 - (0.7 * client.age))
+        if client.gender == 'Male':
+            physical_data_calculated['bmr_value'] = int((10 * physical_data['weight_kg']) + (6.25 * physical_data['height_cm']) - (5 * client.age) + 5)
+        else:
+            physical_data_calculated['bmr_value'] = int((10 * physical_data['weight_kg']) + (6.25 * physical_data['height_cm']) - (5 * client.age) - 161)
+        if physical_data['activity'] == "Extreme":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.9)
+        elif physical_data['activity'] == "A lot":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.72)
+        elif physical_data['activity'] == "Some":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.55)
+        elif physical_data['activity'] == "A little":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.37)
+        else:
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.2)
+
     # --- Membership notification ---
     mc = MembershipController()
     membership = mc.get_client_membership(client_id)
@@ -407,6 +427,7 @@ def profile():
     return render_template('profile.html',
                          client=client,
                          physical_data=physical_data,
+                         physical_data_calculated = physical_data_calculated,
                          gam_data=gam_data,
                          membership=membership,
                          start_date=start_date,
@@ -487,6 +508,27 @@ def admin_client_details(client_id):
     progress = client.get_gamification_data()
     streak = client.get_streak_data()
 
+        #calculated physical data
+    physical_data_calculated = {}
+    if physical_data:
+        physical_data_calculated['bmi_value'] = round((physical_data['weight_kg'] / ((physical_data['height_cm'] / 100) ** 2)), 2)
+        physical_data_calculated['mhr_value'] = int(208 - (0.7 * client.age))
+        if client.gender == 'Male':
+            physical_data_calculated['bmr_value'] = int((10 * physical_data['weight_kg']) + (6.25 * physical_data['height_cm']) - (5 * client.age) + 5)
+        else:
+            physical_data_calculated['bmr_value'] = int((10 * physical_data['weight_kg']) + (6.25 * physical_data['height_cm']) - (5 * client.age) - 161)
+        if physical_data['activity'] == "Extreme":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.9)
+        elif physical_data['activity'] == "A lot":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.72)
+        elif physical_data['activity'] == "Some":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.55)
+        elif physical_data['activity'] == "A little":
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.37)
+        else:
+            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.2)
+
+
     # Merge streak multiplier into progress for UI
     if progress and streak:
         progress['streak'] = streak['current_streak']
@@ -505,6 +547,7 @@ def admin_client_details(client_id):
         'admin/client_details.html',
         client=client,
         physical_data=physical_data,
+        physical_data_calculated=physical_data_calculated,
         availability=availability,
         weekly_schedule=weekly_schedule,
         progress=progress,
@@ -583,6 +626,7 @@ def admin_edit_client(client_id):
     availability = client.get_availability()
     weekly_schedule = client.get_weekly_schedule()
     all_routines = db.execute_query("SELECT routine_id, routine_name FROM routines WHERE is_active=1")
+    physical_data_calculated = {}
 
     # --- POST: Save updates ---
     if request.method == 'POST':
@@ -598,8 +642,16 @@ def admin_edit_client(client_id):
         height = request.form.get('height')
         weight = request.form.get('weight')
         bodyfat = request.form.get('bodyfat')
-        if any([height, weight, bodyfat]):
-            client.add_or_update_physical_data(height, weight, bodyfat)
+        activity = request.form.get('activity')
+        chest = request.form.get('chest')
+        arms = request.form.get('arms')
+        forearms = request.form.get('forearms')
+        waist = request.form.get('waist')
+        hips = request.form.get('hips')
+        thighs = request.form.get('thighs')
+        claf = request.form.get('claf')
+        if any([height, weight, bodyfat, activity, chest, arms, forearms, waist, hips, thighs, claf]):
+            client.add_or_update_physical_data(height, weight, bodyfat, activity, chest, arms, forearms, waist, hips, thighs, claf)
 
         # 🗓️ Update availability
         selected_days = request.form.getlist('days')
@@ -620,6 +672,7 @@ def admin_edit_client(client_id):
         'admin/client_form.html',
         client=client,
         physical_data=physical_data,
+        physical_data_calculated=physical_data_calculated,
         availability=availability,
         weekly_schedule=weekly_schedule,
         all_routines=all_routines

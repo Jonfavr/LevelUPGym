@@ -38,6 +38,20 @@
     <p><strong>Height:</strong> {{ physical_data.height_cm }} cm</p>
     <p><strong>Weight:</strong> {{ physical_data.weight_kg }} kg</p>
     <p><strong>Body Fat:</strong> {{ physical_data.body_fat_percentage or 'N/A' }}%</p>
+    <p><strong>Activity:</strong> {{ physical_data.activity }}</p>
+    <p><strong>Chest:</strong> {{ physical_data.chest_cm }} cm</p>
+    <p><strong>Arms:</strong> {{ physical_data.arms_cm }} cm</p>
+    <p><strong>Forearms:</strong> {{ physical_data.forearms_cm }} cm</p>
+    <p><strong>Waist:</strong> {{ physical_data.waist_cm }} cm</p>
+    <p><strong>Hips:</strong> {{ physical_data.hips_cm }} cm</p>
+    <p><strong>Thighs:</strong> {{ physical_data.thighs_cm }} cm</p>
+    <p><strong>Calf:</strong> {{ physical_data.claf_cm }} cm</p>
+    <br>
+    <h3>Calculated Data</h3>
+    <p><strong>Body Mass Index:</strong> {{ physical_data_calculated.bmi_value or 'N/A' }}%</p>
+    <p><strong>Max Heart Rate:</strong> {{ physical_data_calculated.mhr_value or 'N/A' }} x min</p>
+    <p><strong>Basal Metabolic Rate:</strong> {{ physical_data_calculated.bmr_value or 'N/A' }} cal</p>
+    <p><strong>Total Daily Energy Expenditure:</strong> {{ physical_data_calculated.tdee_value or 'N/A' }} cal</p>
     <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
     {% else %}
     <p>No physical data recorded yet</p>

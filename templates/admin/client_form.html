@@ -60,27 +60,77 @@
         {% endif %}
         
         <h3 style="margin-top: 30px;">Physical Data</h3>
-
-        <div class="grid grid-3">
+        <div class="grid grid-2">
             <div class="form-group">
                 <label for="height">Height (cm)</label>
                 <input type="number" id="height" name="height" step="0.1"
                     value="{{ physical_data.height_cm if physical_data else '' }}">
             </div>
-
+            
             <div class="form-group">
                 <label for="weight">Weight (kg)</label>
                 <input type="number" id="weight" name="weight" step="0.1"
                     value="{{ physical_data.weight_kg if physical_data else '' }}">
             </div>
-
+        </div>
+        <div class="grid grid-2">
             <div class="form-group">
                 <label for="bodyfat">Body Fat %</label>
                 <input type="number" id="bodyfat" name="bodyfat" step="0.1"
                     value="{{ physical_data.body_fat_percentage if physical_data else '' }}">
             </div>
+            <div class="form-group">
+                <label for="activity">Activity</label>
+                <select id="activity" name="activity">
+                    <option value="None" {% if physical_data.activity == 'None' %}selected{% endif %}>None</option>
+                    <option value="A little" {% if physical_data.activity == 'A little' %}selected{% endif %}>A little</option>
+                    <option value="Some" {% if physical_data.activity == 'Some' %}selected{% endif %}>Some</option>
+                    <option value="A lot" {% if physical_data.activity == 'A lot' %}selected{% endif %}>A lot</option>
+                    <option value="Extreme" {% if physical_data.activity == 'Extreme' %}selected{% endif %}>Extreme</option>
+                </select>
+            </div>
         </div>
-
+        <div  class="grid grid-3">
+            <div class="form-group">
+                    <label for="chest">Chest (cm)</label>
+                    <input type="number" id="chest" name="chest" step="0.1"
+                        value="{{ physical_data.chest_cm if physical_data else '' }}">
+                </div>
+            <div class="form-group">
+                    <label for="arms">Arms (cm)</label>
+                    <input type="number" id="arms" name="arms" step="0.1"
+                        value="{{ physical_data.arms_cm if physical_data else '' }}">
+                </div>
+            <div class="form-group">
+                    <label for="forearms">Forearms (cm)</label>
+                    <input type="number" id="forearms" name="forearms" step="0.1"
+                        value="{{ physical_data.forearms_cm if physical_data else '' }}">
+                </div>
+        </div>
+        <div  class="grid grid-2">
+            <div class="form-group">
+                    <label for="waist">Waist (cm)</label>
+                    <input type="number" id="waist" name="waist" step="0.1"
+                        value="{{ physical_data.waist_cm if physical_data else '' }}">
+            </div>
+            <div class="form-group">
+                    <label for="hips">Hips (cm)</label>
+                    <input type="number" id="hips" name="hips" step="0.1"
+                        value="{{ physical_data.hips_cm if physical_data else '' }}">
+            </div>
+        </div>
+        <div  class="grid grid-2">
+            <div class="form-group">
+                    <label for="thighs">Thighs (cm)</label>
+                    <input type="number" id="thighs" name="thighs" step="0.1"
+                        value="{{ physical_data.thighs_cm if physical_data else '' }}">
+                </div>
+            <div class="form-group">
+                    <label for="claf">Claf (cm)</label>
+                    <input type="number" id="claf" name="claf" step="0.1"
+                        value="{{ physical_data.claf_cm if physical_data else '' }}">
+            </div>
+        </div>
         {% if physical_data %}
         <p style="color: #6b7280; font-size: 14px; margin-top: 5px;">
             Last updated: {{ physical_data.measurement_date }}
@@ -88,7 +138,6 @@
         {% endif %}
                 
         <h3 style="margin-top: 30px;">Training Schedule</h3>
-
         <div id="schedule-builder" style="display: grid; gap: 15px; margin: 20px 0;">
             {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
             <div class="card" style="padding: 10px;">
@@ -96,7 +145,6 @@
                     <input type="checkbox" class="day-checkbox" name="days" value="{{ day }}" {% if availability and day in availability %}checked{% endif %}>
                     <span>{{ day }}</span>
                 </label>
-
                 <div style="margin-left: 25px; margin-top: 10px;">
                     <label>Assign Routine:</label>
                     <select name="routine_{{ day|lower }}" class="routine-selector" data-day="{{ day }}" style="width: 100%; padding: 6px;">
