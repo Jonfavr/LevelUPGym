@@ -257,6 +257,30 @@ class Client:
         return None
     
     @staticmethod
+    def get_by_phone(phone_number):
+        """Retrieve client by ID"""
+        db = DatabaseManager()
+        query = 'SELECT * FROM clients WHERE phone_number=?'
+        result = db.execute_query(query, (phone_number,))
+        
+        if result:
+            row = result[0]
+            client = Client(
+                client_id=row['client_id'],
+                phone_number=row['phone_number'],
+                first_name=row['first_name'],
+                last_name=row['last_name'],
+                email=row['email'],
+                date_of_birth=row['date_of_birth'],
+                gender=row['gender'],
+                profile_photo_path=row['profile_photo_path'],
+                status=row['status']
+            )
+            client.registration_date = row['registration_date']
+            return client
+        return None
+    
+    @staticmethod
     def authenticate(phone_number, pin):
         """Authenticate client with phone and PIN"""
         db = DatabaseManager()

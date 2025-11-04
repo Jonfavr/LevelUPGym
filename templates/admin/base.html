@@ -39,6 +39,7 @@
             margin: 0 auto;
             padding: 0 20px;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
@@ -120,6 +121,15 @@
         .btn-danger:hover {
             background: #dc2626;
             transform: translateY(-2px);
+        }
+
+        .btn-disabled { 
+            background: #6b7280; 
+            color: white; 
+        }
+
+        .btn-disabled:hover { 
+            cursor: default; 
         }
         
         .btn-sm {
@@ -266,6 +276,7 @@
             <div class="nav-links">
                 <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('admin_attendance') }}">Attendance</a>
+                <a href="{{ url_for('admin_salespoint') }}">Sales Point</a>
                 <a href="{{ url_for('admin_clients') }}">Clients</a>
                 <a href="{{ url_for('admin_memberships') }}">Memberships</a>
                 <a href="{{ url_for('admin_exercises') }}">Exercises</a>

@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ report.period }} Sales Report{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>{{ report.period }} Sales Report</h1>
+  <p>From <strong>{{ report.start_date }}</strong> to <strong>{{ report.end_date }}</strong></p>
+  <p><strong>Total Sales:</strong> ${{ '%.2f' % report.total_sales }}</p>
+</div>
+
+<div class="card">
+    <table>
+    <thead>
+        <tr>
+        <th>Sale ID</th>
+        <th>Client</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Payment Method</th>
+        <th>Total ($)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in report.records %}
+        <tr>
+        <td>{{ row.sale_id }}</td>
+        <td>{{ row.client_name or '—' }}</td>
+        <td>{{ row.sale_date }}</td>
+        <td>{{ row.sale_time }}</td>
+        <td>{{ row.payment_type|capitalize }}</td>
+        <td>${{ '%.2f' % (row.total_cents / 100) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    </table>
+
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('admin_salespoint') }}" class="btn btn-primary">← Back to Sales Point</a>
+        {% if report.period == 'Daily' %}
+            <a href="{{ url_for('admin_export_sales_report', period='daily') }}" class="btn btn-success">⬇ Export Daily CSV</a>
+        {% elif report.period == 'Weekly' %}
+            <a href="{{ url_for('admin_export_sales_report', period='weekly') }}" class="btn btn-success">⬇ Export Weekly CSV</a>
+        {% else %}
+            <a href="{{ url_for('admin_export_sales_report', period='monthly') }}" class="btn btn-success">⬇ Export Monthly CSV</a>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

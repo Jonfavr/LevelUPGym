@@ -1,0 +1,286 @@
+{# templates/admin/salespoint.html #}
+{% extends "admin/base.html" %}
+{% block title %}Sales Point - LevelUp Gym{% endblock %}
+
+{% block extra_css %}
+<style>
+.cart { border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; background: #fff; }
+.item-card { border: 1px solid #e6e6f0; padding: 8px; border-radius: 6px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center; }
+.item-name { font-weight: 600; color: #111827; }
+.small { font-size: 0.9rem; color:#6b7280; }
+.badge-stock { padding: 4px 8px; border-radius: 6px; background:#f3f4f6; color:#1f2937; font-weight:600; }
+.btn-small { padding:6px 10px; border-radius:6px; border:none; cursor:pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>Sales Point</h1>
+  <p>Vende agua, merch, suplementos y membresías desde aquí.</p>
+</div>
+
+<div class="grid grid-2" style="gap:20px;">
+  <!-- LEFT: Items & add item form -->
+  <div class="card">
+    <h2>Inventory / Items</h2>
+
+    <div id="items-list">
+      {% for it in items %}
+      <div class="item-card" data-item-id="{{ it.item_id }}" data-price="{{ (it.price_cents/100)|round(2) }}" data-stock="{{ it.stock }}">
+        <div>
+          <div class="item-name">{{ it.name }}</div>
+          <div class="small">SKU: {{ it.sku or '—' }} · ${{ '%.2f' % (it.price_cents / 100) }}</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div class="badge-stock">Stock: <span class="stock-val">{{ it.stock }}</span></div>
+          <button class="btn-small btn-add-to-cart" data-item-id="{{ it.item_id }}">Agregar</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- RIGHT: Cart & Payment -->
+  <div class="card">
+    <h2>Cart / Checkout</h2>
+    <div class="cart" id="cart-container">
+      <p id="cart-empty" class="small">El carrito está vacío</p>
+      <div id="cart-items"></div>
+
+      <hr>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+        <div class="small">Subtotal:</div>
+        <div style="font-weight:700;">$<span id="cart-total">0.00</span></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Pago con:</label>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <label><input type="radio" name="payment_type" value="cash" checked> Cash</label>
+          <label><input type="radio" name="payment_type" value="card"> Card</label>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Monto recibido</label>
+        <input type="number" id="paid-amount" step="0.01" value="0.00" />
+      </div>
+
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <button class="btn btn-success" id="btn-complete-sale">Cobrar y registrar</button>
+        <button class="btn btn-secondary" id="btn-clear-cart">Limpiar</button>
+      </div>
+
+      <div style="margin-top:8px;">
+        <div>Cambio: $<span id="change-amount">0.00</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+    <hr>
+    <h3>Sales Today</h3>
+    <div id="sales-today">
+      {% for s in sales_today %}
+        <div style="border-bottom:1px solid #f3f4f6; padding:8px 0;">
+          <div style="display:flex; justify-content:space-between;">
+            <div>#{{ s.sale_id }} · {{ s.created_at }}</div>
+            <div style="font-weight:700;">${{ '%.2f' % (s.total_cents/100) }}</div>
+          </div>
+          <div class="small">Pago: {{ s.payment_type }} · Cambió: ${{ '%.2f' % (s.change_cents/100) }}</div>
+        </div>
+      {% else %}
+        <p class="small">No sales today.</p>
+      {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <hr>
+    <h3>Añadir nuevo item</h3>
+    <form id="form-add-item" onsubmit="return false;">
+      <div>
+        <label>SKU</label>
+        <input type="text" id="new-sku" />
+      </div>
+      <div>
+        <label>Nombre</label>
+        <input type="text" id="new-name" required/>
+      </div>
+      <div>
+        <label>Precio (USD)</label>
+        <input type="number" step="0.01" id="new-price" required/>
+      </div>
+      <div>
+        <label>Stock</label>
+        <input type="number" id="new-stock" value="0" required/>
+      </div>
+      <div>
+        <label>Descripción</label>
+        <input type="text" id="new-desc" />
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-primary" id="btn-add-item">Agregar Item</button>
+      </div>
+    </form>
+</div>
+
+<div class="card">
+  <h2>📊 Sales Reports</h2>
+  <div class="flex" style="gap: 10px;">
+    <a href="{{ url_for('admin_sales_report', period='daily') }}" class="btn btn-primary">View Daily Report</a>
+    <a href="{{ url_for('admin_sales_report', period='weekly') }}" class="btn btn-primary">View Weekly Report</a>
+    <a href="{{ url_for('admin_sales_report', period='monthly') }}" class="btn btn-primary">View Monthly Report</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Frontend cart handling
+let cart = []; // {item_id, name, price, qty}
+function formatMoney(n){ return Number(n).toFixed(2); }
+
+function refreshCartUI(){
+  const container = document.getElementById('cart-items');
+  container.innerHTML = '';
+  if(cart.length === 0){
+    document.getElementById('cart-empty').style.display = 'block';
+    document.getElementById('cart-total').textContent = '0.00';
+    return;
+  }
+  document.getElementById('cart-empty').style.display = 'none';
+  let total = 0;
+  cart.forEach((it, idx) => {
+    const line = document.createElement('div');
+    line.style.display = 'flex';
+    line.style.justifyContent = 'space-between';
+    line.style.alignItems = 'center';
+    line.style.padding = '6px 0';
+    line.innerHTML = `
+      <div>
+        <div style="font-weight:600">${it.name}</div>
+        <div class="small">$${formatMoney(it.price)} x ${it.qty}</div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-small" onclick="decreaseQty(${idx})">−</button>
+        <button class="btn-small" onclick="increaseQty(${idx})">＋</button>
+        <button class="btn-small" onclick="removeFromCart(${idx})">✕</button>
+      </div>
+    `;
+    container.appendChild(line);
+    total += it.price * it.qty;
+  });
+  document.getElementById('cart-total').textContent = formatMoney(total);
+  // update change display
+  updateChange();
+}
+
+function addToCartFromElement(elem){
+  const itemId = elem.dataset.itemId || elem.getAttribute('data-item-id');
+  const parent = elem.closest('.item-card');
+  const name = parent.querySelector('.item-name').textContent.trim();
+  const price = parseFloat(parent.getAttribute('data-price') || parent.dataset.price || 0);
+  const stock = parseInt(parent.getAttribute('data-stock') || parent.dataset.stock || 0);
+  // find existing
+  const existingIndex = cart.findIndex(c => c.item_id == itemId);
+  if(existingIndex >= 0){
+    // check stock
+    if(cart[existingIndex].qty + 1 > stock){
+      alert('No hay suficiente stock');
+      return;
+    }
+    cart[existingIndex].qty += 1;
+  } else {
+    if(stock <= 0){ alert('Sin stock'); return; }
+    cart.push({ item_id: itemId, name: name, price: price, qty: 1 });
+  }
+  refreshCartUI();
+}
+
+document.addEventListener('click', function(e){
+  if(e.target.classList.contains('btn-add-to-cart')){
+    addToCartFromElement(e.target);
+  }
+});
+
+// qty handlers
+function increaseQty(i){ cart[i].qty += 1; refreshCartUI(); }
+function decreaseQty(i){ cart[i].qty = Math.max(1, cart[i].qty - 1); refreshCartUI(); }
+function removeFromCart(i){ cart.splice(i,1); refreshCartUI(); }
+function clearCart(){ cart = []; refreshCartUI(); }
+document.getElementById('btn-clear-cart').addEventListener('click', clearCart);
+
+// add item form
+document.getElementById('btn-add-item').addEventListener('click', async function(){
+  const sku = document.getElementById('new-sku').value.trim();
+  const name = document.getElementById('new-name').value.trim();
+  const price = parseFloat(document.getElementById('new-price').value||0);
+  const stock = parseInt(document.getElementById('new-stock').value||0);
+  const desc = document.getElementById('new-desc').value.trim();
+
+  if(!name || isNaN(price)){
+    alert('Completa nombre y precio');
+    return;
+  }
+
+  const res = await fetch('{{ url_for("salespoint_add_item") }}', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ sku: sku, name: name, price: price, stock: stock, description: desc })
+  });
+  const j = await res.json();
+  if(j.success){
+    location.reload(); // para simplicidad recargamos y vemos el nuevo item
+  } else {
+    alert('Error al crear item');
+  }
+});
+
+// payment / finalize
+document.getElementById('btn-complete-sale').addEventListener('click', async function(){
+  if(cart.length === 0){ alert('Carrito vacío'); return; }
+  const paymentType = document.querySelector('input[name="payment_type"]:checked').value;
+  const paidAmount = parseFloat(document.getElementById('paid-amount').value || 0);
+  const total = parseFloat(document.getElementById('cart-total').textContent || 0);
+  if(paymentType === 'cash' && paidAmount < total){
+    if(!confirm('Pago en efectivo menor al total. Registrar igual?')) return;
+  }
+
+  // preparar payload
+  const payload = {
+    cart: cart.map(i => ({ item_id: i.item_id, qty: i.qty, price: i.price })),
+    payment_type: paymentType,
+    paid_amount: paidAmount
+  };
+
+  const resp = await fetch('{{ url_for("salespoint_create_sale") }}', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const j = await resp.json();
+  if(j.success){
+    alert('Venta registrada. Cambio: $' + (j.change_cents/100).toFixed(2));
+    clearCart();
+    location.reload(); // recargar para actualizar stock y ventas del día
+  } else {
+    alert('Error registrando venta: ' + (j.message || 'unknown'));
+  }
+});
+
+function updateChange(){
+  const paid = parseFloat(document.getElementById('paid-amount').value || 0);
+  const total = parseFloat(document.getElementById('cart-total').textContent || 0);
+  const change = Math.max(0, paid - total);
+  document.getElementById('change-amount').textContent = formatMoney(change);
+}
+
+document.getElementById('paid-amount').addEventListener('input', updateChange);
+
+// init
+refreshCartUI();
+</script>
+{% endblock %}

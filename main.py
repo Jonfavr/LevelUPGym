@@ -4,7 +4,7 @@ Flask web server for LevelUp Gym Client Portal & Admin Portal
 Run this on the gym's computer to allow clients and admins to access via local network
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, send_from_directory, send_file
 from functools import wraps
 import sys
 import os
@@ -25,6 +25,7 @@ from controllers.physical_test_controller import PhysicalTestController
 from controllers.workout_session_controller import WorkoutSessionController
 from database.db_manager import DatabaseManager
 from controllers.membership_controller import MembershipController
+from controllers.salespoint_controller import SalesPointController
 
 app = Flask(__name__)
 app.secret_key = 'levelup_gym_secret_key_change_in_production'  # Change this in production
@@ -36,6 +37,7 @@ workout_logger = WorkoutLogger()
 achievement_ctrl = AchievementController()
 test_ctrl = PhysicalTestController()
 session_ctrl = WorkoutSessionController()
+sales_ctrl = SalesPointController()
 
 # Initialize database
 db = DatabaseManager()
@@ -871,6 +873,23 @@ def admin_attendance():
                          attendance_list=attendance_list,
                          clients=clients)
 
+@app.route('/get_client_by_phone', methods=['POST'])
+@admin_required
+def get_client_by_phone():
+    phone_number = request.json.get('phone_number')
+    client = Client.get_by_phone(phone_number)
+    
+    if client:
+        status = client.status
+        client_id = client.client_id
+        return jsonify({
+            'success': True,
+            'client_name': f"{client.first_name} {client.last_name}",
+            'client_status': status,
+            'client_id': client_id
+        })
+    return jsonify({'success': False})
+
 @app.route('/admin/checkin', methods=['POST'])
 @admin_required
 def admin_checkin():
@@ -1019,6 +1038,85 @@ def favicon():
         '/image/favicon.ico',
         mimetype='image/x-icon'
     )
+
+@app.route('/admin/salespoint')
+@admin_required
+def admin_salespoint():
+    items = sales_ctrl.get_all_items()
+    sales_today = sales_ctrl.get_sales_today()
+    return render_template('admin/salespoint.html', items=items, sales_today=sales_today)
+
+@app.route('/admin/salespoint/items', methods=['GET'])
+@admin_required
+def salespoint_items():
+    items = sales_ctrl.get_all_items()
+    # convertir price en float para JS (opcional)
+    for it in items:
+        it['price'] = it['price_cents'] / 100.0
+    return jsonify({"success": True, "items": items})
+
+@app.route('/admin/salespoint/add_item', methods=['POST'])
+@admin_required
+def salespoint_add_item():
+    data = request.json or request.form
+    sku = data.get('sku')
+    name = data.get('name')
+    price = float(data.get('price', 0))
+    stock = int(data.get('stock', 0))
+    description = data.get('description')
+    price_cents = int(round(price * 100))
+    sales_ctrl.add_item(sku, name, price_cents, stock, description)
+    return jsonify({"success": True})
+
+@app.route('/admin/salespoint/create_sale', methods=['POST'])
+@admin_required
+def salespoint_create_sale():
+    data = request.get_json()
+    cashier_id = 151 # o como guardes al admin
+    cart = data.get('cart', [])
+    payment_type = data.get('payment_type', 'cash')
+    paid_amount = float(data.get('paid_amount', 0.0))
+    paid_cents = int(round(paid_amount * 100))
+
+    # Normalizar cart items: expect [{item_id, qty, price}]
+    cart_items = []
+    for it in cart:
+        cart_items.append({
+            'item_id': int(it['item_id']),
+            'qty': int(it['qty']),
+            'price_cents': int(round(float(it.get('price', 0)) * 100))
+        })
+
+    result = sales_ctrl.create_sale(cashier_id, cart_items, payment_type, paid_cents)
+    return jsonify(result)
+
+@app.route('/admin/salespoint/sales_today', methods=['GET'])
+@admin_required
+def salespoint_sales_today():
+    sales = sales_ctrl.get_sales_today()
+    return jsonify({"success": True, "sales": sales})
+
+# (Opcional) endpoint para detalle de venta
+@app.route('/admin/salespoint/sale/<int:sale_id>', methods=['GET'])
+@admin_required
+def salespoint_sale_detail(sale_id):
+    detail = sales_ctrl.get_sale_detail(sale_id)
+    return jsonify({"success": True, "items": detail})
+
+@app.route("/admin/salespoint/report/<period>")
+@admin_required
+def admin_sales_report(period):
+    """View sales report (daily, weekly, monthly)"""
+    report = sales_ctrl.get_sales_report(period)
+    return render_template("admin/sales_report.html", report=report)
+
+
+@app.route("/admin/salespoint/export/<period>")
+@admin_required
+def admin_export_sales_report(period):
+    """Download sales report as CSV"""
+    output_path = sales_ctrl.export_sales_report_csv(period)
+    return send_file(output_path, as_attachment=True)
 
 # Utility function to get local IP
 def get_local_ip():

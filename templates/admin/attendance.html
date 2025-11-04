@@ -11,35 +11,19 @@
 
 <div class="grid grid-2">
     <div class="card">
-        <h2>✓ Check-in Client</h2>
-        <form method="POST" action="{{ url_for('admin_checkin') }}">
-            <div class="form-group">
-                <label for="checkin_client_id">Select Client</label>
-                <select id="checkin_client_id" name="client_id" required>
-                    <option value="">-- Choose Client --</option>
-                    {% for client in clients %}
-                    <option value="{{ client.client_id }}">{{ client.full_name }} ({{ client.phone_number }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="btn btn-success" style="width: 100%;">Check In Client</button>
-        </form>
-    </div>
-    
-    <div class="card">
-        <h2>← Check-out Client</h2>
-        <form method="POST" action="{{ url_for('admin_checkout') }}">
-            <div class="form-group">
-                <label for="checkout_client_id">Select Client</label>
-                <select id="checkout_client_id" name="client_id" required>
-                    <option value="">-- Choose Client --</option>
-                    {% for client in clients %}
-                    <option value="{{ client.client_id }}">{{ client.full_name }} ({{ client.phone_number }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Check Out Client</button>
-        </form>
+    <h2>Check-in Client by Phone Number</h2>
+    <form id="checkin-form" method="POST" action="{{ url_for('admin_checkin') }}">
+        <div class="form-group">
+            <label for="client-phone">Client Phone Number</label>
+            <input type="text" id="client-phone" name="phone_number" required placeholder="Enter Phone Number" maxlength="10">
+            <input type="text" id="client-id" name="client_id" required style="display: none;">
+        </div>
+        <div id="client-info" style="display:none; padding-top: 10px;">
+            <p><strong>Client Name:</strong> <span id="client-name"></span></p>
+            <p><strong>Status:</strong> <span id="client-status"></span></p>
+        </div>
+        <button type="submit" class="btn btn-disabled" style="width: 100%;" id="checkin-button" disabled>Check In Client</button>
+    </form>
     </div>
 </div>
 
@@ -54,7 +38,7 @@
                 <th>Check-in Time</th>
                 <th>Check-out Time</th>
                 <th>Status</th>
-                <th>EXP Earned</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -77,7 +61,14 @@
                         <span style="color: #10b981; background: #d1fae5; padding: 4px 8px; border-radius: 4px; font-weight: 600;">💪 In Gym</span>
                     {% endif %}
                 </td>
-                <td><strong style="color: #667eea; font-size: 16px;">{{ record.exp_earned }}</strong></td>
+                <td><form id="checkou-form" method="POST" action="{{ url_for('admin_checkout') }}"> 
+                    <input id="client-id" name="client_id" type="text" value="{{ record.client_id}}" style="display: none;"> 
+                    {% if record.check_out_time %}
+                    <button class="btn btn-disabled" disabled="true">Checked Out</button>
+                    {% else %}
+                    <button class="btn btn-primary">Check Out</button>
+                    {% endif %}
+                </form></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -88,4 +79,56 @@
     </p>
     {% endif %}
 </div>
+<script>
+document.getElementById('client-phone').addEventListener('input', async function() {
+    const phoneNumber = this.value.trim();
+    const button = document.getElementById('checkin-button');
+    button.disabled = true;
+    
+    // Only allow 10-digit phone numbers
+    if (phoneNumber.length === 10) {
+        try {
+            const response = await fetch('/get_client_by_phone', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ phone_number: phoneNumber })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show client information and enable the button
+                document.getElementById('client-name').textContent = result.client_name;
+                document.getElementById('client-status').textContent = result.client_status;
+                document.getElementById('client-id').value = result.client_id;
+                document.getElementById('client-info').style.display = 'block';
+                console.log(result.client_status);
+                if (result.client_status == "active") {
+                    button.classList.remove('btn-disabled');
+                    button.classList.add('btn-success');
+                    button.disabled = false;
+                } else {
+                    
+                    button.disabled = true;
+                }
+                
+            } else {
+                // If client is not found, hide client info and disable button
+                document.getElementById('client-info').style.display = 'none';
+                document.getElementById('client-id').value = '';
+                button.disabled = true;
+            }
+        } catch (error) {
+            console.error('Error fetching client data:', error);
+        }
+    } else {
+        document.getElementById('client-info').style.display = 'none';
+        document.getElementById('client-id').value = '';
+        button.disabled = true;
+    }
+});
+</script>
+
 {% endblock %}
