@@ -564,94 +564,198 @@ def admin_logout():
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
-    """Admin dashboard"""
-    # Get statistics
-    total_clients = len(Client.get_all_active())
-    todays_attendance = len(attendance_ctrl.get_gym_attendance_today())
-    weekly_report = attendance_ctrl.get_weekly_attendance_report()
-    
-    # Get today's attendance list
-    attendance_list = attendance_ctrl.get_gym_attendance_today()
-    
-    return render_template('admin/dashboard.html',
-                         total_clients=total_clients,
-                         todays_attendance=todays_attendance,
-                         weekly_visits=weekly_report['total_visits'],
-                         attendance_list=attendance_list)
+    """Admin dashboard — Phase 2 enriched"""
+    from datetime import date
+    from controllers.leaderboard_controller import LeaderboardController
+    from controllers.membership_controller import MembershipController
+
+    db = DatabaseManager()
+
+    # Basic counts
+    all_clients      = Client.get_all_active()
+    total_clients    = len(all_clients)
+    attendance_list  = attendance_ctrl.get_gym_attendance_today()
+    todays_attendance = len(attendance_list)
+
+    weekly_report    = attendance_ctrl.get_weekly_attendance_report()
+    weekly_visits    = weekly_report['total_visits']
+
+    # Currently inside the gym (checked in but not checked out)
+    currently_in = sum(1 for r in attendance_list if not r.get('check_out_time'))
+
+    # Memberships expiring within 7 days
+    mc = MembershipController()
+    all_memberships  = mc.get_all_memberships()
+    today            = date.today()
+    expiring_soon = sum(
+        1 for m in all_memberships
+        if m.get('status') == 'active' and m.get('end_date')
+        and 0 < (
+            __import__('datetime').datetime.strptime(m['end_date'], '%Y-%m-%d').date() - today
+        ).days <= 7
+    )
+
+    # Top EXP this week (reuse leaderboard controller)
+    try:
+        lb = LeaderboardController()
+        top_exp_week = lb.get_top_exp()   # returns top 10 all-time; use as weekly proxy
+    except Exception:
+        top_exp_week = []
+
+    return render_template(
+        'admin/dashboard.html',
+        total_clients    = total_clients,
+        todays_attendance= todays_attendance,
+        weekly_visits    = weekly_visits,
+        attendance_list  = attendance_list,
+        currently_in     = currently_in,
+        expiring_soon    = expiring_soon,
+        top_exp_week     = top_exp_week,
+        gym_capacity     = 50,                # adjust as needed
+        today_date       = today.strftime('%b %d, %Y'),
+    )
 
 @app.route('/admin/clients')
 @admin_required
 def admin_clients():
-    """Client management page"""
+    """Client list — Phase 2: adds XP %, class, membership status"""
+    from datetime import date
+    from controllers.membership_controller import MembershipController
+
+    mc      = MembershipController()
     clients = Client.get_all_active()
-    
-    # Add gamification data to each client
+
     for client in clients:
-        gam_data = client.get_gamification_data()
-        client.level = gam_data['current_level'] if gam_data else 1
-        client.rank = gam_data['rank'] if gam_data else 'E'
-    
+        # Gamification
+        gam = client.get_gamification_data()
+        client.level        = gam['current_level']   if gam else 1
+        client.rank         = gam['rank']             if gam else 'E'
+        client.current_exp  = gam['current_exp']      if gam else 0
+        client.client_class = gam.get('class')        if gam else None
+
+        # XP percentage toward next level
+        if gam:
+            next_exp = gam.get('next_level_exp', 1) or 1
+            client.xp_pct = round((gam['current_exp'] / next_exp) * 100, 1)
+        else:
+            client.xp_pct = 0
+
+        # Membership status label
+        membership = mc.get_client_membership(client.client_id)
+        if not membership:
+            client.mem_status   = 'none'
+            client.mem_days_left = 0
+        else:
+            end   = __import__('datetime').datetime.strptime(membership['end_date'], '%Y-%m-%d').date()
+            days  = (end - date.today()).days
+            client.mem_days_left = max(days, 0)
+            if days <= 0:
+                client.mem_status = 'expired'
+            elif days <= 7:
+                client.mem_status = 'expiring'
+            else:
+                client.mem_status = 'active'
+
     return render_template('admin/clients.html', clients=clients)
 
 @app.route('/admin/client/<int:client_id>')
 @admin_required
 def admin_client_details(client_id):
+    """Client profile — Phase 2: full tabs data"""
+    from datetime import date
+    from controllers.membership_controller import MembershipController
+    from controllers.workout_logger import WorkoutLogger
+
     client = Client.get_by_id(client_id)
     if not client:
-        flash("Client not found", "danger")
+        flash('Client not found', 'danger')
         return redirect(url_for('admin_clients'))
 
+    # ── Physical data ──
     physical_data = client.get_latest_physical_data()
-    availability = client.get_availability()
-    weekly_schedule = client.get_weekly_schedule()
-    progress = client.get_gamification_data()
-    streak = client.get_streak_data()
-
-        #calculated physical data
     physical_data_calculated = {}
     if physical_data:
-        physical_data_calculated['bmi_value'] = round((physical_data['weight_kg'] / ((physical_data['height_cm'] / 100) ** 2)), 2)
-        physical_data_calculated['mhr_value'] = int(208 - (0.7 * client.age))
+        physical_data_calculated['bmi_value'] = round(
+            physical_data['weight_kg'] / ((physical_data['height_cm'] / 100) ** 2), 2
+        )
+        physical_data_calculated['mhr_value'] = int(208 - 0.7 * client.age) if client.age else None
         if client.gender == 'Male':
-            physical_data_calculated['bmr_value'] = int((10 * physical_data['weight_kg']) + (6.25 * physical_data['height_cm']) - (5 * client.age) + 5)
+            physical_data_calculated['bmr_value'] = int(
+                10 * physical_data['weight_kg']
+                + 6.25 * physical_data['height_cm']
+                - 5 * (client.age or 0) + 5
+            )
         else:
-            physical_data_calculated['bmr_value'] = int((10 * physical_data['weight_kg']) + (6.25 * physical_data['height_cm']) - (5 * client.age) - 161)
-        if physical_data['activity'] == "Extreme":
-            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.9)
-        elif physical_data['activity'] == "A lot":
-            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.72)
-        elif physical_data['activity'] == "Some":
-            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.55)
-        elif physical_data['activity'] == "A little":
-            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.37)
-        else:
-            physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * 1.2)
+            physical_data_calculated['bmr_value'] = int(
+                10 * physical_data['weight_kg']
+                + 6.25 * physical_data['height_cm']
+                - 5 * (client.age or 0) - 161
+            )
+        activity_map = {
+            'Extreme': 1.9, 'A lot': 1.72, 'Some': 1.55, 'A little': 1.37
+        }
+        mult = activity_map.get(physical_data.get('activity', ''), 1.2)
+        physical_data_calculated['tdee_value'] = int(physical_data_calculated['bmr_value'] * mult)
 
+    # ── Availability & schedule ──
+    availability    = client.get_availability()
+    weekly_schedule = client.get_weekly_schedule()
 
-    # Merge streak multiplier into progress for UI
-    if progress and streak:
-        progress['streak'] = streak['current_streak']
-        progress['streak_multiplier'] = streak['streak_multiplier'] if 'streak_multiplier' in streak else 1.0
+    # ── Gamification / progress ──
+    gam  = client.get_gamification_data()
+    progress = {
+        'current_level'  : gam['current_level']   if gam else 1,
+        'rank'           : gam['rank']             if gam else 'E',
+        'class'          : gam.get('class')        if gam else None,
+        'current_exp'    : gam['current_exp']      if gam else 0,
+        'total_exp'      : gam['total_exp']        if gam else 0,
+        'next_level_exp' : gam.get('next_level_exp', 100) if gam else 100,
+        'streak'         : gam.get('streak', 0)   if gam else 0,
+        'streak_multiplier': gam.get('streak_multiplier', 1.0) if gam else 1.0,
+    }
+    # XP percentage
+    nxt = progress['next_level_exp'] or 1
+    progress['xp_percentage'] = round((progress['current_exp'] / nxt) * 100, 1)
 
-    # Attendance stats (if you already have the function)
-    attendance_stats = None
+    # ── Attendance stats ──
+    attendance_stats = {}
     try:
-        from controllers.attendance_controller import AttendanceController
-        attendance_ctrl = AttendanceController()
-        attendance_stats = attendance_ctrl.get_attendance_stats(client_id)
+        attendance_stats = attendance_ctrl.get_attendance_stats(client_id) or {}
     except Exception as e:
-        print("⚠️ Unable to load attendance stats:", e)
+        print(f'Attendance stats error: {e}')
+
+    # ── Workout history & stats ──
+    workout_logger = WorkoutLogger()
+    workout_history = []
+    workout_stats   = {}
+    try:
+        workout_history = workout_logger.get_workout_history(client_id, limit=15)
+        workout_stats   = workout_logger.get_workout_stats(client_id) or {}
+    except Exception as e:
+        print(f'Workout data error: {e}')
+
+    # ── Membership ──
+    mc = MembershipController()
+    membership = mc.get_client_membership(client_id)
+    if membership:
+        end_date = __import__('datetime').datetime.strptime(membership['end_date'], '%Y-%m-%d').date()
+        membership = dict(membership)
+        membership['days_left'] = (end_date - date.today()).days
 
     return render_template(
         'admin/client_details.html',
-        client=client,
-        physical_data=physical_data,
-        physical_data_calculated=physical_data_calculated,
-        availability=availability,
-        weekly_schedule=weekly_schedule,
-        progress=progress,
-        attendance_stats=attendance_stats
+        client                  = client,
+        physical_data           = physical_data,
+        physical_data_calculated= physical_data_calculated,
+        availability            = availability,
+        weekly_schedule         = weekly_schedule,
+        progress                = progress,
+        attendance_stats        = attendance_stats,
+        workout_history         = workout_history,
+        workout_stats           = workout_stats,
+        membership              = membership,
     )
+
 @app.route('/admin/client/add', methods=['GET', 'POST'])
 @admin_required
 def admin_add_client():

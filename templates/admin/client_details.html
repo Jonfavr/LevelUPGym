@@ -1,106 +1,870 @@
 <!-- templates/admin/client_details.html -->
 {% extends "admin/base.html" %}
 
-{% block title %}{{ client.full_name }} - Admin{% endblock %}
+{% block title %}{{ client.full_name }} — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Client Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Profile hero ── */
+    .profile-hero {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 28px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-hero::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--emerald));
+    }
+
+    /* Decorative glow blob */
+    .profile-hero::after {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 240px; height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .profile-hero-inner {
+        display: flex;
+        align-items: flex-start;
+        gap: 24px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Big avatar */
+    .profile-big-avatar {
+        width: 80px; height: 80px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 32px; font-weight: 700; color: white;
+        flex-shrink: 0;
+        box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .profile-meta { flex: 1; min-width: 0; }
+
+    .profile-name {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 28px; font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+        margin-bottom: 6px;
+    }
+
+    .profile-sub {
+        font-size: 13px; color: var(--text-muted);
+        margin-bottom: 14px;
+    }
+
+    .profile-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* XP progress bar in hero */
+    .hero-xp-section { margin-top: 16px; }
+    .hero-xp-label {
+        display: flex; justify-content: space-between;
+        font-size: 11px; color: var(--text-muted); margin-bottom: 5px;
+    }
+    .hero-xp-track {
+        height: 8px; background: var(--bg-hover);
+        border-radius: 4px; overflow: hidden;
+    }
+    .hero-xp-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 4px;
+        transition: width 1s ease;
+    }
+
+    /* Hero stat pills */
+    .hero-stats {
+        display: flex; gap: 20px;
+        flex-wrap: wrap;
+        align-self: flex-end;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .hero-stat-item { display: flex; flex-direction: column; gap: 2px; }
+    .hero-stat-val {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 26px; font-weight: 700; line-height: 1;
+        color: var(--text-primary);
+    }
+    .hero-stat-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── Tabs ── */
+    .tab-nav {
+        display: flex; gap: 4px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 24px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+        padding: 10px 18px;
+        border: none; background: none;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px; font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: all 0.2s;
+        white-space: nowrap;
+        display: flex; align-items: center; gap: 7px;
+    }
+
+    .tab-btn:hover { color: var(--text-primary); }
+
+    .tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+        font-weight: 600;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Data rows (info lists) ── */
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13.5px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .lbl { color: var(--text-muted); font-size: 12px; }
+    .info-row .val { color: var(--text-primary); font-weight: 500; text-align: right; }
+
+    /* ── Body measurement grid ── */
+    .measure-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .measure-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        text-align: center;
+    }
+
+    .measure-val {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 22px; font-weight: 700;
+        color: var(--accent);
+    }
+
+    .measure-unit { font-size: 11px; color: var(--text-muted); }
+    .measure-lbl  { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ── Calculated metric cards ── */
+    .calc-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .calc-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 16px;
+    }
+
+    .calc-card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+    .calc-card-val   { font-family: 'Rajdhani', sans-serif; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+    .calc-card-unit  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    /* ── Schedule grid ── */
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 10px;
+    }
+
+    .schedule-day {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        transition: border-color 0.2s;
+    }
+
+    .schedule-day.has-routine {
+        border-color: var(--border-accent);
+    }
+
+    .schedule-day-name {
+        font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+        color: var(--text-muted); margin-bottom: 6px;
+    }
+
+    .schedule-day-routine {
+        font-size: 13px; font-weight: 600; color: var(--accent);
+    }
+
+    .schedule-day-rest {
+        font-size: 12px; color: var(--text-muted); font-style: italic;
+    }
+
+    /* ── Workout history cards ── */
+    .history-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        margin-bottom: 8px;
+        transition: border-color 0.2s;
+    }
+
+    .history-item:hover { border-color: var(--border-accent); }
+
+    .history-date {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 15px; font-weight: 700; color: var(--text-primary);
+    }
+
+    .history-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+    .history-exp {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 20px; font-weight: 700;
+        color: var(--accent);
+    }
+
+    /* ── Attendance stats ── */
+    .attendance-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .att-stat {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        text-align: center;
+    }
+
+    .att-stat-val {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 28px; font-weight: 700; color: var(--text-primary);
+    }
+
+    .att-stat-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── Membership card ── */
+    .membership-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .membership-card.active-mem  { border-color: rgba(16,185,129,.35); }
+    .membership-card.expiring-mem{ border-color: rgba(251,191,36,.35);  }
+    .membership-card.expired-mem { border-color: rgba(239,68,68,.35);   }
+
+    .membership-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+    }
+    .membership-card.active-mem::before  { background: var(--emerald); }
+    .membership-card.expiring-mem::before{ background: var(--amber); }
+    .membership-card.expired-mem::before { background: var(--red); }
+
+    .mem-days-big {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 52px; font-weight: 700; line-height: 1;
+    }
+    .active-mem  .mem-days-big { color: var(--emerald); }
+    .expiring-mem .mem-days-big{ color: var(--amber); }
+    .expired-mem  .mem-days-big{ color: var(--red); }
+
+    /* ── Quick Actions sidebar ── */
+    .quick-sidebar {
+        display: flex; flex-direction: column; gap: 8px;
+    }
+
+    .quick-sidebar .btn {
+        justify-content: center;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>{{ client.full_name }}</h1>
-    <p>Client ID: {{ client.client_id }} | Member since: {{ client.registration_date }}</p>
-    <div style="margin-top: 15px;">
-        <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-primary">Edit Client</a>
-        <a href="{{ url_for('admin_clients') }}" class="btn btn-success">Back to List</a>
+
+<!-- ── Profile Hero ── -->
+<div class="profile-hero">
+    <div class="profile-hero-inner">
+        <!-- Avatar + name -->
+        <div class="profile-big-avatar">{{ client.full_name[0] | upper }}</div>
+
+        <div class="profile-meta">
+            <div class="profile-name">{{ client.full_name }}</div>
+            <div class="profile-sub">
+                ID #{{ client.client_id }}
+                &nbsp;·&nbsp;
+                Joined {{ client.registration_date }}
+                {% if client.gender %}&nbsp;·&nbsp; {{ client.gender }}{% endif %}
+                {% if client.age %}&nbsp;·&nbsp; {{ client.age }} yrs{% endif %}
+            </div>
+
+            <div class="profile-tags">
+                <div class="rank rank-{{ progress.rank }}">{{ progress.rank }}</div>
+                <span class="badge badge-accent">
+                    <i class="fa-solid fa-bolt" style="font-size:9px;"></i>
+                    Lv. {{ progress.current_level }}
+                </span>
+                {% if progress.class %}
+                <span class="badge" style="background:var(--bg-hover); color:var(--text-secondary); border:1px solid var(--border);">
+                    {{ progress.class }}
+                </span>
+                {% endif %}
+
+                <!-- Membership badge in hero -->
+                {% if membership %}
+                    {% if membership.days_left is defined and membership.days_left > 7 %}
+                        <span class="badge mem-active">Membership Active</span>
+                    {% elif membership.days_left is defined and membership.days_left > 0 %}
+                        <span class="badge mem-expiring"><i class="fa-solid fa-triangle-exclamation" style="font-size:9px;"></i> Expires in {{ membership.days_left }}d</span>
+                    {% else %}
+                        <span class="badge mem-expired">Membership Expired</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- XP bar -->
+            <div class="hero-xp-section">
+                <div class="hero-xp-label">
+                    <span>{{ progress.current_exp }} / {{ progress.next_level_exp }} EXP</span>
+                    <span>{{ progress.xp_percentage | default(0) | round(1) }}% to Lv.{{ progress.current_level + 1 }}</span>
+                </div>
+                <div class="hero-xp-track">
+                    <div class="hero-xp-fill" style="width: {{ progress.xp_percentage | default(0) }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero stats -->
+        <div class="hero-stats">
+            <div class="hero-stat-item">
+                <div class="hero-stat-val" style="color:var(--amber);">{{ progress.streak | default(0) }}</div>
+                <div class="hero-stat-lbl">🔥 Streak</div>
+            </div>
+            <div class="hero-stat-item">
+                <div class="hero-stat-val" style="color:var(--emerald);">{{ attendance_stats.total_visits | default(0) }}</div>
+                <div class="hero-stat-lbl">Total Visits</div>
+            </div>
+            <div class="hero-stat-item">
+                <div class="hero-stat-val" style="color:var(--accent);">{{ progress.total_exp | default(0) }}</div>
+                <div class="hero-stat-lbl">Total EXP</div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="grid grid-3">
-    <div class="card stat-card">
-        <div class="stat-value">{{ progress.current_level }}</div>
-        <div class="stat-label">Level</div>
-    </div>
-    
-    <div class="card stat-card">
-        <div class="stat-value">{{ progress.rank }}</div>
-        <div class="stat-label">Rank</div>
-    </div>
-    
-    <div class="card stat-card">
-        <div class="stat-value">{{ progress.streak }}</div>
-        <div class="stat-label">Current Streak</div>
+<!-- ── Action bar ── -->
+<div style="display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;">
+    <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-primary">
+        <i class="fa-solid fa-pen"></i> Edit Profile
+    </a>
+    <a href="{{ url_for('admin_attendance') }}" class="btn btn-success">
+        <i class="fa-solid fa-right-to-bracket"></i> Check In
+    </a>
+    <a href="{{ url_for('admin_memberships') }}" class="btn btn-amber">
+        <i class="fa-solid fa-id-card"></i> Membership
+    </a>
+    <a href="{{ url_for('admin_tests') }}" class="btn btn-ghost">
+        <i class="fa-solid fa-clipboard-check"></i> Run Test
+    </a>
+    <a href="{{ url_for('admin_clients') }}" class="btn btn-ghost" style="margin-left:auto;">
+        <i class="fa-solid fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<!-- ── Tabs ── -->
+<nav class="tab-nav">
+    <button class="tab-btn active" data-tab="overview">
+        <i class="fa-solid fa-id-card"></i> Overview
+    </button>
+    <button class="tab-btn" data-tab="physical">
+        <i class="fa-solid fa-weight-scale"></i> Physical Data
+    </button>
+    <button class="tab-btn" data-tab="training">
+        <i class="fa-solid fa-dumbbell"></i> Training
+    </button>
+    <button class="tab-btn" data-tab="history">
+        <i class="fa-solid fa-clock-rotate-left"></i> Workout History
+    </button>
+    <button class="tab-btn" data-tab="membership">
+        <i class="fa-solid fa-id-card-clip"></i> Membership
+    </button>
+</nav>
+
+<!-- ═══════════════════════
+     TAB: OVERVIEW
+═══════════════════════ -->
+<div class="tab-panel active" id="tab-overview">
+    <div class="grid grid-2">
+
+        <!-- Personal info -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">
+                <span class="card-title-icon">👤</span> Personal Information
+            </div>
+            <div class="info-row">
+                <span class="lbl">Phone</span>
+                <span class="val">{{ client.phone_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Email</span>
+                <span class="val">{{ client.email or '—' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Date of Birth</span>
+                <span class="val">{{ client.date_of_birth or '—' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Age</span>
+                <span class="val">{{ client.age or '—' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Gender</span>
+                <span class="val">{{ client.gender or '—' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Member Since</span>
+                <span class="val">{{ client.registration_date }}</span>
+            </div>
+        </div>
+
+        <!-- Gamification snapshot -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">
+                <span class="card-title-icon">⚔️</span> Gamification Status
+            </div>
+            <div class="info-row">
+                <span class="lbl">Level</span>
+                <span class="val" style="color:var(--accent); font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700;">{{ progress.current_level }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Rank</span>
+                <span class="val"><div class="rank rank-{{ progress.rank }}" style="display:inline-flex;">{{ progress.rank }}</div></span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Class</span>
+                <span class="val">{{ progress.class or 'Not chosen yet' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Current EXP</span>
+                <span class="val">{{ progress.current_exp }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Total EXP Earned</span>
+                <span class="val">{{ progress.total_exp }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Streak Multiplier</span>
+                <span class="val" style="color:var(--amber);">{{ progress.streak_multiplier }}×</span>
+            </div>
+        </div>
+
+        <!-- Training days -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">
+                <span class="card-title-icon">📅</span> Training Days
+            </div>
+            {% if availability %}
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                {% set all_days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+                {% for day in all_days %}
+                    {% if day in availability %}
+                    <span class="badge badge-accent">{{ day[:3] }}</span>
+                    {% else %}
+                    <span class="badge badge-muted" style="opacity:0.4;">{{ day[:3] }}</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding:20px 0;">
+                <i class="fa-regular fa-calendar-xmark"></i>
+                <p>No training days set</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Attendance at a glance -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">
+                <span class="card-title-icon">📊</span> Attendance at a Glance
+            </div>
+            {% if attendance_stats %}
+            <div class="info-row">
+                <span class="lbl">Total Visits</span>
+                <span class="val" style="color:var(--emerald); font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700;">{{ attendance_stats.total_visits }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">First Visit</span>
+                <span class="val">{{ attendance_stats.first_visit or '—' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Last Visit</span>
+                <span class="val">{{ attendance_stats.last_visit or '—' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Avg Visits/Week</span>
+                <span class="val">{{ attendance_stats.avg_visits_per_week | default(0) | round(1) }}</span>
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding:20px 0;">
+                <i class="fa-solid fa-chart-bar"></i>
+                <p>No attendance data yet</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<div class="grid grid-2">
-    <div class="card">
-        <h2>Personal Information</h2>
-        <p><strong>Phone:</strong> {{ client.phone_number }}</p>
-        <p><strong>Email:</strong> {{ client.email or 'Not provided' }}</p>
-        <p><strong>Date of Birth:</strong> {{ client.date_of_birth or 'Not provided' }}</p>
-        <p><strong>Age:</strong> {{ client.age or 'N/A' }}</p>
-        <p><strong>Gender:</strong> {{ client.gender or 'Not specified' }}</p>
+<!-- ═══════════════════════
+     TAB: PHYSICAL DATA
+═══════════════════════ -->
+<div class="tab-panel" id="tab-physical">
+    {% if physical_data %}
+    <div class="grid grid-2" style="margin-bottom:20px;">
+        <!-- Primary measurements -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:16px;"><span class="card-title-icon">📏</span> Primary</div>
+            <div class="info-row">
+                <span class="lbl">Height</span>
+                <span class="val">{{ physical_data.height_cm }} cm</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Weight</span>
+                <span class="val">{{ physical_data.weight_kg }} kg</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Body Fat</span>
+                <span class="val">{{ physical_data.body_fat_percentage or '—' }}%</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Activity Level</span>
+                <span class="val">{{ physical_data.activity or '—' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Last Updated</span>
+                <span class="val">{{ physical_data.measurement_date or '—' }}</span>
+            </div>
+        </div>
+
+        <!-- Calculated metrics -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:16px;"><span class="card-title-icon">🧮</span> Calculated Metrics</div>
+            <div class="calc-row">
+                <div class="calc-card">
+                    <div class="calc-card-label">BMI</div>
+                    <div class="calc-card-val">{{ physical_data_calculated.bmi_value or '—' }}</div>
+                    <div class="calc-card-unit">kg/m²</div>
+                </div>
+                <div class="calc-card">
+                    <div class="calc-card-label">Max Heart Rate</div>
+                    <div class="calc-card-val">{{ physical_data_calculated.mhr_value or '—' }}</div>
+                    <div class="calc-card-unit">bpm</div>
+                </div>
+                <div class="calc-card">
+                    <div class="calc-card-label">BMR</div>
+                    <div class="calc-card-val">{{ physical_data_calculated.bmr_value or '—' }}</div>
+                    <div class="calc-card-unit">kcal/day</div>
+                </div>
+                <div class="calc-card" style="border-color: var(--border-accent);">
+                    <div class="calc-card-label">TDEE</div>
+                    <div class="calc-card-val" style="color:var(--accent);">{{ physical_data_calculated.tdee_value or '—' }}</div>
+                    <div class="calc-card-unit">kcal/day</div>
+                </div>
+            </div>
+        </div>
     </div>
-    
+
+    <!-- Body measurements -->
     <div class="card">
-        <h2>Physical Data</h2>
-        {% if physical_data %}
-        <p><strong>Height:</strong> {{ physical_data.height_cm }} cm</p>
-        <p><strong>Weight:</strong> {{ physical_data.weight_kg }} kg</p>
-        <p><strong>Body Fat:</strong> {{ physical_data.body_fat_percentage or 'N/A' }}%</p>
-        <p><strong>Activity:</strong> {{ physical_data.activity }}</p>
-        <p><strong>Chest:</strong> {{ physical_data.chest_cm }} cm</p>
-        <p><strong>Arms:</strong> {{ physical_data.arms_cm }} cm</p>
-        <p><strong>Forearms:</strong> {{ physical_data.forearms_cm }} cm</p>
-        <p><strong>Waist:</strong> {{ physical_data.waist_cm }} cm</p>
-        <p><strong>Hips:</strong> {{ physical_data.hips_cm }} cm</p>
-        <p><strong>Thighs:</strong> {{ physical_data.thighs_cm }} cm</p>
-        <p><strong>Calf:</strong> {{ physical_data.claf_cm }} cm</p>
-        <br>
-        <h3>Calculated Data</h3>
-        <p><strong>Body Mass Index:</strong> {{ physical_data_calculated.bmi_value or 'N/A' }}%</p>
-        <p><strong>Max Heart Rate:</strong> {{ physical_data_calculated.mhr_value or 'N/A' }} x min</p>
-        <p><strong>Basal Metabolic Rate:</strong> {{ physical_data_calculated.bmr_value or 'N/A' }} cal</p>
-        <p><strong>Total Daily Energy Expenditure:</strong> {{ physical_data_calculated.tdee_value or 'N/A' }} cal</p>
-        <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
-        <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
+        <div class="card-title" style="margin-bottom:16px;"><span class="card-title-icon">📐</span> Body Measurements</div>
+        <div class="measure-grid">
+            {% set measures = [
+                ('Chest',    physical_data.chest_cm,    'cm'),
+                ('Arms',     physical_data.arms_cm,     'cm'),
+                ('Forearms', physical_data.forearms_cm, 'cm'),
+                ('Waist',    physical_data.waist_cm,    'cm'),
+                ('Hips',     physical_data.hips_cm,     'cm'),
+                ('Thighs',   physical_data.thighs_cm,   'cm'),
+                ('Calf',     physical_data.claf_cm,     'cm'),
+            ] %}
+            {% for name, val, unit in measures %}
+            <div class="measure-card">
+                <div class="measure-val">{{ val or '—' }}</div>
+                <div class="measure-unit">{{ unit }}</div>
+                <div class="measure-lbl">{{ name }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card">
+        <div class="empty-state">
+            <i class="fa-solid fa-weight-scale"></i>
+            <p>No physical data recorded yet.</p>
+            <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-primary" style="margin-top:16px; display:inline-flex;">
+                <i class="fa-solid fa-plus"></i> Add Physical Data
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ═══════════════════════
+     TAB: TRAINING
+═══════════════════════ -->
+<div class="tab-panel" id="tab-training">
+    <!-- Weekly schedule -->
+    <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+            <div class="card-title"><span class="card-title-icon">🗓️</span> Weekly Schedule</div>
+            <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-ghost btn-sm">
+                <i class="fa-solid fa-pen"></i> Edit Schedule
+            </a>
+        </div>
+        <div class="schedule-grid">
+            {% set all_days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+            {% for day in all_days %}
+            <div class="schedule-day {% if day in weekly_schedule %}has-routine{% endif %}">
+                <div class="schedule-day-name">{{ day }}</div>
+                {% if day in weekly_schedule %}
+                    <div class="schedule-day-routine">{{ weekly_schedule[day].routine_name }}</div>
+                    {% if weekly_schedule[day].description %}
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">{{ weekly_schedule[day].description }}</div>
+                    {% endif %}
+                {% elif day in availability %}
+                    <div class="schedule-day-rest" style="color:var(--text-muted);">No routine assigned</div>
+                {% else %}
+                    <div class="schedule-day-rest">Rest day</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════
+     TAB: WORKOUT HISTORY
+═══════════════════════ -->
+<div class="tab-panel" id="tab-history">
+
+    <!-- Workout stats mini row -->
+    {% if workout_stats %}
+    <div class="attendance-stat-grid" style="margin-bottom:20px;">
+        <div class="att-stat">
+            <div class="att-stat-val" style="color:var(--accent);">{{ workout_stats.total_workouts | default(0) }}</div>
+            <div class="att-stat-lbl">Workouts</div>
+        </div>
+        <div class="att-stat">
+            <div class="att-stat-val" style="color:var(--emerald);">{{ workout_stats.total_sets | default(0) }}</div>
+            <div class="att-stat-lbl">Total Sets</div>
+        </div>
+        <div class="att-stat">
+            <div class="att-stat-val" style="color:var(--amber);">{{ workout_stats.total_reps | default(0) }}</div>
+            <div class="att-stat-lbl">Total Reps</div>
+        </div>
+        {% if workout_stats.favorite_exercise %}
+        <div class="att-stat" style="grid-column: span 2;">
+            <div class="att-stat-val" style="font-size:16px; color:var(--text-primary);">{{ workout_stats.favorite_exercise }}</div>
+            <div class="att-stat-lbl">Favourite Exercise</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- History list -->
+    <div class="card">
+        <div class="card-title" style="margin-bottom:16px;"><span class="card-title-icon">🏋️</span> Recent Workouts</div>
+        {% if workout_history %}
+            {% for workout in workout_history %}
+            <div class="history-item">
+                <div>
+                    <div class="history-date">{{ workout.date }}</div>
+                    <div class="history-meta">{{ workout.exercises_count }} exercises · {{ workout.total_sets }} sets</div>
+                </div>
+                <div class="history-exp">+{{ workout.total_exp }} EXP</div>
+            </div>
+            {% endfor %}
         {% else %}
-        <p>No physical data recorded</p>
+        <div class="empty-state" style="padding:32px 0;">
+            <i class="fa-solid fa-dumbbell"></i>
+            <p>No workout sessions recorded yet.</p>
+        </div>
         {% endif %}
     </div>
 </div>
 
-<div class="card">
-    <h2>Progress</h2>
-    <p><strong>Current EXP:</strong> {{ progress.current_exp }}</p>
-    <p><strong>Total EXP:</strong> {{ progress.total_exp }}</p>
-    {% if progress.class %}
-    <p><strong>Class:</strong> {{ progress.class }}</p>
-    {% endif %}
-    <p><strong>Streak Multiplier:</strong> {{ progress.streak_multiplier }}x</p>
+<!-- ═══════════════════════
+     TAB: MEMBERSHIP
+═══════════════════════ -->
+<div class="tab-panel" id="tab-membership">
+    <div class="grid grid-2">
+        {% if membership %}
+        {% set days_left = membership.days_left | default(0) %}
+        {% if days_left > 7 %}
+            {% set mem_class = 'active-mem' %}
+        {% elif days_left > 0 %}
+            {% set mem_class = 'expiring-mem' %}
+        {% else %}
+            {% set mem_class = 'expired-mem' %}
+        {% endif %}
+
+        <div class="membership-card {{ mem_class }}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+                <div>
+                    <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:4px;">Membership Status</div>
+                    <div style="font-size:18px; font-weight:700; color:var(--text-primary);">
+                        {% if days_left > 7 %}Active{% elif days_left > 0 %}Expiring Soon{% else %}Expired{% endif %}
+                    </div>
+                </div>
+                {% if days_left > 0 %}
+                <div class="mem-days-big">{{ days_left }}</div>
+                {% endif %}
+            </div>
+
+            <div class="info-row">
+                <span class="lbl">Start Date</span>
+                <span class="val">{{ membership.start_date }}</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">End Date</span>
+                <span class="val">{{ membership.end_date }}</span>
+            </div>
+            {% if membership.renewal_count is defined %}
+            <div class="info-row">
+                <span class="lbl">Renewals</span>
+                <span class="val">{{ membership.renewal_count }}</span>
+            </div>
+            {% endif %}
+
+            <div style="margin-top:16px; display:flex; gap:10px;">
+                <form method="POST" action="{{ url_for('renew_membership') }}" style="flex:1;">
+                    <input type="hidden" name="membership_id" value="{{ membership.membership_id }}">
+                    <input type="hidden" name="duration_days" value="30">
+                    <button type="submit" class="btn btn-success" style="width:100%; justify-content:center;">
+                        <i class="fa-solid fa-rotate-right"></i> Renew 30 Days
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('reactivate_membership') }}" style="flex:1;">
+                    <input type="hidden" name="membership_id" value="{{ membership.membership_id }}">
+                    <button type="submit" class="btn btn-ghost" style="width:100%; justify-content:center;">
+                        <i class="fa-solid fa-circle-play"></i> Reactivate
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="empty-state">
+                <i class="fa-solid fa-id-card-clip"></i>
+                <p>No membership on file for this client.</p>
+                <a href="{{ url_for('admin_memberships') }}" class="btn btn-primary" style="margin-top:16px; display:inline-flex;">
+                    <i class="fa-solid fa-plus"></i> Create Membership
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick actions in membership tab -->
+        <div class="card">
+            <div class="card-title" style="margin-bottom:14px;"><span class="card-title-icon">⚡</span> Quick Actions</div>
+            <div class="quick-sidebar">
+                <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-primary">
+                    <i class="fa-solid fa-pen"></i> Edit Client Info
+                </a>
+                <a href="{{ url_for('admin_tests') }}" class="btn btn-ghost">
+                    <i class="fa-solid fa-clipboard-check"></i> Submit Physical Test
+                </a>
+                <a href="{{ url_for('admin_attendance') }}" class="btn btn-success">
+                    <i class="fa-solid fa-right-to-bracket"></i> Manual Check-In
+                </a>
+                <a href="{{ url_for('admin_routines') }}" class="btn btn-ghost">
+                    <i class="fa-solid fa-list-check"></i> Manage Routines
+                </a>
+                <hr class="divider">
+                <form method="POST" action="{{ url_for('admin_delete_client', client_id=client.client_id) }}"
+                      onsubmit="return confirm('Permanently delete {{ client.full_name }}?')">
+                    <button type="submit" class="btn btn-danger" style="width:100%; justify-content:center;">
+                        <i class="fa-solid fa-trash"></i> Delete Client
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-    <h2>Training Days</h2>
-    <p>{{ ', '.join(availability) if availability else 'No days set' }}</p>
-</div>
+{% endblock %}
 
-<div class="card">
-    <h2>Weekly Schedule</h2>
-    {% if weekly_schedule %}
-        {% for day, routine in weekly_schedule.items() %}
-        <p><strong>{{ day }}:</strong> {{ routine.routine_name }}</p>
-        {% endfor %}
-    {% else %}
-    <p>No routines assigned</p>
-    {% endif %}
-</div>
+{% block extra_js %}
+<script>
+/* ── Tab switching ── */
+const tabBtns   = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
 
-{% if attendance_stats %}
-<div class="card">
-    <h2>Attendance Statistics</h2>
-    <p><strong>Total Visits:</strong> {{ attendance_stats.total_visits }}</p>
-    <p><strong>First Visit:</strong> {{ attendance_stats.first_visit }}</p>
-    <p><strong>Last Visit:</strong> {{ attendance_stats.last_visit }}</p>
-    <p><strong>Avg Visits/Week:</strong> {{ attendance_stats.avg_visits_per_week }}</p>
-</div>
-{% endif %}
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => p.classList.remove('active'));
+
+        btn.classList.add('active');
+        document.getElementById(`tab-${target}`)?.classList.add('active');
+    });
+});
+
+/* Animate XP bar on load */
+document.addEventListener('DOMContentLoaded', () => {
+    const fills = document.querySelectorAll('.hero-xp-fill');
+    fills.forEach(f => {
+        const w = f.style.width;
+        f.style.width = '0%';
+        setTimeout(() => { f.style.width = w; }, 300);
+    });
+});
+</script>
 {% endblock %}

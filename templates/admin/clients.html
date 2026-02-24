@@ -1,48 +1,305 @@
 <!-- templates/admin/clients.html -->
 {% extends "admin/base.html" %}
 
-{% block title %}Clients - Admin{% endblock %}
+{% block title %}Clients — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Clients{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-bar {
+        position: relative;
+        flex: 1;
+        max-width: 380px;
+    }
+    .search-bar i {
+        position: absolute;
+        left: 12px; top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 13px;
+        pointer-events: none;
+    }
+    .search-bar input {
+        padding-left: 36px;
+        height: 38px;
+    }
+
+    .filter-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .filter-pill:hover, .filter-pill.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-glow);
+    }
+
+    /* Client row avatar */
+    .client-avatar {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700; font-size: 14px; color: white;
+        flex-shrink: 0;
+    }
+
+    .client-name-cell { display: flex; align-items: center; gap: 10px; }
+    .client-name-text { font-weight: 600; color: var(--text-primary); }
+    .client-name-sub  { font-size: 11px; color: var(--text-muted); }
+
+    /* XP bar in table */
+    .xp-bar-wrap {
+        display: flex; flex-direction: column; gap: 3px; min-width: 100px;
+    }
+    .xp-bar-track {
+        height: 4px; background: var(--bg-hover); border-radius: 2px; overflow: hidden;
+    }
+    .xp-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 2px;
+    }
+    .xp-label { font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between; }
+
+    /* Membership chip */
+    .mem-active   { background: var(--emerald-glow); color: var(--emerald); border: 1px solid rgba(16,185,129,.3); }
+    .mem-expiring { background: var(--amber-glow);   color: var(--amber);   border: 1px solid rgba(251,191,36,.3); }
+    .mem-expired  { background: var(--red-glow);     color: var(--red);     border: 1px solid rgba(239,68,68,.3); }
+    .mem-none     { background: var(--bg-hover);     color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* Class badge colours */
+    .class-Warrior  { color: #ef4444; }
+    .class-Ranger   { color: #10b981; }
+    .class-Tank     { color: #3b82f6; }
+    .class-Assassin { color: #a855f7; }
+    .class-Mage     { color: #fbbf24; }
+
+    /* Empty row */
+    #no-results-row { display: none; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Client Management</h1>
-        <a href="{{ url_for('admin_add_client') }}" class="btn btn-primary">+ Add New Client</a>
+
+<!-- ── Header ── -->
+<div class="section-header" style="margin-bottom:20px;">
+    <div>
+        <div class="section-title">
+            <div class="title-icon"><i class="fa-solid fa-users"></i></div>
+            Client Management
+        </div>
+        <div class="section-subtitle">{{ clients|length }} registered clients</div>
+    </div>
+    <a href="{{ url_for('admin_add_client') }}" class="btn btn-primary">
+        <i class="fa-solid fa-user-plus"></i> Add Client
+    </a>
+</div>
+
+<!-- ── Search & Filters ── -->
+<div class="card" style="padding:16px 20px; margin-bottom:20px;">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="clientSearch" placeholder="Search by name, phone, email…">
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;" id="filterPills">
+            <button class="filter-pill active" data-filter="all">All</button>
+            <button class="filter-pill" data-filter="active"><i class="fa-solid fa-circle" style="font-size:7px;color:var(--emerald);"></i> Active</button>
+            <button class="filter-pill" data-filter="expiring"><i class="fa-solid fa-triangle-exclamation" style="font-size:10px;color:var(--amber);"></i> Expiring</button>
+            <button class="filter-pill" data-filter="expired"><i class="fa-solid fa-xmark" style="font-size:10px;color:var(--red);"></i> Expired</button>
+        </div>
+
+        <div style="margin-left:auto; font-size:12px; color:var(--text-muted);" id="resultCount">
+            Showing <strong id="visibleCount">{{ clients|length }}</strong> clients
+        </div>
     </div>
 </div>
 
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Level</th>
-                <th>Rank</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for client in clients %}
-            <tr>
-                <td>{{ client.client_id }}</td>
-                <td><strong>{{ client.full_name }}</strong></td>
-                <td>{{ client.phone_number }}</td>
-                <td>{{ client.email or 'N/A' }}</td>
-                <td><span style="color: #667eea; font-weight: bold;">{{ client.level }}</span></td>
-                <td><span style="color: #10b981; font-weight: bold;">{{ client.rank }}</span></td>
-                <td>
-                    <a href="{{ url_for('admin_client_details', client_id=client.client_id) }}" class="btn btn-primary btn-sm">View</a>
-                    <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-success btn-sm">Edit</a>
-                    <form method="POST" action="{{ url_for('admin_delete_client', client_id=client.client_id) }}" style="display: inline;" onsubmit="return confirm('Are you sure?')">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- ── Table ── -->
+<div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-wrapper" style="border:none; border-radius:0;">
+        <table id="clientTable">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Contact</th>
+                    <th>Level & Progress</th>
+                    <th>Rank</th>
+                    <th>Class</th>
+                    <th>Membership</th>
+                    <th style="text-align:right; padding-right:20px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr class="client-row"
+                    data-name="{{ client.full_name | lower }}"
+                    data-phone="{{ client.phone_number }}"
+                    data-email="{{ (client.email or '') | lower }}"
+                    data-mem="{{ client.mem_status | default('none') }}">
+
+                    <!-- Name + avatar -->
+                    <td>
+                        <div class="client-name-cell">
+                            <div class="client-avatar">{{ client.full_name[0] | upper }}</div>
+                            <div>
+                                <div class="client-name-text">{{ client.full_name }}</div>
+                                <div class="client-name-sub">ID #{{ client.client_id }} · Since {{ client.registration_date }}</div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Contact -->
+                    <td>
+                        <div style="font-size:13px; color:var(--text-primary);">{{ client.phone_number }}</div>
+                        <div style="font-size:11px; color:var(--text-muted);">{{ client.email or '—' }}</div>
+                    </td>
+
+                    <!-- Level + XP bar -->
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span style="font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; color:var(--accent);">
+                                Lv.{{ client.level }}
+                            </span>
+                            <span style="font-size:11px; color:var(--text-muted);">{{ client.current_exp | default(0) }} EXP</span>
+                        </div>
+                        <div class="xp-bar-wrap">
+                            <div class="xp-bar-track">
+                                <div class="xp-bar-fill" style="width:{{ client.xp_pct | default(0) }}%;"></div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Rank -->
+                    <td>
+                        <div class="rank rank-{{ client.rank }}">{{ client.rank }}</div>
+                    </td>
+
+                    <!-- Class -->
+                    <td>
+                        {% if client.client_class %}
+                            <span class="class-{{ client.client_class }}" style="font-size:13px; font-weight:600;">
+                                {{ client.client_class }}
+                            </span>
+                        {% else %}
+                            <span style="color:var(--text-muted); font-size:12px;">—</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Membership -->
+                    <td>
+                        {% set ms = client.mem_status | default('none') %}
+                        {% if ms == 'active' %}
+                            <span class="badge mem-active">Active · {{ client.mem_days_left }}d left</span>
+                        {% elif ms == 'expiring' %}
+                            <span class="badge mem-expiring"><i class="fa-solid fa-triangle-exclamation" style="font-size:9px;"></i> {{ client.mem_days_left }}d left</span>
+                        {% elif ms == 'expired' %}
+                            <span class="badge mem-expired">Expired</span>
+                        {% else %}
+                            <span class="badge mem-none">No plan</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td style="text-align:right; padding-right:16px;">
+                        <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                            <a href="{{ url_for('admin_client_details', client_id=client.client_id) }}"
+                               class="btn btn-ghost btn-sm" title="View profile">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}"
+                               class="btn btn-primary btn-sm" title="Edit">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('admin_delete_client', client_id=client.client_id) }}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Delete {{ client.full_name }}? This cannot be undone.')">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <!-- No results -->
+                <tr id="no-results-row">
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-user-slash"></i>
+                            <p>No clients match your search or filter.</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput   = document.getElementById('clientSearch');
+const rows          = document.querySelectorAll('.client-row');
+const noResults     = document.getElementById('no-results-row');
+const visibleCount  = document.getElementById('visibleCount');
+let activeFilter = 'all';
+
+function applyFilters() {
+    const query = searchInput.value.toLowerCase().trim();
+    let visible = 0;
+
+    rows.forEach(row => {
+        const name  = row.dataset.name  || '';
+        const phone = row.dataset.phone || '';
+        const email = row.dataset.email || '';
+        const mem   = row.dataset.mem   || 'none';
+
+        const matchesSearch = !query ||
+            name.includes(query) ||
+            phone.includes(query) ||
+            email.includes(query);
+
+        const matchesFilter =
+            activeFilter === 'all' ||
+            (activeFilter === 'active'   && mem === 'active') ||
+            (activeFilter === 'expiring' && mem === 'expiring') ||
+            (activeFilter === 'expired'  && mem === 'expired');
+
+        const show = matchesSearch && matchesFilter;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    noResults.style.display = visible === 0 ? '' : 'none';
+    visibleCount.textContent = visible;
+}
+
+searchInput.addEventListener('input', applyFilters);
+
+document.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activeFilter = pill.dataset.filter;
+        applyFilters();
+    });
+});
+</script>
 {% endblock %}
