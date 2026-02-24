@@ -58,6 +58,18 @@ class WorkoutSessionController:
                 UNIQUE(session_id, exercise_id, set_number)
             )
         ''')
+
+        self.db.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS session_exercise_swaps (
+                swap_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id    INTEGER NOT NULL,
+                old_exercise_id INTEGER NOT NULL,
+                new_exercise_id INTEGER NOT NULL,
+                swapped_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES workout_sessions(session_id) ON DELETE CASCADE,
+                UNIQUE(session_id, old_exercise_id)
+            )
+        ''')
         
         self.db.conn.commit()
         self.db.disconnect()
@@ -159,19 +171,20 @@ class WorkoutSessionController:
         self.db.cursor.execute(query, (session_id,))
         self.db.conn.commit()
         self.db.disconnect()
-    
-    def get_session_progress(self, session_id, routine):
-        """
-        🆕 NEW - Get detailed progress for a session
-        Returns: dict with completion percentage and set details
-        """
-        exercises = routine.get_exercises()
-        total_sets = sum(ex['sets'] for ex in exercises)
-        
+
+    def get_session_progress(self, session_id, routine, exercises=None):
+        # Get detailed progress for a session. Accepts pre-swapped exercise list.\"\"\"
+        if exercises is None:
+            exercises = routine.get_exercises()
+
+        total_sets = sum(
+            ex['sets'] if isinstance(ex, dict) else ex.sets
+            for ex in exercises
+        )
+
         completed_sets = self._get_completed_sets(session_id)
         completed_count = len(completed_sets)
-        
-        # Build completion map for template
+
         completion_map = {}
         for comp in completed_sets:
             key = f"{comp['exercise_id']}-{comp['set_number']}"
@@ -180,7 +193,7 @@ class WorkoutSessionController:
                 'weight': comp['weight_used'],
                 'completed_at': comp['completed_at']
             }
-        
+
         return {
             'total_sets': total_sets,
             'completed_sets': completed_count,
@@ -305,3 +318,24 @@ class WorkoutSessionController:
             self.complete_session(session_id)
             return True
         return False
+    
+    def save_session_swap(self, session_id, old_exercise_id, new_exercise_id):
+        # Record a per-session exercise swap (never touches routine_exercises).\"\"\"
+        self.db.connect()
+        query = '''
+            INSERT OR REPLACE INTO session_exercise_swaps
+                (session_id, old_exercise_id, new_exercise_id)
+            VALUES (?, ?, ?)
+        '''
+        self.db.cursor.execute(query, (session_id, old_exercise_id, new_exercise_id))
+        self.db.conn.commit()
+        self.db.disconnect()
+
+    def get_session_swaps(self, session_id):
+        # Return {old_exercise_id: new_exercise_id} for a session.\"\"\"
+        rows = self.db.execute_query(
+            'SELECT old_exercise_id, new_exercise_id FROM session_exercise_swaps WHERE session_id = ?',
+            (session_id,)
+        )
+        return {row['old_exercise_id']: row['new_exercise_id'] for row in rows}
+    

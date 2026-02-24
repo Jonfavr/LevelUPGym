@@ -60,6 +60,41 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def apply_session_swaps(exercises, swaps):
+    # Apply per-session exercise swaps to an exercise list.
+    # swaps = {old_exercise_id: new_exercise_id}
+    # Returns a new list with swapped exercises fetched from DB.
+
+    if not swaps:
+        return exercises
+
+    result = []
+    for ex in exercises:
+        ex_id = ex['exercise_id'] if isinstance(ex, dict) else ex.exercise_id
+        if ex_id in swaps:
+            new_id = swaps[ex_id]
+            new_ex = Exercise.get_by_id(new_id)
+            if new_ex:
+                # Preserve sets/reps/rest from the original slot
+                new_ex_dict = {
+                    'exercise_id': new_ex.exercise_id,
+                    'name': new_ex.name,
+                    'description': new_ex.description,
+                    'exercise_type': new_ex.exercise_type,
+                    'target_muscle': new_ex.target_muscle,
+                    'base_exp': new_ex.base_exp,
+                    'image_path': new_ex.image_path,
+                    'sets': ex['sets'],
+                    'reps': ex['reps'],
+                    'rest_seconds': ex['rest_seconds'],
+                    'measurement': ex['measurement'],
+                    'weight': ex.get('weight', 0),
+                }
+                result.append(new_ex_dict)
+                continue
+        result.append(ex)
+    return result
+
 # ==================== CLIENT ROUTES ====================
 
 @app.route('/')
@@ -197,9 +232,13 @@ def workout(routine_id):
         return redirect(url_for('dashboard'))
     
     exercises = routine.get_exercises()
-    
-    # Get progress
-    progress = session_ctrl.get_session_progress(session_info['session_id'], routine)
+
+    # Apply any session-level swaps (does NOT affect other clients)
+    swaps = session_ctrl.get_session_swaps(session_info['session_id'])
+    exercises = apply_session_swaps(exercises, swaps)
+
+    # Get progress using the (possibly swapped) exercise list
+    progress = session_ctrl.get_session_progress(session_info['session_id'], routine, exercises)
     
     # Store session_id in Flask session for easy access
     session['workout_session_id'] = session_info['session_id']
@@ -462,55 +501,38 @@ def api_swap_exercise():
     old_id = int(data["old_id"])
     new_id = int(data["new_id"])
 
-    # 1️⃣ Get active workout session ID
     session_id = session.get("workout_session_id")
     if not session_id:
         return jsonify({"success": False, "error": "No active workout session"}), 400
 
-    # 2️⃣ Load session from DB (THIS is where client_id comes from)
     session_info = session_ctrl.get_session_by_id(session_id)
     if not session_info:
         return jsonify({"success": False, "error": "Workout session not found"}), 400
 
-    client_id = session_info["client_id"]
     routine_id = session_info["routine_id"]
 
-    # 3️⃣ Load routine and exercises
+    # ✅ Save swap ONLY for this session — routine_exercises is NOT touched
+    session_ctrl.save_session_swap(session_id, old_id, new_id)
+
+    # Reload exercises with session swaps applied
     routine = Routine.get_by_id(routine_id)
-    exercises = routine.get_exercises()
+    exercises = apply_session_swaps(routine.get_exercises(), session_ctrl.get_session_swaps(session_id))
 
-    # 4️⃣ Find index of exercise being swapped
-    old_index = next(
-    (i for i, ex in enumerate(exercises) if ex["exercise_id"] == old_id),
-    None
-)
-
+    old_index = next((i for i, ex in enumerate(exercises) if ex["exercise_id"] == new_id), None)
     if old_index is None:
-        return jsonify({"success": False, "error": "Exercise not found in routine"}), 400
+        return jsonify({"success": False, "error": "Swapped exercise not found"}), 400
 
-    # 5️⃣ Swap exercise in routine_exercises table
-    Routine.swap_exercise(routine_id, old_id, new_id)
+    progress = session_ctrl.get_session_progress(session_id, routine, exercises)
 
-    # 6️⃣ Reload routine + exercises
-    updated_exercises = routine.get_exercises()
-    new_exercise = updated_exercises[old_index]
-
-    # 7️⃣ Reload progress for THIS session
-    progress = session_ctrl.get_session_progress(session_id, routine)
-
-    # 8️⃣ Render only the swapped card
     html = render_template(
         "partials/exercise_card.html",
-        exercise=new_exercise,
+        exercise=exercises[old_index],
         index=old_index + 1,
         progress=progress,
         session_info=session_info
     )
 
-    return jsonify({
-        "success": True,
-        "html": html
-    })
+    return jsonify({"success": True, "html": html})
 
 # ==================== ADMIN ROUTES ====================
 
