@@ -1,82 +1,241 @@
-<!-- templates/dashboard.html -->
 {% extends "base.html" %}
-
-{% block title %}Dashboard - LevelUp Gym{% endblock %}
+{% block title %}Dashboard – LevelUP Gym{% endblock %}
 
 {% block extra_css %}
 <style>
-    .welcome-banner {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 30px;
-        border-radius: 15px;
-        margin-bottom: 30px;
-        text-align: center;
+    /* ── Hero banner ── */
+    .hero {
+        background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px 20px 18px;
+        margin-bottom: 14px;
+        position: relative;
+        overflow: hidden;
     }
-    
-    .welcome-banner h1 {
-        color: white;
-        font-size: 32px;
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -40px; right: -40px;
+        width: 180px; height: 180px;
+        background: radial-gradient(circle, var(--brand-glow), transparent 70%);
+        pointer-events: none;
+    }
+    .hero-greeting {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+    }
+    .hero-name {
+        font-family: var(--font-display);
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--text);
+        text-transform: uppercase;
+        line-height: 1;
+        margin-bottom: 14px;
+    }
+    .hero-name span { color: var(--brand); }
+    .hero-stats {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .hero-stat {
+        display: flex;
+        flex-direction: column;
+    }
+    .hero-stat-val {
+        font-family: var(--font-display);
+        font-size: 26px;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--text);
+    }
+    .hero-stat-lbl {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 600;
+        margin-top: 2px;
+    }
+    .hero-divider {
+        width: 1px;
+        background: var(--border);
+        align-self: stretch;
+    }
+
+    /* EXP bar in hero */
+    .exp-bar-wrap { margin-top: 16px; }
+    .exp-bar-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 500;
+        margin-bottom: 6px;
+    }
+    .exp-bar-labels span:first-child { color: var(--brand); font-weight: 700; }
+
+    /* Rank badge */
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--amber), #e67e00);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(255,176,32,0.35);
+        margin-left: auto;
+        position: absolute;
+        top: 22px; right: 20px;
+    }
+
+    /* Achievement unlock toast */
+    .achievement-toast {
+        background: linear-gradient(135deg, rgba(255,176,32,0.15), rgba(255,176,32,0.05));
+        border: 1px solid rgba(255,176,32,0.3);
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .achievement-toast-icon { font-size: 24px; flex-shrink: 0; }
+    .achievement-toast-name {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--amber);
+        text-transform: uppercase;
+        display: block;
+        line-height: 1;
+    }
+    .achievement-toast-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .achievement-toast-exp {
+        margin-left: auto;
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--amber);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Today's workout card */
+    .workout-card {
+        border-left: 3px solid var(--brand);
+    }
+    .workout-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
         margin-bottom: 10px;
     }
-    
-    .stat-card {
-        text-align: center;
-        padding: 20px;
+    .workout-section-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--brand);
+        margin-bottom: 4px;
+        font-family: var(--font-display);
     }
-    
-    .stat-value {
-        font-size: 48px;
-        font-weight: bold;
-        color: #667eea;
-        display: block;
+    .workout-name {
+        font-family: var(--font-display);
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text);
+        text-transform: uppercase;
+        line-height: 1;
     }
-    
-    .stat-label {
-        color: #6b7280;
-        font-size: 14px;
-        margin-top: 5px;
+    .workout-desc { font-size: 13px; color: var(--text-muted); margin: 6px 0 16px; }
+    .workout-exp-badge {
+        background: linear-gradient(135deg, rgba(255,176,32,0.15), rgba(255,176,32,0.05));
+        border: 1px solid rgba(255,176,32,0.3);
+        color: var(--amber);
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 8px;
+        white-space: nowrap;
     }
-    
-    .progress-bar {
-        background: #e5e7eb;
-        height: 30px;
-        border-radius: 15px;
-        overflow: hidden;
-        margin: 20px 0;
-    }
-    
-    .progress-fill {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        height: 100%;
-        transition: width 0.3s;
+    .btn-workout {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-weight: bold;
+        width: 100%;
+        padding: 16px;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        text-decoration: none;
+        border: none;
+        transition: all 0.2s;
+        cursor: pointer;
     }
-    
-    .routine-card {
-        border-left: 4px solid #667eea;
+    .btn-workout:active { transform: scale(0.97); }
+    .btn-workout-start    { background: linear-gradient(135deg, var(--green), #00c97d); color: #0d1a12; box-shadow: 0 6px 24px var(--green-glow); }
+    .btn-workout-continue { background: linear-gradient(135deg, var(--amber), #e67e00); color: #fff; box-shadow: 0 6px 24px rgba(255,176,32,0.35); }
+    .btn-workout-done     { background: var(--surface-3); color: var(--text-dim); cursor: default; }
+    .rest-day-text {
+        text-align: center;
+        padding: 20px 0 6px;
+        font-size: 15px;
+        color: var(--text-muted);
     }
-    
-    .achievement-badge {
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-        color: white;
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 10px;
+    .rest-day-icon { font-size: 36px; display: block; margin-bottom: 6px; }
+
+    /* Recent achievements strip */
+    .ach-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 10px;
+        margin-top: 4px;
     }
-    
-    .new-badge {
-        background: #ef4444;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 5px;
-        font-size: 12px;
-        font-weight: bold;
-        margin-left: 10px;
+    .ach-strip-item {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    .ach-strip-icon { font-size: 22px; flex-shrink: 0; }
+    .ach-strip-name {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+        text-transform: uppercase;
+        line-height: 1.1;
+    }
+    .ach-strip-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Membership warning */
+    .membership-warning {
+        background: rgba(255,71,87,0.1);
+        border: 1px solid rgba(255,71,87,0.3);
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        font-size: 13px;
+        color: #ff9da6;
+        font-weight: 500;
     }
 </style>
 {% endblock %}
@@ -84,129 +243,115 @@
 {% block content %}
 
 {% if notification %}
-<div class="alert alert-warning" style="background:#FEF3C7; padding:10px; border-radius:6px;">
-  {{ notification }}
-</div>
+<div class="membership-warning">{{ notification }}</div>
 {% endif %}
-
-<div class="welcome-banner">
-    <h1>Welcome back, {{ client.first_name }}! 💪</h1>
-    <p>Ready to level up today?</p>
-</div>
 
 {% if newly_unlocked %}
-    {% for achievement in newly_unlocked %}
-    <div class="alert alert-success">
-        🎉 <strong>Achievement Unlocked!</strong> {{ achievement.achievement_name }} - {{ achievement.description }} (+{{ achievement.exp_earned }} EXP)
+    {% for ach in newly_unlocked %}
+    <div class="achievement-toast">
+        <div class="achievement-toast-icon">🏆</div>
+        <div>
+            <span class="achievement-toast-name">{{ ach.achievement_name }}</span>
+            <div class="achievement-toast-desc">{{ ach.description }}</div>
+        </div>
+        <div class="achievement-toast-exp">+{{ ach.exp_earned }} EXP</div>
     </div>
     {% endfor %}
 {% endif %}
 
-{% if progress.class %}
-<div class="grid grid-4">
-    <div class="card stat-card">
-        <span class="stat-value">{{ progress.level }}</span>
-        <span class="stat-label">Level</span>
+<!-- HERO -->
+<div class="hero">
+    <div class="rank-badge">{{ progress.rank }}</div>
+    <div class="hero-greeting">Welcome back</div>
+    <div class="hero-name">{{ client.first_name }}<span>.</span></div>
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <span class="hero-stat-val">{{ progress.level }}</span>
+            <span class="hero-stat-lbl">Level</span>
+        </div>
+        <div class="hero-divider"></div>
+        <div class="hero-stat">
+            <span class="hero-stat-val">{{ streak_data.current_streak if streak_data else 0 }}🔥</span>
+            <span class="hero-stat-lbl">Streak</span>
+        </div>
+        {% if progress.class %}
+        <div class="hero-divider"></div>
+        <div class="hero-stat">
+            <span class="hero-stat-val" style="font-size:18px; padding-top:4px;">{{ progress.class }}</span>
+            <span class="hero-stat-lbl">Class</span>
+        </div>
+        {% endif %}
     </div>
-    
-    <div class="card stat-card">
-        <span class="stat-value">{{ progress.rank }}</span>
-        <span class="stat-label">Rank</span>
-    </div>
-
-    <div class="card stat-card">
-        <span class="stat-value">{{ progress.class }}</span>
-        <span class="stat-label">Class</span>
-    </div>
-    
-    <div class="card stat-card">
-        <span class="stat-value">{{ streak_data.current_streak if streak_data else 0 }}</span>
-        <span class="stat-label">Day Streak 🔥</span>
-    </div>
-
-</div>
-{% else %}
-<div class="grid grid-3">
-    <div class="card stat-card">
-        <span class="stat-value">{{ progress.level }}</span>
-        <span class="stat-label">Level</span>
-    </div>
-    
-    <div class="card stat-card">
-        <span class="stat-value">{{ progress.rank }}</span>
-        <span class="stat-label">Rank</span>
-    </div>
-    
-    <div class="card stat-card">
-        <span class="stat-value">{{ streak_data.current_streak if streak_data else 0 }}</span>
-        <span class="stat-label">Day Streak 🔥</span>
-    </div>
-</div>
-{% endif %}
-<div class="card">
-    <h2>Your Progress</h2>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-        <span>Level {{ progress.level }}</span>
-        <span>{{ progress.current_exp }} / {{ progress.next_level_exp }} EXP</span>
-    </div>
-    <div class="progress-bar">
-        <div class="progress-fill" style="width: {{ progress.progress_percentage }}%">
-            {{ "%.1f"|format(progress.progress_percentage) }}%
+    <div class="exp-bar-wrap">
+        <div class="exp-bar-labels">
+            <span>{{ progress.current_exp }} EXP</span>
+            <span>{{ progress.next_level_exp }} EXP to lvl {{ progress.level + 1 }}</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" style="width: {{ progress.progress_percentage }}%"></div>
         </div>
     </div>
-    
-    {% if progress.class %}
-    <p><strong>Class Specialty:</strong> {{ progress.class_info.description }}</p>
-    {% elif progress.can_choose_class %}
-    <a href="{{ url_for('classes') }}" class="btn btn-primary" style="margin-top: 10px;">Choose Your Class!</a>
+    {% if progress.can_choose_class %}
+    <a href="{{ url_for('classes') }}" class="btn btn-primary btn-block" style="margin-top:16px;">
+        ⚡ Choose Your Class!
+    </a>
     {% endif %}
 </div>
 
-<div class="card routine-card">
-    <h2>Today's Workout - {{ today }}</h2>
+<!-- TODAY'S WORKOUT -->
+<div class="card workout-card">
     {% if today_routine %}
-        <h3>{{ today_routine.routine_name }}</h3>
-        <p>{{ today_routine.description }}</p>
-        <p><strong>Total Base EXP:</strong> {{ today_routine.calculate_total_exp() }}</p>
+    <div class="workout-card-header">
+        <div>
+            <div class="workout-section-label">Today · {{ today }}</div>
+            <div class="workout-name">{{ today_routine.routine_name }}</div>
+        </div>
+        <div class="workout-exp-badge">⚡ {{ today_routine.calculate_total_exp() }} EXP</div>
+    </div>
+    <div class="workout-desc">{{ today_routine.description or 'Your workout is ready.' }}</div>
 
-        {% if status == 'completed' %}
-            <span style="color: #10b981; font-weight: bold;">
-                <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" 
-                   class="btn btn-disabled" style="margin-top: 10px;">
-                    Workout Completed
-                </a>
-            </span>
-
-        {% elif status == 'in_progress' %}
-            <span style="color: #fbbf24; font-weight: bold;">
-                <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" 
-                   class="btn btn-progress" style="margin-top: 10px;">
-                    Continue Workout  →
-                </a>
-            </span>
-
-        {% else %}
-            <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" 
-               class="btn btn-success" style="margin-top: 10px;">
-                Start Workout →
-            </a>
-        {% endif %}
+    {% if status == 'completed' %}
+    <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" class="btn-workout btn-workout-done">
+        ✓ Completed Today
+    </a>
+    {% elif status == 'in_progress' %}
+    <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" class="btn-workout btn-workout-continue">
+        ▶ Continue Workout →
+    </a>
+    {% else %}
+    <a href="{{ url_for('workout', routine_id=today_routine.routine_id) }}" class="btn-workout btn-workout-start">
+        Start Workout →
+    </a>
+    {% endif %}
 
     {% else %}
-        <p>No routine scheduled for today. Enjoy your rest day! 😊</p>
+    <div class="workout-section-label">Today · {{ today }}</div>
+    <div class="rest-day-text">
+        <span class="rest-day-icon">😴</span>
+        Rest day — no routine scheduled.<br>Recovery is part of the grind.
+    </div>
     {% endif %}
 </div>
 
+<!-- RECENT ACHIEVEMENTS -->
 {% if recent_achievements %}
 <div class="card">
-    <h2>Recent Achievements</h2>
-    {% for achievement in recent_achievements %}
-    <div class="achievement-badge">
-        <strong>🏆 {{ achievement.name }}</strong>
-        <p style="margin-top: 5px; opacity: 0.9;">{{ achievement.description }}</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h2 style="margin:0;">Recent Unlocks</h2>
+        <a href="{{ url_for('achievements') }}" class="btn btn-ghost btn-sm">View All →</a>
     </div>
-    {% endfor %}
-    <a href="{{ url_for('achievements') }}" class="btn btn-primary" style="margin-top: 10px;">View All Achievements</a>
+    <div class="ach-strip">
+        {% for ach in recent_achievements %}
+        <div class="ach-strip-item">
+            <div class="ach-strip-icon">🏆</div>
+            <div>
+                <div class="ach-strip-name">{{ ach.name }}</div>
+                <div class="ach-strip-desc">{{ ach.description }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endif %}
+
 {% endblock %}

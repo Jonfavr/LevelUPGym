@@ -5,218 +5,478 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}LevelUp Gym{% endblock %}</title>
     <link rel="icon" href="/image/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ============================================
+           DESIGN TOKENS
+        ============================================ */
+        :root {
+            --brand:       #7c5cfc;
+            --brand-glow:  rgba(124, 92, 252, 0.35);
+            --brand-dim:   rgba(124, 92, 252, 0.12);
+            --green:       #00e5a0;
+            --green-glow:  rgba(0, 229, 160, 0.3);
+            --amber:       #ffb020;
+            --red:         #ff4757;
+            --bg:          #0d0f14;
+            --surface:     #161a24;
+            --surface-2:   #1e2330;
+            --surface-3:   #252b3b;
+            --border:      rgba(255,255,255,0.07);
+            --border-2:    rgba(255,255,255,0.12);
+            --text:        #f0f2f8;
+            --text-muted:  #7a84a0;
+            --text-dim:    #4a5168;
+            --radius:      16px;
+            --radius-sm:   10px;
+            --font-display:'Barlow Condensed', sans-serif;
+            --font-body:   'DM Sans', sans-serif;
+            --nav-height:  64px;
+        }
+
+        /* ============================================
+           RESET & BASE
+        ============================================ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            color: #333;
-            padding-bottom: 80px; /* space for bottom nav */
+            padding-top: 16px;
+            padding-bottom: calc(var(--nav-height) + 32px);
+            background-image:
+                radial-gradient(ellipse 80% 40% at 50% 0%, rgba(124,92,252,0.12) 0%, transparent 70%);
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* 🔹 Top nav - only logout */
-        .top-nav {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            width: 100%;
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            border-radius: 10px;
-        }
-
-        .nav-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .nav-content .nav-links a {
-            background: #ef4444;
-            color: white;
-            text-decoration: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .nav-content .nav-links a:hover {
-            background: #dc2626;
-            transform: translateY(-3px);
-        }
-
-        .nav-content .nav-links a img {
-            transform: translateY(5px);
-            filter: brightness(0) saturate(100%) invert(100%) sepia(94%) saturate(0%) hue-rotate(293deg) brightness(108%) contrast(105%);
-        }
-        
-        .nav-content .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        .nav-content .logo img {
-            width: 25px;
-        }
-
-        /* 🔹 Bottom nav */
+        /* ============================================
+           HUD — BOTTOM NAV
+        ============================================ */
         .bottom-nav {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+            bottom: 0; left: 0; right: 0;
+            height: var(--nav-height);
+            z-index: 500;
+            background: rgba(13, 15, 20, 0.88);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding: 20px 0;
-            border-top: 2px solid #e5e7eb;
-            z-index: 1000;
+            padding: 0 4px;
+            overflow: visible;
         }
 
-        .bottom-nav a {
-            text-decoration: none;
-            color:  #374151;
-            font-weight: 500;
+        /* Glowing brand line at the top of the HUD */
+        .bottom-nav::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(124,92,252,0.6) 25%,
+                rgba(0,229,160,0.5) 50%,
+                rgba(124,92,252,0.6) 75%,
+                transparent 100%
+            );
+        }
+
+        /* Ambient glow underneath the brand line */
+        .bottom-nav::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 10%; right: 10%;
+            height: 50px;
+            background: radial-gradient(ellipse at 50% 0%, rgba(124,92,252,0.08), transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ── Side nav items ── */
+        .nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            font-size: 12px;
-            transition: all 0.3s;
-        }
-
-        .bottom-nav a i {
-            font-size: 20px;
-            margin-bottom: 5px;
-        }
-
-        .bottom-nav a:hover {
-            color: #667eea;
-            transform: translateY(-3px);
-        }
-
-        .bottom-nav a img {
-            filter: brightness(0) saturate(100%) invert(22%) sepia(22%) saturate(534%) hue-rotate(178deg) brightness(100%) contrast(94%);
-        }
-
-        .bottom-nav a img:hover {
-            filter: brightness(0) saturate(100%) invert(45%) sepia(89%) saturate(1581%) hue-rotate(210deg) brightness(96%) contrast(91%);
-        }
-
-        .bottom-nav a.active img {
-            filter: brightness(0) saturate(100%) invert(45%) sepia(89%) saturate(1581%) hue-rotate(210deg) brightness(96%) contrast(91%);
-        }
-        
-        /* Active link styling */
-        .bottom-nav a.active {
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        /* 🔹 General buttons & cards (unchanged from your style) */
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 12px 24px;
-            border-radius: 8px;
+            justify-content: center;
+            gap: 3px;
+            color: var(--text-dim);
             text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
+            padding: 6px 12px 4px;
+            border-radius: 12px;
+            transition: all 0.22s ease;
+            position: relative;
+            min-width: 52px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-item img {
+            width: 20px;
+            height: 20px;
+            filter: brightness(0) saturate(100%) invert(28%) sepia(12%) saturate(600%) hue-rotate(195deg);
+            transition: all 0.22s ease;
+        }
+
+        .nav-item span {
+            font-family: var(--font-display);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            transition: all 0.22s ease;
+        }
+
+        /* Active capsule */
+        .nav-item.active {
+            color: var(--brand);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(124,92,252,0.16), rgba(124,92,252,0.05));
+            border-radius: 12px;
+            border: 1px solid rgba(124,92,252,0.22);
+            box-shadow: inset 0 1px 0 rgba(124,92,252,0.2);
+        }
+
+        /* Active top glow bar */
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -1px; left: 25%; right: 25%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--brand), transparent);
+            border-radius: 99px;
+            box-shadow: 0 0 8px var(--brand-glow), 0 0 16px var(--brand-glow);
+        }
+
+        .nav-item.active img {
+            filter: brightness(0) saturate(100%) invert(48%) sepia(80%)
+                    saturate(800%) hue-rotate(225deg) brightness(115%);
+        }
+
+        .nav-item:not(.active):hover {
+            color: var(--text-muted);
+        }
+        .nav-item:not(.active):hover img {
+            filter: brightness(0) saturate(100%) invert(52%) sepia(10%) saturate(400%) hue-rotate(180deg);
+        }
+
+        /* ── Center HOME — elevated hero button ── */
+        .nav-item-home {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-decoration: none;
+            margin-top: -20px;
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-home-btn {
+            width: 54px;
+            height: 54px;
+            border-radius: 17px;
+            background: linear-gradient(145deg, #9b7cff, var(--brand) 40%, #5e3fde);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow:
+                0 -4px 24px rgba(124,92,252,0.55),
+                0 6px 20px rgba(124,92,252,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.18),
+                inset 0 -1px 0 rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .nav-home-btn img {
+            width: 22px;
+            height: 22px;
+            filter: brightness(0) invert(1);
+            transition: transform 0.22s ease;
+        }
+
+        .nav-item-home:active .nav-home-btn {
+            transform: scale(0.91);
+            box-shadow: 0 2px 12px rgba(124,92,252,0.4);
+        }
+
+        /* Active home — green pulse */
+        .nav-item-home.active .nav-home-btn {
+            background: linear-gradient(145deg, #33ffbe, var(--green) 45%, #00b87a);
+            box-shadow:
+                0 -4px 24px rgba(0,229,160,0.55),
+                0 6px 20px rgba(0,229,160,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.2),
+                inset 0 -1px 0 rgba(0,0,0,0.15);
+        }
+
+        .nav-item-home span {
+            font-family: var(--font-display);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            transition: color 0.22s;
+        }
+
+        .nav-item-home.active span { color: var(--green); }
+
+        /* ============================================
+           CONTAINER
+        ============================================ */
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 16px 16px 0;
+        }
+
+        /* ============================================
+           CARDS
+        ============================================ */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 14px;
+        }
+
+        /* ============================================
+           ALERTS
+        ============================================ */
+        .alert {
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 14px;
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .alert-success { background: rgba(0,229,160,0.1); color: #6effd7; border: 1px solid rgba(0,229,160,0.25); }
+        .alert-error   { background: rgba(255,71,87,0.1);  color: #ff9da6; border: 1px solid rgba(255,71,87,0.25); }
+        .alert-info    { background: rgba(124,92,252,0.1); color: #c4b5fd; border: 1px solid rgba(124,92,252,0.25); }
+        .alert-warning { background: rgba(255,176,32,0.1); color: #ffd580; border: 1px solid rgba(255,176,32,0.25); }
+
+        /* ============================================
+           TYPOGRAPHY
+        ============================================ */
+        h1, h2, h3 {
+            font-family: var(--font-display);
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 800;
+        }
+
+        h1 { font-size: 32px; line-height: 1; margin-bottom: 6px; }
+        h2 { font-size: 22px; margin-bottom: 12px; }
+        h3 { font-size: 18px; margin-bottom: 8px; }
+
+        p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+        /* ============================================
+           BUTTONS
+        ============================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 22px;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: all 0.2s;
             border: none;
             cursor: pointer;
-            font-size: 16px;
         }
 
-        .btn-primary { background: #667eea; color: white; }
-        .btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
+        .btn:active { transform: scale(0.97); }
 
-        .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; transform: translateY(-2px); }
+        .btn-primary  { background: linear-gradient(135deg, var(--brand), #5e3fde); color: #fff; box-shadow: 0 4px 20px var(--brand-glow); }
+        .btn-success  { background: linear-gradient(135deg, var(--green), #00c97d); color: #0d1a12; box-shadow: 0 4px 20px var(--green-glow); }
+        .btn-danger   { background: linear-gradient(135deg, var(--red), #cc2233); color: #fff; }
+        .btn-progress { background: linear-gradient(135deg, var(--amber), #e67e00); color: #fff; box-shadow: 0 4px 16px rgba(255,176,32,0.3); }
+        .btn-disabled { background: var(--surface-3); color: var(--text-dim); cursor: not-allowed; box-shadow: none; }
+        .btn-ghost    { background: var(--surface-3); border: 1px solid var(--border); color: var(--text-muted); }
+        .btn-ghost:hover { color: var(--text); border-color: var(--border-2); }
 
-        .btn-progress { background: #fbbf24; color: white; }
-        .btn-progress:hover { background: #cf980c; transform: translateY(-2px); }
+        .btn-sm { padding: 8px 14px; font-size: 13px; }
+        .btn-block { width: 100%; }
 
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; transform: translateY(-2px); }
-
-        .btn-disabled { background: #6b7280; color: white; }
-        .btn-disabled:hover { cursor: default; }
-
-        .alert {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: 500;
+        /* ============================================
+           PROGRESS BAR (global utility)
+        ============================================ */
+        .progress-track {
+            background: var(--surface-3);
+            height: 8px;
+            border-radius: 99px;
+            overflow: hidden;
         }
 
-        .alert-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
-        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
-        .alert-info { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
-        .alert-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--brand), var(--green));
+            border-radius: 99px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 8px var(--green-glow);
+        }
 
-        h1, h2, h3 { color: #1f2937; margin-bottom: 15px; }
+        /* ============================================
+           STAT PILL (utility)
+        ============================================ */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
 
-        @media (max-width: 600px) {
-            .bottom-nav a i { font-size: 18px; }
-            .bottom-nav a span { font-size: 11px; }
+        .stat-pill {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 10px;
+            text-align: center;
+        }
+
+        .stat-pill-value {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1;
+            display: block;
+        }
+
+        .stat-pill-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* ============================================
+           ROW ITEM (utility — lists)
+        ============================================ */
+        .row-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .row-item:last-child { border-bottom: none; }
+
+        .row-item-label { color: var(--text-muted); font-size: 13px; font-weight: 500; }
+        .row-item-value { font-weight: 600; font-size: 14px; color: var(--text); }
+
+        /* ============================================
+           SECTION LABEL
+        ============================================ */
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            font-family: var(--font-display);
+        }
+
+        /* ============================================
+           TAG / BADGE
+        ============================================ */
+        .tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 99px;
+            border: 1px solid var(--border);
+            background: var(--surface-3);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-brand  { color: var(--brand); border-color: var(--brand-glow); background: var(--brand-dim); }
+        .tag-green  { color: var(--green); border-color: rgba(0,229,160,0.3); background: rgba(0,229,160,0.08); }
+        .tag-amber  { color: var(--amber); border-color: rgba(255,176,32,0.3); background: rgba(255,176,32,0.08); }
+        .tag-red    { color: var(--red);   border-color: rgba(255,71,87,0.3);  background: rgba(255,71,87,0.08); }
+
+        /* ============================================
+           GRID UTILITIES
+        ============================================ */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+        @media (max-width: 380px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     {% if session.client_id %}
-        <!-- 🔺 Top Logout -->
-        <div class="top-nav">
-            <div class="nav-content">
-                <div class="logo" style="color: #3B4651;"><img src="/static/image/Untitled design - Copy.png" style="width: 40px; height: auto;"> LEVELUP GYM</div>
-                <div class="nav-links">
-                    <a href="{{ url_for('logout') }}"><img src="/static/icons/logout.png"></a>
-                </div>
-            </div>
-        </div>
+    <!-- HUD — BOTTOM NAV -->
+    <div class="bottom-nav">
 
-        <!-- 🔻 Bottom Navigation -->
-        <div class="bottom-nav">
-            <a href="{{ url_for('progress') }}" class="{% if request.endpoint == 'progress' %}active{% endif %}">
-                <img src="/static/icons/progress.png">
-            </a>
-            <a href="{{ url_for('schedule') }}" class="{% if request.endpoint == 'schedule' %}active{% endif %}">
-                <img src="/static/icons/schedule.png">
-            </a>
-            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
-                <img src="/static/icons/home.png">
-            </a>
-            <a href="{{ url_for('profile') }}" class="{% if request.endpoint == 'profile' %}active{% endif %}">
-                <img src="/static/icons/profile.png">
-            </a>
-            <a href="{{ url_for('achievements') }}" class="{% if request.endpoint == 'achievements' %}active{% endif %}">
-                <img src="/static/icons/achievment.png">
-            </a>
-        </div>
+        <a href="{{ url_for('progress') }}"
+           class="nav-item {% if request.endpoint == 'progress' %}active{% endif %}">
+            <img src="/static/icons/progress.png" alt="">
+            <span>Progress</span>
+        </a>
+
+        <a href="{{ url_for('schedule') }}"
+           class="nav-item {% if request.endpoint == 'schedule' %}active{% endif %}">
+            <img src="/static/icons/schedule.png" alt="">
+            <span>Schedule</span>
+        </a>
+
+        <!-- CENTER elevated home button -->
+        <a href="{{ url_for('dashboard') }}"
+           class="nav-item-home {% if request.endpoint == 'dashboard' %}active{% endif %}">
+            <div class="nav-home-btn">
+                <img src="/static/icons/home.png" alt="">
+            </div>
+            <span>Home</span>
+        </a>
+
+        <a href="{{ url_for('profile') }}"
+           class="nav-item {% if request.endpoint == 'profile' %}active{% endif %}">
+            <img src="/static/icons/profile.png" alt="">
+            <span>Profile</span>
+        </a>
+
+        <a href="{{ url_for('achievements') }}"
+           class="nav-item {% if request.endpoint == 'achievements' %}active{% endif %}">
+            <img src="/static/icons/achievment.png" alt="">
+            <span>Awards</span>
+        </a>
+
+    </div>
     {% endif %}
 
     <div class="container">

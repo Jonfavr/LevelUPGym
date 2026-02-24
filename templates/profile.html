@@ -1,70 +1,350 @@
-<!-- templates/profile.html -->
 {% extends "base.html" %}
+{% block title %}Profile – LevelUP Gym{% endblock %}
 
-{% block title %}Profile - LevelUp Gym{% endblock %}
+{% block extra_css %}
+<style>
+    /* Profile hero */
+    .profile-hero {
+        background: linear-gradient(135deg, var(--surface-2), var(--surface-3));
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px 20px 20px;
+        margin-bottom: 14px;
+        position: relative;
+        overflow: hidden;
+    }
+    .profile-hero::before {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 220px; height: 220px;
+        background: radial-gradient(circle, var(--brand-glow), transparent 65%);
+        pointer-events: none;
+    }
+    .profile-avatar {
+        width: 64px; height: 64px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, var(--brand), #5e3fde);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 14px;
+        box-shadow: 0 8px 24px var(--brand-glow);
+    }
+    .profile-name {
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--text);
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+    .profile-since {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    .profile-tags {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+
+    /* Membership card */
+    .membership-card {
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        margin-bottom: 14px;
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+    .membership-card.active-membership {
+        background: linear-gradient(135deg, rgba(0,229,160,0.1), rgba(0,229,160,0.03));
+        border-color: rgba(0,229,160,0.3);
+    }
+    .membership-card.expiring {
+        background: linear-gradient(135deg, rgba(255,176,32,0.1), rgba(255,176,32,0.03));
+        border-color: rgba(255,176,32,0.3);
+    }
+    .membership-card.expired {
+        background: linear-gradient(135deg, rgba(255,71,87,0.1), rgba(255,71,87,0.03));
+        border-color: rgba(255,71,87,0.3);
+    }
+    .membership-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+    .membership-title {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--text);
+    }
+    .days-left-badge {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 800;
+        line-height: 1;
+        text-align: right;
+    }
+    .days-left-badge.ok     { color: var(--green); }
+    .days-left-badge.warn   { color: var(--amber); }
+    .days-left-badge.danger { color: var(--red); }
+    .days-left-sub { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-top: 2px; }
+
+    /* Body metrics grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .metric-item {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+    }
+    .metric-val {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+        display: block;
+    }
+    .metric-lbl {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 3px;
+        display: block;
+    }
+
+    /* Calculated metrics — highlighted */
+    .calc-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .calc-item {
+        background: var(--brand-dim);
+        border: 1px solid var(--brand-glow);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+    }
+    .calc-val {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--brand);
+        line-height: 1;
+        display: block;
+    }
+    .calc-lbl {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 3px;
+        display: block;
+    }
+
+    /* Gamification bar in profile */
+    .gam-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .gam-cell {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 14px 10px;
+        text-align: center;
+    }
+    .gam-cell-val {
+        font-family: var(--font-display);
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+        display: block;
+    }
+    .gam-cell-lbl {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 600;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>{{ client.full_name }}</h1>
-    <p>Member since {{ client.registration_date }}</p>
+
+<!-- PROFILE HERO -->
+<div class="profile-hero">
+    <div class="profile-avatar">
+        {{ client.first_name[0] }}{{ client.last_name[0] if client.last_name else '' }}
+    </div>
+    <div class="profile-name">{{ client.full_name }}</div>
+    <div class="profile-since">Member since {{ client.registration_date }}</div>
+    <div class="profile-tags">
+        {% if client.gender %}<span class="tag">{{ client.gender }}</span>{% endif %}
+        {% if client.age %}<span class="tag">{{ client.age }} yrs</span>{% endif %}
+        {% if gam_data %}<span class="tag tag-amber">Rank {{ gam_data.rank }}</span>{% endif %}
+        {% if gam_data and gam_data.client_class %}<span class="tag tag-brand">{{ gam_data.client_class }}</span>{% endif %}
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm" style="margin-top:14px; color:var(--red); border-color:rgba(255,71,87,0.25); width:100%; justify-content:center;">
+        ⏻ Sign Out
+    </a>
 </div>
 
-<div class="grid grid-2">
-    <div class="card">
-        <h2>Personal Information</h2>
-        <p><strong>Phone:</strong> {{ client.phone_number }}</p>
-        <p><strong>Email:</strong> {{ client.email or 'Not provided' }}</p>
-        <p><strong>Date of Birth:</strong> {{ client.date_of_birth or 'Not provided' }}</p>
-        <p><strong>Age:</strong> {{ client.age or 'N/A' }}</p>
-        <p><strong>Gender:</strong> {{ client.gender or 'Not specified' }}</p>
+<!-- GAMIFICATION STATS -->
+{% if gam_data %}
+<div class="gam-row">
+    <div class="gam-cell">
+        <span class="gam-cell-val" style="color:var(--brand);">{{ gam_data.current_level }}</span>
+        <span class="gam-cell-lbl">Level</span>
     </div>
+    <div class="gam-cell">
+        <span class="gam-cell-val" style="color:var(--amber);">{{ gam_data.rank }}</span>
+        <span class="gam-cell-lbl">Rank</span>
+    </div>
+    <div class="gam-cell">
+        <span class="gam-cell-val" style="color:var(--green); font-size:18px; padding-top:4px;">{{ gam_data.total_exp }}</span>
+        <span class="gam-cell-lbl">Total EXP</span>
+    </div>
+</div>
+{% endif %}
 
-    <div class="card">
-        <h2>Membership Info</h2>
-        {% if membership %}
-        <p><strong>Start Date:</strong> {{ start_date }}</p>
-        <p><strong>End Date:</strong> {{ end_date }}</p>
-        <p><strong>Days Left:</strong> {{ days_left }}</p>
-        {% else %}
-        <p>No physical data recorded yet</p>
+<!-- MEMBERSHIP -->
+{% if membership %}
+{% set mem_class = 'active-membership' if days_left > 5 else ('expiring' if days_left > 0 else 'expired') %}
+<div class="membership-card {{ mem_class }}">
+    <div class="membership-header">
+        <div>
+            <div class="section-label">Membership</div>
+            <div class="membership-title">Active Plan</div>
+        </div>
+        <div>
+            <div class="days-left-badge {% if days_left > 5 %}ok{% elif days_left > 0 %}warn{% else %}danger{% endif %}">
+                {{ days_left if days_left > 0 else '0' }}
+            </div>
+            <div class="days-left-sub">Days Left</div>
+        </div>
+    </div>
+    <div class="row-item" style="padding:8px 0; border-color:rgba(255,255,255,0.06);">
+        <span class="row-item-label">Start Date</span>
+        <span class="row-item-value">{{ start_date }}</span>
+    </div>
+    <div class="row-item" style="padding:8px 0; border-bottom:none;">
+        <span class="row-item-label">End Date</span>
+        <span class="row-item-value">{{ end_date }}</span>
+    </div>
+</div>
+{% endif %}
+
+<!-- CONTACT INFO -->
+<div class="card">
+    <h2>Contact</h2>
+    <div class="row-item">
+        <span class="row-item-label">Phone</span>
+        <span class="row-item-value">{{ client.phone_number }}</span>
+    </div>
+    <div class="row-item">
+        <span class="row-item-label">Email</span>
+        <span class="row-item-value">{{ client.email or '—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="row-item-label">Date of Birth</span>
+        <span class="row-item-value">{{ client.date_of_birth or '—' }}</span>
+    </div>
+</div>
+
+<!-- PHYSICAL DATA -->
+{% if physical_data %}
+<div class="card">
+    <h2>Body Metrics</h2>
+    <div class="metrics-grid">
+        <div class="metric-item">
+            <span class="metric-val">{{ physical_data.height_cm }} <small style="font-size:14px;color:var(--text-muted);">cm</small></span>
+            <span class="metric-lbl">Height</span>
+        </div>
+        <div class="metric-item">
+            <span class="metric-val">{{ physical_data.weight_kg }} <small style="font-size:14px;color:var(--text-muted);">kg</small></span>
+            <span class="metric-lbl">Weight</span>
+        </div>
+        {% if physical_data.body_fat_percentage %}
+        <div class="metric-item">
+            <span class="metric-val">{{ physical_data.body_fat_percentage }}<small style="font-size:14px;color:var(--text-muted);">%</small></span>
+            <span class="metric-lbl">Body Fat</span>
+        </div>
+        {% endif %}
+        <div class="metric-item">
+            <span class="metric-val" style="font-size:16px; padding-top:3px;">{{ physical_data.activity }}</span>
+            <span class="metric-lbl">Activity</span>
+        </div>
+        {% if physical_data.chest_cm %}<div class="metric-item"><span class="metric-val">{{ physical_data.chest_cm }}<small style="font-size:13px;color:var(--text-muted);">cm</small></span><span class="metric-lbl">Chest</span></div>{% endif %}
+        {% if physical_data.arms_cm %}<div class="metric-item"><span class="metric-val">{{ physical_data.arms_cm }}<small style="font-size:13px;color:var(--text-muted);">cm</small></span><span class="metric-lbl">Arms</span></div>{% endif %}
+        {% if physical_data.waist_cm %}<div class="metric-item"><span class="metric-val">{{ physical_data.waist_cm }}<small style="font-size:13px;color:var(--text-muted);">cm</small></span><span class="metric-lbl">Waist</span></div>{% endif %}
+        {% if physical_data.hips_cm %}<div class="metric-item"><span class="metric-val">{{ physical_data.hips_cm }}<small style="font-size:13px;color:var(--text-muted);">cm</small></span><span class="metric-lbl">Hips</span></div>{% endif %}
+        {% if physical_data.thighs_cm %}<div class="metric-item"><span class="metric-val">{{ physical_data.thighs_cm }}<small style="font-size:13px;color:var(--text-muted);">cm</small></span><span class="metric-lbl">Thighs</span></div>{% endif %}
+        {% if physical_data.claf_cm %}<div class="metric-item"><span class="metric-val">{{ physical_data.claf_cm }}<small style="font-size:13px;color:var(--text-muted);">cm</small></span><span class="metric-lbl">Calf</span></div>{% endif %}
+        {% if physical_data.forearms_cm %}<div class="metric-item"><span class="metric-val">{{ physical_data.forearms_cm }}<small style="font-size:13px;color:var(--text-muted);">cm</small></span><span class="metric-lbl">Forearms</span></div>{% endif %}
+    </div>
+    <div class="section-label" style="margin-top:18px;">Calculated</div>
+    <div class="calc-grid">
+        {% if physical_data_calculated.bmi_value %}
+        <div class="calc-item">
+            <span class="calc-val">{{ physical_data_calculated.bmi_value }}</span>
+            <span class="calc-lbl">BMI</span>
+        </div>
+        {% endif %}
+        {% if physical_data_calculated.mhr_value %}
+        <div class="calc-item">
+            <span class="calc-val">{{ physical_data_calculated.mhr_value }}</span>
+            <span class="calc-lbl">Max Heart Rate</span>
+        </div>
+        {% endif %}
+        {% if physical_data_calculated.bmr_value %}
+        <div class="calc-item">
+            <span class="calc-val">{{ physical_data_calculated.bmr_value }}</span>
+            <span class="calc-lbl">BMR (cal)</span>
+        </div>
+        {% endif %}
+        {% if physical_data_calculated.tdee_value %}
+        <div class="calc-item">
+            <span class="calc-val">{{ physical_data_calculated.tdee_value }}</span>
+            <span class="calc-lbl">TDEE (cal)</span>
+        </div>
         {% endif %}
     </div>
-    
+    <p style="font-size:11px; margin-top:10px; text-align:right;">Updated {{ physical_data.measurement_date }}</p>
 </div>
-
+{% else %}
 <div class="card">
-    <h2>Physical Data</h2>
-    {% if physical_data %}
-    <p><strong>Height:</strong> {{ physical_data.height_cm }} cm</p>
-    <p><strong>Weight:</strong> {{ physical_data.weight_kg }} kg</p>
-    <p><strong>Body Fat:</strong> {{ physical_data.body_fat_percentage or 'N/A' }}%</p>
-    <p><strong>Activity:</strong> {{ physical_data.activity }}</p>
-    <p><strong>Chest:</strong> {{ physical_data.chest_cm }} cm</p>
-    <p><strong>Arms:</strong> {{ physical_data.arms_cm }} cm</p>
-    <p><strong>Forearms:</strong> {{ physical_data.forearms_cm }} cm</p>
-    <p><strong>Waist:</strong> {{ physical_data.waist_cm }} cm</p>
-    <p><strong>Hips:</strong> {{ physical_data.hips_cm }} cm</p>
-    <p><strong>Thighs:</strong> {{ physical_data.thighs_cm }} cm</p>
-    <p><strong>Calf:</strong> {{ physical_data.claf_cm }} cm</p>
-    <br>
-    <h3>Calculated Data</h3>
-    <p><strong>Body Mass Index:</strong> {{ physical_data_calculated.bmi_value or 'N/A' }}%</p>
-    <p><strong>Max Heart Rate:</strong> {{ physical_data_calculated.mhr_value or 'N/A' }} x min</p>
-    <p><strong>Basal Metabolic Rate:</strong> {{ physical_data_calculated.bmr_value or 'N/A' }} cal</p>
-    <p><strong>Total Daily Energy Expenditure:</strong> {{ physical_data_calculated.tdee_value or 'N/A' }} cal</p>
-    <p><strong>Last Updated:</strong> {{ physical_data.measurement_date }}</p>
-    {% else %}
-    <p>No physical data recorded yet</p>
-    {% endif %}
+    <h2>Body Metrics</h2>
+    <p>No physical data recorded yet.</p>
 </div>
+{% endif %}
 
-<div class="card">
-    <h2>Gamification Stats</h2>
-    {% if gam_data %}
-    <p><strong>Level:</strong> {{ gam_data.current_level }}</p>
-    <p><strong>Rank:</strong> {{ gam_data.rank }}</p>
-    <p><strong>Class:</strong> {{ gam_data.client_class }}</p>
-    <p><strong>Total EXP:</strong> {{ gam_data.total_exp }}</p>
-    {% endif %}
-</div>
 {% endblock %}

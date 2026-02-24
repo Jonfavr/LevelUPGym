@@ -1,119 +1,327 @@
-<!-- templates/progress.html -->
 {% extends "base.html" %}
+{% block title %}Progress – LevelUP Gym{% endblock %}
 
-{% block title %}Progress - LevelUp Gym{% endblock %}
+{% block extra_css %}
+<style>
+    /* Level hero */
+    .level-hero {
+        background: linear-gradient(135deg, var(--surface-2), var(--surface-3));
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px 20px;
+        margin-bottom: 14px;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+    .level-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 0%, var(--brand-glow), transparent 65%);
+        pointer-events: none;
+    }
+    .level-number {
+        font-family: var(--font-display);
+        font-size: 96px;
+        font-weight: 800;
+        line-height: 1;
+        background: linear-gradient(180deg, var(--text) 40%, var(--brand));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: block;
+    }
+    .level-label {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-muted);
+        margin-top: -8px;
+        margin-bottom: 16px;
+        display: block;
+    }
+    .exp-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 500;
+        margin-bottom: 7px;
+    }
+    .exp-row strong { color: var(--brand); font-size: 13px; }
+    .rank-class-row {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    /* Stats row */
+    .big-stat-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .big-stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 12px;
+        text-align: center;
+    }
+    .big-stat-val {
+        font-family: var(--font-display);
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+        display: block;
+    }
+    .big-stat-lbl {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 600;
+        display: block;
+        margin-top: 4px;
+    }
+    .big-stat-val.green  { color: var(--green); }
+    .big-stat-val.amber  { color: var(--amber); }
+    .big-stat-val.brand  { color: var(--brand); }
+
+    /* Section */
+    .section-card { margin-bottom: 14px; }
+
+    /* Personal records */
+    .pr-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .pr-item:last-child { border-bottom: none; }
+    .pr-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text);
+        display: block;
+        line-height: 1;
+    }
+    .pr-muscle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .pr-values { text-align: right; }
+    .pr-weight {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--brand);
+        line-height: 1;
+    }
+    .pr-reps { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Workout history */
+    .history-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+    }
+    .history-date {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+        text-transform: uppercase;
+        display: block;
+        line-height: 1;
+    }
+    .history-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .history-exp {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--amber);
+    }
+
+    /* Streak card */
+    .streak-card {
+        background: linear-gradient(135deg, rgba(255,71,87,0.1), rgba(255,71,87,0.04));
+        border: 1px solid rgba(255,71,87,0.25);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 14px;
+    }
+    .streak-flame { font-size: 44px; flex-shrink: 0; }
+    .streak-days {
+        font-family: var(--font-display);
+        font-size: 48px;
+        font-weight: 800;
+        color: var(--red);
+        line-height: 1;
+    }
+    .streak-info-label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--text-muted);
+    }
+    .streak-detail {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    .streak-multiplier {
+        margin-left: auto;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .streak-mult-val {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--amber);
+        display: block;
+        line-height: 1;
+    }
+    .streak-mult-lbl { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>Your Progress</h1>
-</div>
 
-<div class="grid grid-2">
-    <div class="card">
-        <h2>Level Progress</h2>
-        <div style="text-align: center; margin: 20px 0;">
-            <div style="font-size: 72px; font-weight: bold; color: #667eea;">{{ progress.level }}</div>
-            <div style="color: #6b7280;">Current Level</div>
-        </div>
-        <div style="margin: 20px 0;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span>{{ progress.current_exp }} EXP</span>
-                <span>{{ progress.next_level_exp }} EXP</span>
-            </div>
-            <div style="background: #e5e7eb; height: 30px; border-radius: 15px; overflow: hidden;">
-                <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: {{ progress.progress_percentage }}%;"></div>
-            </div>
-        </div>
-        <p><strong>Total EXP:</strong> {{ progress.total_exp }}</p>
-        <p><strong>Rank:</strong> {{ progress.rank }}</p>
+<!-- LEVEL HERO -->
+<div class="level-hero">
+    <span class="level-number">{{ progress.level }}</span>
+    <span class="level-label">Current Level</span>
+    <div class="exp-row">
+        <span><strong>{{ progress.current_exp }}</strong> EXP</span>
+        <span>{{ progress.next_level_exp }} to level {{ progress.level + 1 }}</span>
+    </div>
+    <div class="progress-track">
+        <div class="progress-fill" style="width: {{ progress.progress_percentage }}%"></div>
+    </div>
+    <div class="rank-class-row">
+        <span class="tag tag-amber">Rank {{ progress.rank }}</span>
         {% if progress.class %}
-        <p><strong>Class:</strong> {{ progress.class }}</p>
+        <span class="tag tag-brand">{{ progress.class }}</span>
         {% endif %}
-    </div>
-    
-    <div class="card">
-        <h2>Attendance Stats</h2>
-        {% if attendance_stats %}
-        <p><strong>Total Visits:</strong> {{ attendance_stats.total_visits }}</p>
-        <p><strong>First Visit:</strong> {{ attendance_stats.first_visit }}</p>
-        <p><strong>Last Visit:</strong> {{ attendance_stats.last_visit }}</p>
-        <p><strong>Avg Visits/Week:</strong> {{ attendance_stats.avg_visits_per_week }}</p>
-        <p><strong>Current Streak:</strong> {{ progress.streak }} days 🔥</p>
-        <p><strong>Streak Multiplier:</strong> x {{ progress.streak_multiplier }}</p>
-        <p><strong>Longest Streak:</strong> {{ progress.longest_streak }} days</p>
-        {% else %}
-        <p>No attendance data yet. Start your journey today!</p>
-        {% endif %}
+        <span class="tag">{{ progress.total_exp }} Total EXP</span>
     </div>
 </div>
 
-<div class="card">
-    <h2>Workout Statistics</h2>
-    {% if workout_stats %}
-    <div class="grid grid-3">
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 36px; font-weight: bold; color: #667eea;">{{ workout_stats.total_workouts }}</div>
-            <div style="color: #6b7280;">Total Workouts</div>
-        </div>
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 36px; font-weight: bold; color: #10b981;">{{ workout_stats.total_sets }}</div>
-            <div style="color: #6b7280;">Total Sets</div>
-        </div>
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 36px; font-weight: bold; color: #f59e0b;">{{ workout_stats.total_reps }}</div>
-            <div style="color: #6b7280;">Total Reps</div>
-        </div>
+<!-- STREAK -->
+{% if progress.streak is defined %}
+<div class="streak-card">
+    <div class="streak-flame">🔥</div>
+    <div>
+        <div class="streak-days">{{ progress.streak }}</div>
+        <div class="streak-info-label">Day Streak</div>
+        <div class="streak-detail">Best: {{ progress.longest_streak }} days</div>
     </div>
-    {% if workout_stats.favorite_exercise %}
-    <p style="text-align: center; margin-top: 20px;"><strong>Favorite Exercise:</strong> {{ workout_stats.favorite_exercise }}</p>
-    {% endif %}
-    {% else %}
-    <p>Start working out to see your stats!</p>
-    {% endif %}
-</div>
-
-{% if personal_records %}
-<div class="card">
-    <h2>Personal Records 🏆</h2>
-    <div style="display: grid; gap: 15px;">
-        {% for record in personal_records %}
-        <div style="padding: 15px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #667eea;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <strong>{{ record.exercise }}</strong>
-                    <div style="color: #6b7280; font-size: 14px;">{{ record.target_muscle }}</div>
-                </div>
-                <div style="text-align: right;">
-                    {% if record.max_weight %}
-                    <div style="font-size: 20px; font-weight: bold; color: #667eea;">{{ record.max_weight }} kg</div>
-                    {% endif %}
-                    <div style="color: #6b7280; font-size: 14px;">Max Reps: {{ record.max_reps }}</div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+    <div class="streak-multiplier">
+        <span class="streak-mult-val">×{{ progress.streak_multiplier }}</span>
+        <span class="streak-mult-lbl">EXP Bonus</span>
     </div>
 </div>
 {% endif %}
 
-<div class="card">
-    <h2>Recent Workouts</h2>
-    {% if workout_history %}
-    <div style="display: grid; gap: 10px;">
-        {% for workout in workout_history %}
-        <div style="padding: 15px; background: #f9fafb; border-radius: 8px;">
-            <div style="display: flex; justify-content: space-between;">
-                <strong>{{ workout.date }}</strong>
-                <span style="color: #10b981; font-weight: bold;">+{{ workout.total_exp }} EXP</span>
-            </div>
-            <div style="color: #6b7280; margin-top: 5px;">
-                {{ workout.exercises_count }} exercises • {{ workout.total_sets }} sets
-            </div>
-        </div>
-        {% endfor %}
+<!-- WORKOUT STATS -->
+{% if workout_stats %}
+<div class="big-stat-row">
+    <div class="big-stat">
+        <span class="big-stat-val brand">{{ workout_stats.total_workouts }}</span>
+        <span class="big-stat-lbl">Workouts</span>
     </div>
-    {% else %}
-    <p>No workout history yet. Complete your first workout!</p>
+    <div class="big-stat">
+        <span class="big-stat-val green">{{ workout_stats.total_sets }}</span>
+        <span class="big-stat-lbl">Total Sets</span>
+    </div>
+    <div class="big-stat">
+        <span class="big-stat-val amber">{{ workout_stats.total_reps }}</span>
+        <span class="big-stat-lbl">Total Reps</span>
+    </div>
+</div>
+{% endif %}
+
+<!-- ATTENDANCE STATS -->
+{% if attendance_stats %}
+<div class="card section-card">
+    <h2>Attendance</h2>
+    <div class="row-item">
+        <span class="row-item-label">Total Visits</span>
+        <span class="row-item-value">{{ attendance_stats.total_visits }}</span>
+    </div>
+    <div class="row-item">
+        <span class="row-item-label">Avg / Week</span>
+        <span class="row-item-value">{{ attendance_stats.avg_visits_per_week }}</span>
+    </div>
+    <div class="row-item">
+        <span class="row-item-label">First Visit</span>
+        <span class="row-item-value">{{ attendance_stats.first_visit }}</span>
+    </div>
+    <div class="row-item">
+        <span class="row-item-label">Last Visit</span>
+        <span class="row-item-value">{{ attendance_stats.last_visit }}</span>
+    </div>
+    {% if workout_stats and workout_stats.favorite_exercise %}
+    <div class="row-item">
+        <span class="row-item-label">Favourite Exercise</span>
+        <span class="row-item-value">{{ workout_stats.favorite_exercise }}</span>
+    </div>
     {% endif %}
 </div>
+{% endif %}
+
+<!-- PERSONAL RECORDS -->
+{% if personal_records %}
+<div class="card section-card">
+    <h2>Personal Records 🏆</h2>
+    {% for record in personal_records %}
+    <div class="pr-item">
+        <div>
+            <span class="pr-name">{{ record.exercise }}</span>
+            <span class="pr-muscle">{{ record.target_muscle }}</span>
+        </div>
+        <div class="pr-values">
+            {% if record.max_weight %}
+            <div class="pr-weight">{{ record.max_weight }} kg</div>
+            {% endif %}
+            <div class="pr-reps">Max {{ record.max_reps }} reps</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- WORKOUT HISTORY -->
+<div class="card section-card">
+    <h2>Recent Workouts</h2>
+    {% if workout_history %}
+        {% for w in workout_history %}
+        <div class="history-item">
+            <div>
+                <span class="history-date">{{ w.date }}</span>
+                <span class="history-meta">{{ w.exercises_count }} exercises · {{ w.total_sets }} sets</span>
+            </div>
+            <span class="history-exp">+{{ w.total_exp }} EXP</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="padding:10px 0;">No workouts logged yet. Start training!</p>
+    {% endif %}
+</div>
+
 {% endblock %}

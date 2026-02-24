@@ -1,33 +1,554 @@
-<!-- templates/classes.html -->
 {% extends "base.html" %}
+{% block title %}Choose Your Class – LevelUP Gym{% endblock %}
 
-{% block title %}Choose Your Class - LevelUp Gym{% endblock %}
+{% block extra_css %}
+<style>
+    /* Class metadata — colors & icons per class */
+    :root {
+        --warrior-color: #ff6b35;
+        --warrior-glow:  rgba(255,107,53,0.35);
+        --ranger-color:  #00e5a0;
+        --ranger-glow:   rgba(0,229,160,0.3);
+        --tank-color:    #4da6ff;
+        --tank-glow:     rgba(77,166,255,0.3);
+        --assassin-color:#c77dff;
+        --assassin-glow: rgba(199,125,255,0.35);
+        --mage-color:    #00d4ff;
+        --mage-glow:     rgba(0,212,255,0.3);
+    }
+
+    /* ── Milestone banner ── */
+    .milestone-banner {
+        background: linear-gradient(135deg, rgba(255,176,32,0.12), rgba(255,176,32,0.04));
+        border: 1px solid rgba(255,176,32,0.35);
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .milestone-banner::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,176,32,0.15), transparent);
+        pointer-events: none;
+    }
+
+    .milestone-icon { font-size: 48px; display: block; margin-bottom: 8px; animation: floatIcon 3s ease-in-out infinite; }
+
+    @keyframes floatIcon {
+        0%, 100% { transform: translateY(0); }
+        50%       { transform: translateY(-6px); }
+    }
+
+    .milestone-title {
+        font-family: var(--font-display);
+        font-size: 34px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: linear-gradient(135deg, var(--amber), #e67e00);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+        margin-bottom: 6px;
+    }
+
+    .milestone-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.5;
+    }
+
+    .milestone-level {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,176,32,0.12);
+        border: 1px solid rgba(255,176,32,0.3);
+        color: var(--amber);
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 700;
+        padding: 5px 12px;
+        border-radius: 99px;
+        margin-top: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* ── Warning ── */
+    .permanent-warning {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255,71,87,0.08);
+        border: 1px solid rgba(255,71,87,0.25);
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #ff9da6;
+        font-weight: 500;
+    }
+
+    /* ── Class cards ── */
+    .class-grid {
+        display: grid;
+        gap: 12px;
+    }
+
+    .class-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.25s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .class-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        opacity: 0;
+        transition: opacity 0.25s;
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .class-card.selected {
+        border-color: var(--class-color, var(--brand));
+        box-shadow: 0 0 0 1px var(--class-glow, var(--brand-glow)), 0 8px 32px var(--class-glow, var(--brand-glow));
+    }
+
+    .class-card.selected::before { opacity: 1; }
+
+    /* Per-class color vars applied inline via style attr */
+    .class-card[data-class="Warrior"]  { --class-color: var(--warrior-color); --class-glow: var(--warrior-glow); }
+    .class-card[data-class="Ranger"]   { --class-color: var(--ranger-color);  --class-glow: var(--ranger-glow); }
+    .class-card[data-class="Tank"]     { --class-color: var(--tank-color);    --class-glow: var(--tank-glow); }
+    .class-card[data-class="Assassin"] { --class-color: var(--assassin-color);--class-glow: var(--assassin-glow); }
+    .class-card[data-class="Mage"]     { --class-color: var(--mage-color);    --class-glow: var(--mage-glow); }
+
+    .class-card[data-class="Warrior"]::before  { background: linear-gradient(90deg, var(--warrior-color), transparent); }
+    .class-card[data-class="Ranger"]::before   { background: linear-gradient(90deg, var(--ranger-color), transparent); }
+    .class-card[data-class="Tank"]::before     { background: linear-gradient(90deg, var(--tank-color), transparent); }
+    .class-card[data-class="Assassin"]::before { background: linear-gradient(90deg, var(--assassin-color), transparent); }
+    .class-card[data-class="Mage"]::before     { background: linear-gradient(90deg, var(--mage-color), transparent); }
+
+    .class-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 12px;
+    }
+
+    .class-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        flex-shrink: 0;
+        border: 1px solid var(--border);
+        background: var(--surface-3);
+        transition: all 0.25s;
+    }
+
+    .class-card.selected .class-icon {
+        background: color-mix(in srgb, var(--class-color) 15%, transparent);
+        border-color: var(--class-color);
+        box-shadow: 0 0 16px var(--class-glow);
+    }
+
+    .class-name {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text);
+        line-height: 1;
+        transition: color 0.25s;
+    }
+
+    .class-card.selected .class-name { color: var(--class-color); }
+
+    .class-type {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    .class-description {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.55;
+        margin-bottom: 12px;
+    }
+
+    .class-bonus-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .class-bonus-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        padding: 5px 10px;
+        border-radius: 99px;
+        flex: 1;
+        transition: all 0.25s;
+    }
+
+    .class-card.selected .class-bonus-tag {
+        color: var(--class-color);
+        background: color-mix(in srgb, var(--class-color) 10%, transparent);
+        border-color: var(--class-glow);
+    }
+
+    .class-multiplier {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-dim);
+        white-space: nowrap;
+        transition: color 0.25s;
+    }
+
+    .class-card.selected .class-multiplier { color: var(--amber); }
+
+    /* Selected check */
+    .class-check {
+        position: absolute;
+        top: 16px; right: 16px;
+        width: 26px; height: 26px;
+        border-radius: 8px;
+        background: var(--class-color, var(--brand));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px;
+        color: #fff;
+        opacity: 0;
+        transform: scale(0.5);
+        transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .class-card.selected .class-check {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    /* ── Confirm button ── */
+    #confirm-section {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        padding: 16px 20px 28px;
+        background: linear-gradient(to top, var(--bg) 60%, transparent);
+        z-index: 50;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #confirm-section.visible {
+        pointer-events: all;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .btn-confirm {
+        width: 100%;
+        padding: 18px;
+        border: none;
+        border-radius: var(--radius);
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-confirm:active { transform: scale(0.97); }
+
+    /* ── Confirm modal ── */
+    .confirm-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(12px);
+        z-index: 200;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .confirm-modal.active { display: flex; }
+
+    .confirm-sheet {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px 24px 20px 20px;
+        padding: 28px 24px 32px;
+        width: 100%;
+        max-width: 420px;
+        animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(40px); opacity: 0; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .confirm-class-name {
+        font-family: var(--font-display);
+        font-size: 38px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .confirm-warning {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.5;
+        margin-bottom: 24px;
+    }
+
+    .confirm-warning strong { color: var(--red); }
+
+    .confirm-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+
+    .btn-cancel {
+        padding: 14px;
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        border-radius: var(--radius-sm);
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover { color: var(--text); }
+
+    .btn-confirm-final {
+        padding: 14px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #fff;
+    }
+
+    .btn-confirm-final:active { transform: scale(0.97); }
+
+    /* Hide bottom nav — this is a one-time decision screen */
+    .bottom-nav { display: none !important; }
+    body { padding-bottom: 0 !important; }
+
+    /* Extra bottom padding when confirm button is visible */
+    body.has-selection .container { padding-bottom: 100px !important; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card" style="text-align: center;">
-    <h1>Choose Your Class!</h1>
-    <p>You've reached Level 5! Choose a specialized class to gain bonus EXP.</p>
-    <p style="color: #ef4444; font-weight: bold; margin-top: 10px;">⚠️ This choice is permanent!</p>
+
+<!-- MILESTONE BANNER -->
+<div class="milestone-banner">
+    <span class="milestone-icon">⚡</span>
+    <div class="milestone-title">Choose Your Class</div>
+    <div class="milestone-sub">You've reached a milestone. Your specialization defines<br>your path and multiplies your gains.</div>
+    <div class="milestone-level">Level {{ progress.level }} Unlocked</div>
 </div>
 
-<div class="grid grid-2">
+<!-- PERMANENT WARNING -->
+<div class="permanent-warning">
+    <span>⚠️</span>
+    <span>This choice is <strong>permanent</strong> and cannot be changed. Choose wisely.</span>
+</div>
+
+<!-- CLASS CARDS -->
+{% set class_icons = {
+    'Warrior':  '⚔️',
+    'Ranger':   '🏹',
+    'Tank':     '🛡️',
+    'Assassin': '🗡️',
+    'Mage':     '🔮'
+} %}
+
+{% set class_types = {
+    'Warrior':  'Strength · Power',
+    'Ranger':   'Cardio · Endurance',
+    'Tank':     'Resistance · Compound',
+    'Assassin': 'HIIT · Agility',
+    'Mage':     'Technique · Balance'
+} %}
+
+<div class="class-grid" id="class-grid">
     {% for class_name, class_info in classes.items() %}
-    <div class="card" style="border: 3px solid #667eea;">
-        <h2 style="color: #667eea;">{{ class_name }}</h2>
-        <p style="font-size: 18px; margin: 15px 0;">{{ class_info.description }}</p>
-        <p style="background: #fef3c7; padding: 15px; border-radius: 8px; font-weight: bold;">
-            💫 {{ class_info.bonus }}
-        </p>
-        <p style="margin-top: 15px; color: #10b981; font-weight: bold;">
-            {{ class_info.multiplier }}x EXP Multiplier
-        </p>
-        <form method="POST" action="{{ url_for('choose_class', class_name=class_name) }}" style="margin-top: 20px;">
-            <button type="submit" class="btn btn-primary" style="width: 100%;" 
-                    onclick="return confirm('Are you sure you want to choose {{ class_name }}? This cannot be changed!')">
-                Choose {{ class_name }}
-            </button>
-        </form>
+    <div class="class-card"
+         data-class="{{ class_name }}"
+         onclick="selectClass('{{ class_name }}', '{{ class_info.bonus }}', {{ class_info.multiplier }})">
+
+        <div class="class-check">✓</div>
+
+        <div class="class-header">
+            <div class="class-icon">{{ class_icons.get(class_name, '⚡') }}</div>
+            <div>
+                <div class="class-name">{{ class_name }}</div>
+                <div class="class-type">{{ class_types.get(class_name, '') }}</div>
+            </div>
+        </div>
+
+        <div class="class-description">{{ class_info.description }}</div>
+
+        <div class="class-bonus-row">
+            <div class="class-bonus-tag">
+                <span>💫</span>
+                <span>{{ class_info.bonus }}</span>
+            </div>
+            <div class="class-multiplier">×{{ class_info.multiplier }}</div>
+        </div>
     </div>
     {% endfor %}
 </div>
+
+<!-- CONFIRM BUTTON (slides up when a class is selected) -->
+<div id="confirm-section">
+    <button class="btn-confirm" id="confirm-btn" onclick="openConfirmModal()">
+        Choose <span id="confirm-name">—</span> →
+    </button>
+</div>
+
+<!-- CONFIRM MODAL (bottom sheet) -->
+<div class="confirm-modal" id="confirmModal">
+    <div class="confirm-sheet">
+        <div class="confirm-class-name" id="modal-class-name">—</div>
+        <div class="confirm-warning">
+            You're about to permanently choose this class. <strong>This cannot be undone.</strong> Your EXP multiplier for matching exercises will be ×<span id="modal-multiplier">—</span>.
+        </div>
+        <div class="confirm-actions">
+            <button class="btn-cancel" onclick="closeConfirmModal()">Back</button>
+            <form id="choose-form" method="POST" action="" style="margin:0;">
+                <button type="submit" class="btn-confirm-final" id="modal-confirm-btn" style="width:100%;">
+                    Confirm Choice
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Class color map for dynamic theming
+    const CLASS_COLORS = {
+        Warrior:  { bg: 'linear-gradient(135deg, #ff6b35, #cc4a1a)', shadow: 'rgba(255,107,53,0.4)' },
+        Ranger:   { bg: 'linear-gradient(135deg, #00e5a0, #00c97d)', shadow: 'rgba(0,229,160,0.35)' },
+        Tank:     { bg: 'linear-gradient(135deg, #4da6ff, #1a80e0)', shadow: 'rgba(77,166,255,0.4)' },
+        Assassin: { bg: 'linear-gradient(135deg, #c77dff, #9b40e0)', shadow: 'rgba(199,125,255,0.4)' },
+        Mage:     { bg: 'linear-gradient(135deg, #00d4ff, #0090bb)', shadow: 'rgba(0,212,255,0.35)' },
+    };
+
+    const CLASS_TEXT_COLORS = {
+        Warrior: '#0d0f14', Ranger: '#0d0f14', Tank: '#fff',
+        Assassin: '#fff', Mage: '#0d1a1f'
+    };
+
+    let selectedClass = null;
+
+    function selectClass(name, bonus, multiplier) {
+        selectedClass = { name, bonus, multiplier };
+
+        // Toggle selected state on cards
+        document.querySelectorAll('.class-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.class === name);
+        });
+
+        // Update confirm button
+        const colors = CLASS_COLORS[name] || { bg: 'var(--brand)', shadow: 'var(--brand-glow)' };
+        const textColor = CLASS_TEXT_COLORS[name] || '#fff';
+        const btn = document.getElementById('confirm-btn');
+        btn.style.background = colors.bg;
+        btn.style.boxShadow  = `0 8px 32px ${colors.shadow}`;
+        btn.style.color      = textColor;
+        document.getElementById('confirm-name').textContent = name;
+
+        // Show confirm section
+        document.getElementById('confirm-section').classList.add('visible');
+        document.body.classList.add('has-selection');
+
+        // Haptic feedback on mobile
+        if (navigator.vibrate) navigator.vibrate(30);
+    }
+
+    function openConfirmModal() {
+        if (!selectedClass) return;
+
+        const colors   = CLASS_COLORS[selectedClass.name] || { bg: 'var(--brand)', shadow: 'var(--brand-glow)' };
+        const txtColor = CLASS_TEXT_COLORS[selectedClass.name] || '#fff';
+
+        document.getElementById('modal-class-name').textContent    = selectedClass.name;
+        document.getElementById('modal-multiplier').textContent     = selectedClass.multiplier;
+
+        const nameEl = document.getElementById('modal-class-name');
+        nameEl.style.background         = colors.bg;
+        nameEl.style.webkitBackgroundClip = 'text';
+        nameEl.style.webkitTextFillColor  = 'transparent';
+        nameEl.style.backgroundClip       = 'text';
+
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+        confirmBtn.style.background = colors.bg;
+        confirmBtn.style.boxShadow  = `0 6px 20px ${colors.shadow}`;
+        confirmBtn.style.color      = txtColor;
+
+        // Set form action
+        document.getElementById('choose-form').action =
+            `/choose_class/${encodeURIComponent(selectedClass.name)}`;
+
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.remove('active');
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('confirmModal').addEventListener('click', function(e) {
+        if (e.target === this) closeConfirmModal();
+    });
+</script>
 {% endblock %}
