@@ -965,103 +965,167 @@ def admin_delete_exercise(exercise_id):
 @app.route('/admin/routines')
 @admin_required
 def admin_routines():
-    """Routine management"""
+    """Routine list — enriched with exercise count and total EXP per card"""
     routines = Routine.get_all_active()
+
+    for r in routines:
+        exercises = r.get_exercises()
+        r.exercise_count = len(exercises)
+        r.total_exp      = sum(ex['base_exp'] * ex['sets'] for ex in exercises)
+
     return render_template('admin/routines.html', routines=routines)
 
 @app.route('/admin/routine/<int:routine_id>')
 @admin_required
 def admin_routine_details(routine_id):
-    """View routine details"""
+    """Visual routine builder"""
     routine = Routine.get_by_id(routine_id)
     if not routine:
         flash('Routine not found', 'error')
         return redirect(url_for('admin_routines'))
-    
-    exercises = routine.get_exercises()
-    total_exp = routine.calculate_total_exp()
-    
-    # Get all available exercises for the dropdown
+
+    exercises  = routine.get_exercises()
+    total_exp  = sum(ex['base_exp'] * ex['sets'] for ex in exercises)
+    added_ids  = {ex['exercise_id'] for ex in exercises}
     all_exercises = Exercise.get_all()
-    
-    return render_template('admin/routine_details.html',
-                         routine=routine,
-                         exercises=exercises,
-                         total_exp=total_exp,
-                         all_exercises=all_exercises)
+
+    return render_template(
+        'admin/routine_details.html',
+        routine       = routine,
+        exercises     = exercises,
+        total_exp     = total_exp,
+        added_ids     = added_ids,
+        all_exercises = all_exercises,
+    )
 
 @app.route('/admin/routine/add', methods=['GET', 'POST'])
 @admin_required
 def admin_add_routine():
-    """Add new routine"""
     if request.method == 'POST':
         try:
             routine = Routine(
-                routine_name=request.form.get('name'),
-                description=request.form.get('description'),
-                created_by='Admin'
+                routine_name = request.form.get('name'),
+                description  = request.form.get('description'),
+                created_by   = 'Admin',
             )
             routine.save()
-            flash('Routine created successfully! Now add exercises.', 'success')
+            flash(f'"{routine.routine_name}" created! Now add exercises.', 'success')
             return redirect(url_for('admin_routine_details', routine_id=routine.routine_id))
         except Exception as e:
-            flash(f'Error creating routine: {str(e)}', 'error')
-    
+            flash(f'Error creating routine: {e}', 'error')
+
     return render_template('admin/routine_form.html')
 
 @app.route('/admin/routine/<int:routine_id>/add_exercise', methods=['POST'])
 @admin_required
 def admin_add_exercise_to_routine(routine_id):
-    """Add exercise to routine"""
     routine = Routine.get_by_id(routine_id)
     if not routine:
         flash('Routine not found', 'error')
         return redirect(url_for('admin_routines'))
-    
+
     try:
         exercise_id = int(request.form.get('exercise_id'))
-        sets = int(request.form.get('sets'))
-        reps = int(request.form.get('reps'))
-        rest = int(request.form.get('rest', 60))
+        sets        = int(request.form.get('sets',  3))
+        reps        = int(request.form.get('reps',  10))
+        rest        = int(request.form.get('rest',  60))
         measurement = request.form.get('measurement', 'reps')
-        
-        routine.add_exercise(exercise_id, sets=sets, reps=reps, rest_seconds=rest, measurement=measurement)
-        flash('Exercise added to routine!', 'success')
-    except Exception as e:
-        flash(f'Error adding exercise: {str(e)}', 'error')
-    
-    return redirect(url_for('admin_routine_details', routine_id=routine_id))
 
-@app.route('/admin/routine/<int:routine_id>/delete', methods=['POST'])
-@admin_required
-def admin_delete_routine(routine_id):
-    """Delete routine"""
-    routine = Routine.get_by_id(routine_id)
-    if routine:
-        routine.delete()
-        flash('Routine deleted successfully', 'success')
-    return redirect(url_for('admin_routines'))
+        routine.add_exercise(exercise_id, sets=sets, reps=reps,
+                             rest_seconds=rest, measurement=measurement)
+
+        ex = Exercise.get_by_id(exercise_id)
+        flash(f'"{ex.name if ex else "Exercise"}" added to routine!', 'success')
+    except Exception as e:
+        flash(f'Error adding exercise: {e}', 'error')
+
+    return redirect(url_for('admin_routine_details', routine_id=routine_id))
 
 @app.route('/admin/routine_exercise/update', methods=['POST'])
 @admin_required
 def update_routine_exercise():
     routine_exercise_id = request.form.get('routine_exercise_id')
-    sets = request.form.get('sets')
-    reps = request.form.get('reps')
-    rest_seconds = request.form.get('rest_seconds')
+    sets        = request.form.get('sets')
+    reps        = request.form.get('reps')
+    rest_seconds= request.form.get('rest_seconds')
     measurement = request.form.get('measurement')
 
-    result = Routine().update_exercise(routine_exercise_id=routine_exercise_id, sets=sets, reps=reps, rest_seconds=rest_seconds, measurement=measurement)
+    result = Routine().update_exercise(
+        routine_exercise_id = routine_exercise_id,
+        sets        = sets,
+        reps        = reps,
+        rest_seconds= rest_seconds,
+        measurement = measurement,
+    )
     flash(result['message'], 'success')
     return redirect(request.referrer or url_for('admin_routines'))
 
-
-@app.route('/admin/routine_exercise/delete/<int:routine_exercise_id>', methods=['POST'])
+@app.route('/admin/routine/<int:routine_id>/move_exercise/<int:routine_exercise_id>/<direction>',
+           methods=['POST'])
 @admin_required
-def delete_routine_exercise(routine_exercise_id):
-    result = Routine().delete_routine_exercise(routine_exercise_id)
-    flash(result.get('message', 'Exercise removed.'), 'info')
-    return redirect(request.referrer or url_for('admin_routines'))
+def admin_move_exercise(routine_id, routine_exercise_id, direction):
+    """
+    Swap order_position of two adjacent exercises in a routine.
+    direction: 'up' | 'down'
+    """
+    from database.db_manager import DatabaseManager
+    db = DatabaseManager()
+
+    # Fetch all exercises in this routine ordered by position
+    rows = db.execute_query(
+        '''SELECT routine_exercise_id, order_position
+           FROM routine_exercises
+           WHERE routine_id = ?
+           ORDER BY order_position ASC''',
+        (routine_id,)
+    )
+
+    if not rows:
+        flash('No exercises found.', 'error')
+        return redirect(url_for('admin_routine_details', routine_id=routine_id))
+
+    # Find index of the target exercise
+    ids  = [r['routine_exercise_id'] for r in rows]
+    poss = [r['order_position']      for r in rows]
+
+    try:
+        idx = ids.index(routine_exercise_id)
+    except ValueError:
+        flash('Exercise not found in this routine.', 'error')
+        return redirect(url_for('admin_routine_details', routine_id=routine_id))
+
+    # Determine swap partner
+    if direction == 'up' and idx > 0:
+        swap_idx = idx - 1
+    elif direction == 'down' and idx < len(ids) - 1:
+        swap_idx = idx + 1
+    else:
+        # Already at boundary — nothing to do
+        return redirect(url_for('admin_routine_details', routine_id=routine_id))
+
+    id_a, pos_a = ids[idx],      poss[idx]
+    id_b, pos_b = ids[swap_idx], poss[swap_idx]
+
+    # Swap positions
+    db.execute_update(
+        'UPDATE routine_exercises SET order_position = ? WHERE routine_exercise_id = ?',
+        (pos_b, id_a)
+    )
+    db.execute_update(
+        'UPDATE routine_exercises SET order_position = ? WHERE routine_exercise_id = ?',
+        (pos_a, id_b)
+    )
+
+    return redirect(url_for('admin_routine_details', routine_id=routine_id))
+
+@app.route('/admin/routine/<int:routine_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_routine(routine_id):
+    routine = Routine.get_by_id(routine_id)
+    if routine:
+        routine.delete()
+        flash(f'"{routine.routine_name}" deleted.', 'success')
+    return redirect(url_for('admin_routines'))
 
 @app.route('/admin/attendance')
 @admin_required

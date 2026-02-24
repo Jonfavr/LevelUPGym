@@ -1,47 +1,303 @@
 <!-- templates/admin/routines.html -->
 {% extends "admin/base.html" %}
 
-{% block title %}Routines - Admin{% endblock %}
+{% block title %}Routines — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Routines{% endblock %}
+
+{% block extra_css %}
+<style>
+    .routines-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 18px;
+    }
+
+    /* ── Routine Card ── */
+    .routine-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        transition: border-color 0.2s, transform 0.2s;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .routine-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .routine-card:hover {
+        border-color: var(--border-accent);
+        transform: translateY(-2px);
+    }
+
+    .routine-card:hover::before { opacity: 1; }
+
+    .routine-card-body {
+        padding: 20px;
+        flex: 1;
+    }
+
+    .routine-card-name {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+        line-height: 1.2;
+    }
+
+    .routine-card-desc {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        line-height: 1.5;
+        margin-bottom: 16px;
+        min-height: 38px;
+    }
+
+    .routine-card-meta {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .routine-meta-pill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-size: 11.5px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .routine-card-footer {
+        padding: 12px 20px;
+        border-top: 1px solid var(--border);
+        background: var(--bg-elevated);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    /* EXP badge on card */
+    .exp-badge {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Create new card (dashed) */
+    .routine-card-new {
+        border: 2px dashed var(--border);
+        background: transparent;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: var(--radius-lg);
+        color: var(--text-muted);
+    }
+
+    .routine-card-new:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-glow);
+    }
+
+    .routine-card-new i {
+        font-size: 28px;
+        transition: transform 0.2s;
+    }
+
+    .routine-card-new:hover i { transform: scale(1.15); }
+
+    .routine-card-new span {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* ── Create Modal ── */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(4px);
+        z-index: 200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        width: 100%;
+        max-width: 480px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.92) translateY(20px); }
+        to   { opacity: 1; transform: scale(1)    translateY(0);    }
+    }
+
+    .modal-title {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .modal-sub { font-size: 12.5px; color: var(--text-muted); margin-bottom: 20px; }
+    .modal-footer { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Routine Management</h1>
-        <a href="{{ url_for('admin_add_routine') }}" class="btn btn-primary">+ Create Routine</a>
+
+<!-- Header -->
+<div class="section-header" style="margin-bottom:24px;">
+    <div>
+        <div class="section-title">
+            <div class="title-icon"><i class="fa-solid fa-list-check"></i></div>
+            Routine Library
+        </div>
+        <div class="section-subtitle">{{ routines | length }} active routine{{ 's' if routines | length != 1 }}</div>
+    </div>
+    <button class="btn btn-primary" id="open-create-modal">
+        <i class="fa-solid fa-plus"></i> New Routine
+    </button>
+</div>
+
+<!-- Routines Grid -->
+<div class="routines-grid">
+
+    {% for routine in routines %}
+    <div class="routine-card">
+        <div class="routine-card-body">
+            <div class="routine-card-name">{{ routine.routine_name }}</div>
+            <div class="routine-card-desc">{{ routine.description or 'No description provided.' }}</div>
+            <div class="routine-card-meta">
+                <div class="routine-meta-pill">
+                    <i class="fa-solid fa-dumbbell" style="color:var(--accent); font-size:10px;"></i>
+                    {{ routine.exercise_count | default(0) }} exercise{{ 's' if routine.exercise_count != 1 else '' }}
+                </div>
+                {% if routine.created_date %}
+                <div class="routine-meta-pill">
+                    <i class="fa-regular fa-calendar" style="font-size:10px;"></i>
+                    {{ routine.created_date }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="routine-card-footer">
+            <div class="exp-badge">
+                <i class="fa-solid fa-bolt" style="font-size:12px;"></i>
+                {{ routine.total_exp | default(0) }} EXP
+            </div>
+            <div style="display:flex; gap:6px;">
+                <a href="{{ url_for('admin_routine_details', routine_id=routine.routine_id) }}"
+                   class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-pencil-ruler"></i> Build
+                </a>
+                <form method="POST"
+                      action="{{ url_for('admin_delete_routine', routine_id=routine.routine_id) }}"
+                      onsubmit="return confirm('Delete \'{{ routine.routine_name }}\'? This cannot be undone.')">
+                    <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- New Routine card -->
+    <div class="routine-card-new" id="new-card-btn">
+        <i class="fa-solid fa-circle-plus"></i>
+        <span>Create New Routine</span>
+    </div>
+
+</div>
+
+{% if not routines %}
+<div class="card" style="margin-top:24px;">
+    <div class="empty-state">
+        <i class="fa-solid fa-list-check"></i>
+        <p>No routines yet. Create your first one to get started.</p>
+        <button class="btn btn-primary" id="open-create-modal-empty" style="margin-top:16px; display:inline-flex;">
+            <i class="fa-solid fa-plus"></i> Create Routine
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- ── Create Routine Modal ── -->
+<div class="modal-overlay" id="create-modal">
+    <div class="modal-box">
+        <div class="modal-title">
+            <i class="fa-solid fa-list-check" style="color:var(--accent); margin-right:8px;"></i>
+            New Routine
+        </div>
+        <div class="modal-sub">Give it a name and description — you'll add exercises on the next screen.</div>
+
+        <form method="POST" action="{{ url_for('admin_add_routine') }}">
+            <div class="form-group">
+                <label>Routine Name *</label>
+                <input type="text" name="name" placeholder="e.g. Push Day A, Leg Day, Full Body…" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" rows="3"
+                          placeholder="Describe the focus and goals of this routine…"
+                          style="resize:vertical;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="close-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-arrow-right"></i> Create & Build
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="card">
-    {% if routines %}
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Routine Name</th>
-                <th>Description</th>
-                <th>Created By</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for routine in routines %}
-            <tr>
-                <td>{{ routine.routine_id }}</td>
-                <td><strong>{{ routine.routine_name }}</strong></td>
-                <td>{{ routine.description or 'No description' }}</td>
-                <td>{{ routine.created_by or 'N/A' }}</td>
-                <td>
-                    <a href="{{ url_for('admin_routine_details', routine_id=routine.routine_id) }}" class="btn btn-primary btn-sm">View</a>
-                    <form method="POST" action="{{ url_for('admin_delete_routine', routine_id=routine.routine_id) }}" style="display: inline;" onsubmit="return confirm('Delete this routine?')">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color: #6b7280; padding: 20px;">No routines created yet. Click "Create Routine" to get started.</p>
-    {% endif %}
-</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const modal    = document.getElementById('create-modal');
+const openBtns = document.querySelectorAll('#open-create-modal, #new-card-btn, #open-create-modal-empty');
+const closeBtn = document.getElementById('close-modal');
+
+openBtns.forEach(b => b?.addEventListener('click', () => modal.classList.add('open')));
+closeBtn?.addEventListener('click', () => modal.classList.remove('open'));
+modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+</script>
 {% endblock %}
