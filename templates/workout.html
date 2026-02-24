@@ -153,6 +153,27 @@
     transition: background 0.3s, color 0.3s;
     }
 
+    .swap-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    .swap-content {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        width: 350px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+    .swap-option-btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+
     /* ✅ RESPONSIVE FIXES FOR SMALL DEVICES */
     @media (max-width: 768px) {
         .set-input-group {
@@ -295,6 +316,9 @@
                     <p style="color: #6b7280; margin: 5px 0;">{{ exercise.target_muscle }} - {{ exercise.exercise_type.title() }}</p>
                 </div>
             </div>
+            <button class="btn btn-warning btn-sm" onclick="openSwapModal({{ exercise.exercise_id }},'{{ exercise.target_muscle }}','{{ exercise.exercise_type }}', '{{ routine.rotuine_id }}', '{{ client_id }}')">
+                🔄 Swap
+            </button>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span class="exp-badge">{{ exercise.base_exp }} EXP/set</span>
                 <!-- 🆕 Exercise Info Button -->
@@ -380,6 +404,17 @@
         <p style="font-size: 20px; font-weight: bold;" id="achievementName"></p>
         <p style="color: #6b7280; margin-top: 10px;" id="achievementDesc"></p>
         <button class="btn btn-primary" onclick="closeModal()" style="margin-top: 20px;">Continue</button>
+    </div>
+</div>
+
+<div id="swapModal" class="swap-modal" style="display:none;">
+    <div class="swap-content">
+        <h3>Swap Exercise</h3>
+        <p>Select an alternative exercise:</p>
+
+        <div id="swapOptions"></div>
+
+        <button class="btn btn-danger" onclick="closeSwapModal()">Cancel</button>
     </div>
 </div>
 {% endblock %}
@@ -635,6 +670,65 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 };
+
+let currentSwapExerciseId = null;
+let routine_now_id = null
+let client_id = null
+
+function openSwapModal(exerciseId, targetMuscle, exerciseType, routine_id, client_id) {
+    currentSwapExerciseId = exerciseId;
+    routine_now_id = routine_id
+    client_id = client_id
+    document.getElementById("swapModal").style.display = "flex";
+
+    fetch(`/api/get_similar_exercises?muscle=${encodeURIComponent(targetMuscle)}&type=${encodeURIComponent(exerciseType)}&exclude=${exerciseId}`)
+        .then(res => res.json())
+        .then(data => {
+            let container = document.getElementById("swapOptions");
+            container.innerHTML = "";
+
+            if (data.length === 0) {
+                container.innerHTML = "<p>No similar exercises available.</p>";
+                return;
+            }
+
+            data.forEach(ex => {
+                let btn = document.createElement("button");
+                btn.className = "btn btn-primary swap-option-btn";
+                btn.textContent = ex.name + " (" + ex.exercise_type + ")";
+                btn.onclick = () => swapExercise(ex.exercise_id);
+                container.appendChild(btn);
+            });
+        });
+}
+
+function closeSwapModal() {
+    document.getElementById("swapModal").style.display = "none";
+}
+
+function swapExercise(newExerciseId) {
+    fetch("/api/swap_exercise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            old_id: currentSwapExerciseId,
+            new_id: newExerciseId,
+            routine_id: routine_now_id,
+            client_id: client_id
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Replace exercise card HTML with updated content
+            document.querySelector(`[data-exercise-id='${currentSwapExerciseId}']`).outerHTML = data.html;
+
+            closeSwapModal();
+        } else {
+            alert("Error swapping exercise.");
+        }
+    });
+}
 
 </script>
 {% endblock %}

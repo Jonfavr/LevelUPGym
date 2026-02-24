@@ -190,6 +190,31 @@ class Routine:
         return None
     
     @staticmethod
+    def swap_exercise(routine_id, old_exercise_id, new_exercise_id):
+        """
+        Replace one exercise in a routine while preserving order, sets, reps, rest.
+        """
+        db = DatabaseManager()
+
+        # 🔍 Safety: ensure new exercise is not already in routine
+        exists_query = """
+            SELECT 1 FROM routine_exercises
+            WHERE routine_id = ? AND exercise_id = ?
+        """
+        exists = db.execute_query(exists_query, (routine_id, new_exercise_id))
+        if exists:
+            raise ValueError("Exercise already exists in routine")
+
+        # 🔄 Swap exercise (preserves order_position, sets, reps, rest)
+        update_query = """
+            UPDATE routine_exercises
+            SET exercise_id = ?
+            WHERE routine_id = ? AND exercise_id = ?
+        """
+
+        db.execute_update(update_query, (new_exercise_id, routine_id, old_exercise_id))
+
+    @staticmethod
     def get_all_active():
         """Get all active routines"""
         db = DatabaseManager()

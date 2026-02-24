@@ -1,10 +1,10 @@
-# web_server.py
+# main.py
 """
 Flask web server for LevelUp Gym Client Portal & Admin Portal
 Run this on the gym's computer to allow clients and admins to access via local network
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, send_from_directory, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, send_from_directory, send_file, render_template_string
 from functools import wraps
 import sys
 import os
@@ -208,7 +208,8 @@ def workout(routine_id):
                          routine=routine,
                          exercises=exercises,
                          session_info=session_info,
-                         progress=progress)
+                         progress=progress,
+                         client_id = client_id)
 
 @app.route('/log_set', methods=['POST'])
 @login_required
@@ -436,6 +437,80 @@ def profile():
                          end_date=end_date,
                          days_left=days_left)
 
+@app.route("/api/get_similar_exercises")
+def api_similar_exercises():
+    muscle = request.args.get("muscle")
+    ex_type = request.args.get("type")
+    exclude = request.args.get("exclude")
+
+    db = DatabaseManager()
+    query = """
+        SELECT * FROM exercises
+        WHERE target_muscle = ?
+        AND exercise_type = ?
+        AND exercise_id != ?
+        ORDER BY name
+    """
+    rows = db.execute_query(query, (muscle, ex_type, exclude))
+
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/swap_exercise", methods=["POST"])
+@login_required
+def api_swap_exercise():
+    data = request.get_json()
+    old_id = int(data["old_id"])
+    new_id = int(data["new_id"])
+
+    # 1️⃣ Get active workout session ID
+    session_id = session.get("workout_session_id")
+    if not session_id:
+        return jsonify({"success": False, "error": "No active workout session"}), 400
+
+    # 2️⃣ Load session from DB (THIS is where client_id comes from)
+    session_info = session_ctrl.get_session_by_id(session_id)
+    if not session_info:
+        return jsonify({"success": False, "error": "Workout session not found"}), 400
+
+    client_id = session_info["client_id"]
+    routine_id = session_info["routine_id"]
+
+    # 3️⃣ Load routine and exercises
+    routine = Routine.get_by_id(routine_id)
+    exercises = routine.get_exercises()
+
+    # 4️⃣ Find index of exercise being swapped
+    old_index = next(
+    (i for i, ex in enumerate(exercises) if ex["exercise_id"] == old_id),
+    None
+)
+
+    if old_index is None:
+        return jsonify({"success": False, "error": "Exercise not found in routine"}), 400
+
+    # 5️⃣ Swap exercise in routine_exercises table
+    Routine.swap_exercise(routine_id, old_id, new_id)
+
+    # 6️⃣ Reload routine + exercises
+    updated_exercises = routine.get_exercises()
+    new_exercise = updated_exercises[old_index]
+
+    # 7️⃣ Reload progress for THIS session
+    progress = session_ctrl.get_session_progress(session_id, routine)
+
+    # 8️⃣ Render only the swapped card
+    html = render_template(
+        "partials/exercise_card.html",
+        exercise=new_exercise,
+        index=old_index + 1,
+        progress=progress,
+        session_info=session_info
+    )
+
+    return jsonify({
+        "success": True,
+        "html": html
+    })
 
 # ==================== ADMIN ROUTES ====================
 

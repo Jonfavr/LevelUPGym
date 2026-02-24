@@ -1,0 +1,72 @@
+<div class="card exercise-card" data-exercise-id="{{ exercise.exercise_id }}" data-rest="{{ exercise.rest_seconds }}">
+    <div class="exercise-header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="exercise-number">{{ loop_index }}</div>
+            <div>
+                <h3 style="margin: 0;">{{ exercise.name }}</h3>
+                <p style="color: #6b7280; margin: 5px 0;">
+                    {{ exercise.target_muscle }} - {{ exercise.exercise_type.title() }}
+                </p>
+            </div>
+        </div>
+
+        <button class="btn btn-warning btn-sm"
+            onclick="openSwapModal({{ exercise.exercise_id }}, '{{ exercise.target_muscle }}', '{{ exercise.exercise_type }}')">
+            🔄 Swap
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="exp-badge">{{ exercise.base_exp }} EXP/set</span>
+
+            {% if exercise.image_path %}
+            <button class="btn btn-info btn-sm"
+                onclick="showExerciseImage('{{ exercise.name }}', '{{ exercise.description }}', '{{ url_for('static', filename=exercise.image_path) }}')">
+                View Exercise
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <p><strong>Target Sets:</strong> {{ exercise.sets }} × {{ exercise.reps }}
+        {{ 'seconds' if exercise.measurement == 'seconds' else 'reps' }} |
+        <strong>Rest:</strong> {{ exercise.rest_seconds }}s
+    </p>
+
+    <div class="sets-container" id="sets-{{ exercise.exercise_id }}">
+        {% for set_num in range(1, exercise.sets + 1) %}
+            {% set set_key = exercise.exercise_id|string + '-' + set_num|string %}
+            {% set is_completed = set_key in progress.completion_map %}
+
+            <div class="set-input-group {% if is_completed %}completed{% endif %}" data-set="{{ set_num }}">
+                <input type="text" class="measurement" style="display:none;" value="{{ exercise.measurement }}">
+                <label><strong>Set {{ set_num }}</strong></label>
+
+                <input type="number" class="reps-input"
+                    value="{% if is_completed %}{{ progress.completion_map[set_key].reps }}{% endif %}"
+                    {% if is_completed %}disabled{% endif %}
+                    placeholder="Reps">
+
+                <input type="number" class="weight-input"
+                    value="{% if is_completed %}{{ progress.completion_map[set_key].weight }}{% else %}{{ exercise.weight }}{% endif %}"
+                    {% if is_completed %}disabled{% endif %}
+                    {% if exercise.measurement == 'seconds' %}style="display:none;"{% endif %}
+                    placeholder="Weight (kg)">
+
+                <button class="btn {% if is_completed %}btn-disabled{% else %}btn-success{% endif %} btn-log"
+                    onclick="logSet({{ exercise.exercise_id }}, {{ set_num }})"
+                    {% if is_completed or session_info.status == 'completed' %}disabled{% endif %}>
+                    {% if is_completed %}✓ Logged{% else %}✓ Log{% endif %}
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div id="recommendation-{{ exercise.exercise_id }}" class="recommendation-box"
+        style="display:none; margin-top:10px; padding:12px; background:#dbeafe; border-left:4px solid #3b82f6;">
+        <strong>💡 Recommendation:</strong> <span class="rec-message"></span>
+    </div>
+
+    <div class="exp-earned" style="display:none; margin-top:15px; color:#10b981; font-weight:bold;">
+        Total EXP Earned: <span class="exp-total">0</span>
+    </div>
+</div>

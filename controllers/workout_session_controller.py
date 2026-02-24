@@ -188,6 +188,15 @@ class WorkoutSessionController:
             'completion_map': completion_map
         }
     
+    def get_session_by_id(self, session_id):
+        query = """
+            SELECT *
+            FROM workout_sessions
+            WHERE session_id = ?
+        """
+        rows = self.db.execute_query(query, (session_id,))
+        return rows[0] if rows else None
+
     def get_weight_recommendation(self, client_id, exercise_id, session_id):
         """
         Smart weight recommendation system
