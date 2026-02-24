@@ -1066,65 +1066,118 @@ def delete_routine_exercise(routine_exercise_id):
 @app.route('/admin/attendance')
 @admin_required
 def admin_attendance():
-    """Attendance management"""
+    """Attendance management — Phase 3 + duration bug fix"""
+    from datetime import date, datetime, timedelta
+
     attendance_list = attendance_ctrl.get_gym_attendance_today()
-    clients = Client.get_all_active()
-    
-    return render_template('admin/attendance.html',
-                         attendance_list=attendance_list,
-                         clients=clients)
+
+    for record in attendance_list:
+        ci_str = record.get('check_in_time')
+        co_str = record.get('check_out_time')
+        record['duration_minutes'] = None
+
+        if ci_str and co_str:
+            try:
+                fmt = '%H:%M:%S'
+                ci = datetime.strptime(ci_str, fmt)
+                co = datetime.strptime(co_str, fmt)
+
+                delta = (co - ci).total_seconds()
+
+                # If negative, checkout crossed midnight — add 24 h
+                if delta < 0:
+                    delta += 86400  # 24 * 60 * 60
+
+                minutes = int(delta / 60)
+
+                # Sanity cap: ignore anything over 24 h (bad data)
+                record['duration_minutes'] = minutes if minutes <= 1440 else None
+
+            except Exception:
+                record['duration_minutes'] = None
+
+    # KPIs
+    currently_in = sum(1 for r in attendance_list if not r.get('check_out_time'))
+
+    durations    = [r['duration_minutes'] for r in attendance_list
+                    if r.get('duration_minutes') is not None]
+    avg_duration = round(sum(durations) / len(durations)) if durations else 0
+
+    return render_template(
+        'admin/attendance.html',
+        attendance_list = attendance_list,
+        clients         = Client.get_all_active(),
+        currently_in    = currently_in,
+        avg_duration    = avg_duration,
+        today_date      = date.today().strftime('%A, %B %d %Y'),
+    )
 
 @app.route('/get_client_by_phone', methods=['POST'])
 @admin_required
 def get_client_by_phone():
+    """Phone lookup — now also returns membership status for the warning banner"""
+    from controllers.membership_controller import MembershipController
+
     phone_number = request.json.get('phone_number')
     client = Client.get_by_phone(phone_number)
-    
-    if client:
-        status = client.status
-        client_id = client.client_id
-        return jsonify({
-            'success': True,
-            'client_name': f"{client.first_name} {client.last_name}",
-            'client_status': status,
-            'client_id': client_id
-        })
-    return jsonify({'success': False})
+
+    if not client:
+        return jsonify({'success': False})
+
+    # Membership check
+    mc = MembershipController()
+    membership = mc.get_client_membership(client.client_id)
+    mem_status    = None
+    mem_days_left = 0
+
+    if membership:
+        end_date  = datetime.strptime(membership['end_date'], '%Y-%m-%d').date()
+        days_left = (end_date - date.today()).days
+        mem_days_left = max(days_left, 0)
+        if days_left <= 0:
+            mem_status = 'expired'
+        elif days_left <= 7:
+            mem_status = 'expiring'
+        else:
+            mem_status = 'active'
+
+    return jsonify({
+        'success'              : True,
+        'client_name'          : f"{client.first_name} {client.last_name}",
+        'client_status'        : client.status,
+        'client_id'            : client.client_id,
+        'membership_status'    : mem_status,
+        'membership_days_left' : mem_days_left,
+    })
 
 @app.route('/admin/checkin', methods=['POST'])
 @admin_required
 def admin_checkin():
     client_id = int(request.form.get('client_id'))
     result = attendance_ctrl.check_in(client_id)
-    
+
     db = DatabaseManager()
-    db.execute_update("""
-        INSERT OR IGNORE INTO attendance (client_id, check_in_date, check_in_time)
-        VALUES (?, DATE('now'), TIME('now'))
-    """, (client_id,))
-    
-    # ✅ Add this line right after the attendance insert
     db.update_streak(client_id)
-    
+
     if result['success']:
-        flash(f'Client checked in!', 'success')
+        client = Client.get_by_id(client_id)
+        flash(f'{client.first_name if client else "Client"} checked in! 💪', 'success')
     else:
         flash(result['message'], 'warning')
-    
+
     return redirect(url_for('admin_attendance'))
 
 @app.route('/admin/checkout', methods=['POST'])
 @admin_required
 def admin_checkout():
-    """Check out a client"""
     client_id = int(request.form.get('client_id'))
     result = attendance_ctrl.check_out(client_id)
-    
+
     if result['success']:
-        flash(f'Client checked out! Duration: {result["duration_minutes"]} minutes', 'success')
+        flash(f'Checked out! Duration: {result["duration_minutes"]} min', 'success')
     else:
         flash(result['message'], 'warning')
-    
+
     return redirect(url_for('admin_attendance'))
 
 @app.route('/admin/tests')
@@ -1200,27 +1253,87 @@ def admin_leaderboard():
     )
 
 @app.route('/admin/memberships')
+@admin_required
 def admin_memberships():
+    """Membership management — Phase 3 with counts and all_clients"""
     from controllers.membership_controller import MembershipController
+
     mc = MembershipController()
     memberships = mc.get_all_memberships()
-    return render_template('admin/memberships.html', memberships=memberships)
+
+    # Compute counts for KPI strip
+    counts = {'active': 0, 'expiring': 0, 'expired': 0, 'total': len(memberships)}
+    for m in memberships:
+        days = m.get('days_remaining', 0) or 0
+        if m['status'] == 'expired' or days <= 0:
+            counts['expired'] += 1
+        elif days <= 7:
+            counts['expiring'] += 1
+        else:
+            counts['active'] += 1
+
+    all_clients = Client.get_all_active()
+
+    return render_template(
+        'admin/memberships.html',
+        memberships  = memberships,
+        counts       = counts,
+        all_clients  = all_clients,
+    )
 
 @app.route('/admin/membership/renew', methods=['POST'])
+@admin_required
 def renew_membership():
     from controllers.membership_controller import MembershipController
     mc = MembershipController()
     membership_id = request.form.get('membership_id')
     duration_days = int(request.form.get('duration_days', 30))
-    mc.renew_membership(membership_id, duration_days)
+    result = mc.renew_membership(membership_id, duration_days)
+    flash(result.get('message', 'Membership renewed.'), 'success')
     return redirect(url_for('admin_memberships'))
 
 @app.route('/admin/membership/reactivate', methods=['POST'])
+@admin_required
 def reactivate_membership():
     from controllers.membership_controller import MembershipController
     mc = MembershipController()
     membership_id = request.form.get('membership_id')
     mc.update_membership_status(membership_id, 'active')
+    flash('Membership reactivated.', 'success')
+    return redirect(url_for('admin_memberships'))
+
+@app.route('/admin/membership/create', methods=['POST'])
+@admin_required
+def admin_create_membership():
+    """Create a brand-new membership from the modal form"""
+    from controllers.membership_controller import MembershipController
+    mc = MembershipController()
+    client_id     = int(request.form.get('client_id'))
+    duration_days = int(request.form.get('duration_days', 30))
+    notes         = request.form.get('notes', '')
+
+    result = mc.add_membership(client_id, duration_days, notes or None)
+    flash(result.get('message', 'Membership created.'), 'success')
+    return redirect(url_for('admin_memberships'))
+
+@app.route('/admin/membership/bulk-renew', methods=['POST'])
+@admin_required
+def admin_bulk_renew_memberships():
+    """Bulk renew multiple memberships at once"""
+    from controllers.membership_controller import MembershipController
+    mc = MembershipController()
+
+    raw_ids       = request.form.get('membership_ids', '')
+    duration_days = int(request.form.get('duration_days', 30))
+    ids           = [i.strip() for i in raw_ids.split(',') if i.strip()]
+
+    renewed = 0
+    for mid in ids:
+        result = mc.renew_membership(mid, duration_days)
+        if result.get('success'):
+            renewed += 1
+
+    flash(f'{renewed} membership(s) renewed successfully!', 'success')
     return redirect(url_for('admin_memberships'))
 
 # Error handlers

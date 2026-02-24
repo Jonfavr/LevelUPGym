@@ -1,79 +1,469 @@
+<!-- templates/admin/memberships.html -->
 {% extends "admin/base.html" %}
-{% block title %}Memberships - LevelUp Gym{% endblock %}
+
+{% block title %}Memberships — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Memberships{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── KPI strip ── */
+    .mem-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* ── Search + filters toolbar ── */
+    .toolbar {
+        display: flex; align-items: center;
+        gap: 10px; flex-wrap: wrap;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .search-bar { position: relative; flex: 1; min-width: 200px; max-width: 340px; }
+    .search-bar i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; pointer-events: none; }
+    .search-bar input { padding-left: 36px; height: 36px; font-size: 13px; }
+
+    .filter-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 5px 13px; border-radius: 20px;
+        border: 1px solid var(--border); background: var(--bg-elevated);
+        color: var(--text-secondary); font-size: 12px; font-weight: 500;
+        cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    .filter-pill:hover, .filter-pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+    /* ── Expiry bar ── */
+    .expiry-bar { display: flex; flex-direction: column; gap: 3px; min-width: 90px; }
+    .expiry-track { height: 4px; background: var(--bg-hover); border-radius: 2px; overflow: hidden; }
+    .expiry-fill  { height: 100%; border-radius: 2px; }
+
+    /* ── Bulk action bar ── */
+    .bulk-bar {
+        display: none;
+        align-items: center; gap: 12px;
+        background: var(--accent-glow);
+        border: 1px solid var(--border-accent);
+        border-radius: var(--radius-md);
+        padding: 10px 16px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        color: var(--accent);
+        font-weight: 500;
+    }
+    .bulk-bar.visible { display: flex; }
+    .bulk-bar .bulk-count { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 16px; }
+
+    /* ── Duration select inside table ── */
+    .dur-select {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 12px;
+        padding: 5px 8px;
+        height: 30px;
+        cursor: pointer;
+    }
+    .dur-select:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Create membership modal ── */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(4px);
+        z-index: 200;
+        display: none;
+        align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        width: 100%; max-width: 460px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.92) translateY(20px); }
+        to   { opacity: 1; transform: scale(1)    translateY(0); }
+    }
+
+    .modal-title {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 20px; font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+    }
+
+    .modal-sub { font-size: 12.5px; color: var(--text-muted); margin-bottom: 20px; }
+
+    .modal-footer { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+</style>
+{% endblock %}
 
 {% block content %}
-<style>
-.duration-select {
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background-color: white;
-  color: #1f2937;
-  font-size: 0.9rem;
-  width: 120px;
-}
-</style>
 
-<div class="card">
-  <h1>📋 Membership Management</h1>
-  <p>Monitor, renew, and manage client memberships</p>
+<!-- ── KPI Strip ── -->
+<div class="mem-kpi-row">
+    <div class="stat-card emerald">
+        <div class="stat-icon emerald"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="stat-value">{{ counts.active }}</div>
+        <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card amber">
+        <div class="stat-icon amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="stat-value">{{ counts.expiring }}</div>
+        <div class="stat-label">Expiring ≤7 Days</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-icon red"><i class="fa-solid fa-circle-xmark"></i></div>
+        <div class="stat-value">{{ counts.expired }}</div>
+        <div class="stat-label">Expired</div>
+    </div>
+    <div class="stat-card accent">
+        <div class="stat-icon accent"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-value">{{ counts.total }}</div>
+        <div class="stat-label">Total</div>
+    </div>
 </div>
 
-<div class="card">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Client</th>
-        <th>Start Date</th>
-        <th>End Date</th>
-        <th>Status</th>
-        <th>Days Left</th>
-        <th>Renewals</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for m in memberships %}
-      <tr>
-        <td>{{ m.full_name }}</td>
-        <td>{{ m.start_date }}</td>
-        <td>{{ m.end_date }}</td>
-        <td>
-          {% if m.status == 'active' %}
-          <span style="color: #10b981;">🟢 Active</span>
-          {% elif m.status == 'expired' %}
-          <span style="color: #ef4444;">🔴 Expired</span>
-          {% else %}
-          <span style="color: #fbbf24;">🟡 {{ m.status|title }}</span>
-          {% endif %}
-        </td>
-        <td>{{ m.days_remaining if m.days_remaining > 0 else 0 }}</td>
-        <td>{{ m.renewal_count }}</td>
-        <td>
-          <form action="{{ url_for('renew_membership') }}" method="post" style="display:inline;">
-            <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
+<!-- ── Bulk action bar ── -->
+<div class="bulk-bar" id="bulk-bar">
+    <span><span class="bulk-count" id="bulk-count">0</span> selected</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; color:var(--text-muted);">Renew all for:</span>
+        <select class="dur-select" id="bulk-duration">
+            <option value="7">1 Week</option>
+            <option value="30" selected>1 Month</option>
+            <option value="90">3 Months</option>
+            <option value="365">1 Year</option>
+        </select>
+    </div>
+    <form method="POST" action="{{ url_for('admin_bulk_renew_memberships') }}" id="bulk-form">
+        <input type="hidden" name="membership_ids" id="bulk-ids-input">
+        <input type="hidden" name="duration_days" id="bulk-duration-hidden" value="30">
+        <button type="submit" class="btn btn-success btn-sm">
+            <i class="fa-solid fa-rotate-right"></i> Bulk Renew
+        </button>
+    </form>
+    <button class="btn btn-ghost btn-sm" id="deselect-all">
+        <i class="fa-solid fa-xmark"></i> Deselect
+    </button>
+</div>
 
-            <div style="display:flex; align-items:center; gap:8px;">
-                <select name="duration_days" class="duration-select">
-                    <option value="7">1 Week</option>
-                    <option value="30" selected>1 Month</option>
-                    <option value="90">3 Months</option>
-                    <option value="365">1 Year</option>
+<!-- ── Main card ── -->
+<div class="card" style="padding:0; overflow:hidden;">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="mem-search" placeholder="Search by name…">
+        </div>
+
+        <div style="display:flex; gap:6px; flex-wrap:wrap;" id="mem-filters">
+            <button class="filter-pill active" data-mem-filter="all">All</button>
+            <button class="filter-pill" data-mem-filter="active">
+                <i class="fa-solid fa-circle" style="font-size:7px; color:var(--emerald);"></i> Active
+            </button>
+            <button class="filter-pill" data-mem-filter="expiring">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size:9px; color:var(--amber);"></i> Expiring
+            </button>
+            <button class="filter-pill" data-mem-filter="expired">
+                <i class="fa-solid fa-xmark" style="font-size:9px; color:var(--red);"></i> Expired
+            </button>
+        </div>
+
+        <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn btn-primary btn-sm" id="open-create-modal">
+                <i class="fa-solid fa-plus"></i> New Membership
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper" style="border:none; border-radius:0;">
+        <table id="mem-table">
+            <thead>
+                <tr>
+                    <th style="width:40px; padding-left:18px;">
+                        <input type="checkbox" id="select-all" style="accent-color:var(--accent); width:15px; height:15px;">
+                    </th>
+                    <th>Client</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Time Left</th>
+                    <th>Status</th>
+                    <th>Renewals</th>
+                    <th style="text-align:right; padding-right:18px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in memberships %}
+                {% set days = m.days_remaining | default(0) | int %}
+                {% if m.status == 'expired' or days <= 0 %}
+                    {% set row_filter = 'expired' %}
+                    {% set status_class = 'badge-red' %}
+                    {% set status_label = 'Expired' %}
+                    {% set bar_color = 'var(--red)' %}
+                    {% set bar_pct = 0 %}
+                {% elif days <= 7 %}
+                    {% set row_filter = 'expiring' %}
+                    {% set status_class = 'badge-amber' %}
+                    {% set status_label = 'Expiring' %}
+                    {% set bar_color = 'var(--amber)' %}
+                    {% set bar_pct = [((days / 30) * 100) | int, 100] | min %}
+                {% else %}
+                    {% set row_filter = 'active' %}
+                    {% set status_class = 'badge-emerald' %}
+                    {% set status_label = 'Active' %}
+                    {% set bar_color = 'var(--emerald)' %}
+                    {% set bar_pct = [((days / 365) * 100) | int, 100] | min %}
+                {% endif %}
+
+                <tr class="mem-row"
+                    data-filter="{{ row_filter }}"
+                    data-name="{{ m.full_name | lower }}">
+
+                    <!-- Checkbox -->
+                    <td style="padding-left:18px;">
+                        <input type="checkbox" class="row-checkbox"
+                               data-id="{{ m.membership_id }}"
+                               style="accent-color:var(--accent); width:15px; height:15px;">
+                    </td>
+
+                    <!-- Client name -->
+                    <td>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="
+                                width:30px;height:30px;border-radius:50%;flex-shrink:0;
+                                background:linear-gradient(135deg,var(--accent),var(--accent-2));
+                                display:flex;align-items:center;justify-content:center;
+                                font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;color:white;">
+                                {{ m.full_name[0] | upper }}
+                            </div>
+                            <div>
+                                <div style="font-weight:600; color:var(--text-primary); font-size:13.5px;">{{ m.full_name }}</div>
+                                <div style="font-size:11px; color:var(--text-muted);">ID {{ m.client_id }}</div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Dates -->
+                    <td style="font-size:12.5px; color:var(--text-secondary);">{{ m.start_date }}</td>
+                    <td style="font-size:12.5px; color:var(--text-secondary);">{{ m.end_date }}</td>
+
+                    <!-- Expiry bar -->
+                    <td>
+                        {% if days > 0 %}
+                        <div class="expiry-bar">
+                            <div style="font-family:'Rajdhani',sans-serif; font-weight:700; font-size:14px; color:{{ bar_color }};">
+                                {{ days }}d
+                            </div>
+                            <div class="expiry-track">
+                                <div class="expiry-fill" style="width:{{ bar_pct }}%; background:{{ bar_color }};"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span style="font-size:12px; color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Status badge -->
+                    <td><span class="badge {{ status_class }}">{{ status_label }}</span></td>
+
+                    <!-- Renewal count -->
+                    <td style="font-size:13px; color:var(--text-secondary);">{{ m.renewal_count }}</td>
+
+                    <!-- Actions -->
+                    <td style="text-align:right; padding-right:14px;">
+                        <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                            <form method="POST" action="{{ url_for('renew_membership') }}" style="display:flex; align-items:center; gap:6px;">
+                                <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
+                                <select name="duration_days" class="dur-select">
+                                    <option value="7">1 Week</option>
+                                    <option value="30" selected>1 Month</option>
+                                    <option value="90">3 Months</option>
+                                    <option value="365">1 Year</option>
+                                </select>
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fa-solid fa-rotate-right"></i>
+                                </button>
+                            </form>
+                            {% if m.status == 'expired' or days <= 0 %}
+                            <form method="POST" action="{{ url_for('reactivate_membership') }}">
+                                <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
+                                <button type="submit" class="btn btn-ghost btn-sm" title="Reactivate">
+                                    <i class="fa-solid fa-circle-play"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            <a href="{{ url_for('admin_client_details', client_id=m.client_id) }}"
+                               class="btn btn-ghost btn-sm" title="View client">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <tr id="no-mem-results" style="display:none;">
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-id-card-clip"></i>
+                            <p>No memberships match your filter.</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ════════════════════════════════
+     CREATE MEMBERSHIP MODAL
+════════════════════════════════ -->
+<div class="modal-overlay" id="create-modal">
+    <div class="modal-box">
+        <div class="modal-title"><i class="fa-solid fa-id-card-clip" style="color:var(--accent);margin-right:8px;"></i>New Membership</div>
+        <div class="modal-sub">Create a membership for a client. If one already exists it will be updated.</div>
+
+        <form method="POST" action="{{ url_for('admin_create_membership') }}">
+            <div class="form-group">
+                <label>Client</label>
+                <select name="client_id" required>
+                    <option value="">— Select client —</option>
+                    {% for client in all_clients %}
+                    <option value="{{ client.client_id }}">{{ client.full_name }}</option>
+                    {% endfor %}
                 </select>
-                <button type="submit" class="btn btn-success">🔁 Renew</button>
             </div>
-          </form>
 
-          {% if m.status == 'expired' %}
-          <form action="{{ url_for('reactivate_membership') }}" method="post" style="display:inline;">
-            <input type="hidden" name="membership_id" value="{{ m.membership_id }}">
-            <button type="submit" class="btn btn-primary" style="margin-left:5px;">♻️ Reactivate</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+            <div class="form-group">
+                <label>Duration</label>
+                <select name="duration_days" required>
+                    <option value="7">1 Week (7 days)</option>
+                    <option value="30" selected>1 Month (30 days)</option>
+                    <option value="60">2 Months (60 days)</option>
+                    <option value="90">3 Months (90 days)</option>
+                    <option value="180">6 Months (180 days)</option>
+                    <option value="365">1 Year (365 days)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <input type="text" name="notes" placeholder="e.g., Promo, Referral discount…">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="close-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Create
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ════════════════════════════════
+   SEARCH + FILTER
+════════════════════════════════ */
+const searchInput = document.getElementById('mem-search');
+const rows = document.querySelectorAll('.mem-row');
+const noResults = document.getElementById('no-mem-results');
+let activeFilter = 'all';
+
+function applyFilters() {
+    const q = searchInput.value.toLowerCase();
+    let visible = 0;
+    rows.forEach(row => {
+        const nameMatch = row.dataset.name.includes(q);
+        const filterMatch = activeFilter === 'all' || row.dataset.filter === activeFilter;
+        const show = nameMatch && filterMatch;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    noResults.style.display = visible === 0 ? '' : 'none';
+}
+
+searchInput.addEventListener('input', applyFilters);
+
+document.querySelectorAll('[data-mem-filter]').forEach(pill => {
+    pill.addEventListener('click', () => {
+        document.querySelectorAll('[data-mem-filter]').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activeFilter = pill.dataset.memFilter;
+        applyFilters();
+    });
+});
+
+/* ════════════════════════════════
+   BULK SELECT
+════════════════════════════════ */
+const selectAll  = document.getElementById('select-all');
+const bulkBar    = document.getElementById('bulk-bar');
+const bulkCount  = document.getElementById('bulk-count');
+const bulkDur    = document.getElementById('bulk-duration');
+const bulkDurHid = document.getElementById('bulk-duration-hidden');
+const bulkIds    = document.getElementById('bulk-ids-input');
+
+function updateBulkBar() {
+    const checked = [...document.querySelectorAll('.row-checkbox:checked')];
+    bulkCount.textContent = checked.length;
+    bulkBar.classList.toggle('visible', checked.length > 0);
+    bulkIds.value = checked.map(c => c.dataset.id).join(',');
+}
+
+selectAll.addEventListener('change', () => {
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        const row = cb.closest('tr');
+        if (row.style.display !== 'none') cb.checked = selectAll.checked;
+    });
+    updateBulkBar();
+});
+
+document.querySelectorAll('.row-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+document.getElementById('deselect-all').addEventListener('click', () => {
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    selectAll.checked = false;
+    updateBulkBar();
+});
+
+bulkDur.addEventListener('change', () => {
+    bulkDurHid.value = bulkDur.value;
+});
+
+/* ════════════════════════════════
+   CREATE MODAL
+════════════════════════════════ */
+const modal = document.getElementById('create-modal');
+
+document.getElementById('open-create-modal').addEventListener('click', () => {
+    modal.classList.add('open');
+});
+
+document.getElementById('close-modal').addEventListener('click', () => {
+    modal.classList.remove('open');
+});
+
+modal.addEventListener('click', e => {
+    if (e.target === modal) modal.classList.remove('open');
+});
+</script>
 {% endblock %}

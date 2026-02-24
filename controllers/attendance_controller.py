@@ -41,9 +41,9 @@ class AttendanceController:
         self.db.connect()
         query = '''
             INSERT OR IGNORE INTO attendance (client_id, check_in_date, check_in_time)
-            VALUES (?, DATE('now'), TIME('now'))
+            VALUES (?, ?, ?)
         '''
-        self.db.cursor.execute(query, (client_id,))
+        self.db.cursor.execute(query, (client_id, check_in_date.strftime('%Y-%m-%d'), check_in_time))
         self.db.conn.commit()
         attendance_id = self.db.cursor.lastrowid
         self.db.disconnect()

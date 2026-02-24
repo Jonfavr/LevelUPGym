@@ -1,134 +1,750 @@
 <!-- templates/admin/attendance.html -->
 {% extends "admin/base.html" %}
 
-{% block title %}Attendance - Admin{% endblock %}
+{% block title %}Attendance — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Attendance{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ══════════════════════════════
+       PAGE-LEVEL TABS
+    ══════════════════════════════ */
+    .page-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .page-tab-btn {
+        padding: 11px 22px;
+        border: none;
+        background: none;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
+
+    .page-tab-btn:hover { color: var(--text-primary); }
+
+    .page-tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+        font-weight: 600;
+    }
+
+    .page-tab-btn .tab-count {
+        background: var(--bg-hover);
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 20px;
+        min-width: 22px;
+        text-align: center;
+    }
+
+    .page-tab-btn.active .tab-count {
+        background: var(--accent-glow);
+        color: var(--accent);
+    }
+
+    .page-tab-panel { display: none; }
+    .page-tab-panel.active { display: block; }
+
+    /* ══════════════════════════════
+       CHECK-IN TAB  —  PIN PAD
+    ══════════════════════════════ */
+    .checkin-layout {
+        display: grid;
+        grid-template-columns: 460px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* PIN Pad card */
+    .pinpad-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .pinpad-header {
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        position: relative;
+    }
+
+    .pinpad-header::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent), var(--emerald));
+    }
+
+    .pinpad-header h2 {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 18px; font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .pinpad-header p { font-size: 12px; color: var(--text-muted); }
+
+    .pinpad-body { padding: 22px 24px; }
+
+    /* Phone display */
+    .phone-display {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        transition: border-color 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .phone-display.has-value { border-color: var(--border-accent); }
+
+    .phone-display i {
+        color: var(--text-muted);
+        font-size: 14px;
+        flex-shrink: 0;
+        position: absolute;
+        left: 16px;
+    }
+
+    #phone-input {
+        background: transparent;
+        border: none;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: 4px;
+        color: var(--text-primary);
+        text-align: center;
+        width: 100%;
+        padding: 0 44px;
+        outline: none;
+    }
+
+    #phone-input::placeholder {
+        color: var(--text-muted);
+        letter-spacing: 1px;
+        font-size: 16px;
+        font-weight: 400;
+    }
+
+    /* Membership warning banner */
+    .mem-warning-banner {
+        border-radius: var(--radius-sm);
+        padding: 10px 14px;
+        margin-bottom: 14px;
+        font-size: 12.5px;
+        font-weight: 500;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        line-height: 1.4;
+    }
+
+    .mem-warning-banner.show { display: flex; }
+    .mem-warning-banner.amber-warn {
+        background: var(--amber-glow);
+        color: var(--amber);
+        border: 1px solid rgba(251,191,36,.3);
+    }
+    .mem-warning-banner.red-warn {
+        background: var(--red-glow);
+        color: var(--red);
+        border: 1px solid rgba(239,68,68,.3);
+    }
+
+    /* Client preview */
+    .client-preview {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        margin-bottom: 16px;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        transition: border-color 0.2s;
+    }
+
+    .client-preview.show { display: flex; }
+    .client-preview.found   { border-color: var(--border-accent); }
+    .client-preview.danger  { border-color: rgba(239,68,68,.4); }
+    .client-preview.unknown { border-color: var(--border); }
+
+    .preview-avatar {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700; font-size: 18px; color: white;
+        flex-shrink: 0;
+    }
+
+    .preview-info { flex: 1; min-width: 0; }
+    .preview-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .preview-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+    .preview-status { flex-shrink: 0; }
+
+    /* Numpad */
+    .numpad-divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 16px 0;
+    }
+
+    .numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .numpad-key {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        height: 54px;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 22px; font-weight: 600;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex; align-items: center; justify-content: center;
+        user-select: none;
+    }
+
+    .numpad-key:hover  { background: var(--bg-hover); border-color: var(--border-accent); color: var(--accent); }
+    .numpad-key:active { transform: scale(0.94); }
+    .numpad-key.del    { color: var(--red); font-size: 18px; }
+    .numpad-key.del:hover { background: var(--red-glow); border-color: rgba(239,68,68,.3); }
+
+    /* Check-in right side – live stats */
+    .checkin-right {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* Live in-gym list */
+    .live-person {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .live-person:last-child { border-bottom: none; }
+
+    .live-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--emerald);
+        box-shadow: 0 0 6px var(--emerald);
+        flex-shrink: 0;
+        animation: pulse-dot 2s infinite;
+    }
+
+    /* ══════════════════════════════
+       ATTENDANCE INFO TAB
+    ══════════════════════════════ */
+    .filter-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 6px 14px; border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        font-size: 12px; font-weight: 500;
+        cursor: pointer; transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .filter-pill:hover, .filter-pill.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-glow);
+    }
+
+    .duration-pos { color: var(--emerald); font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 13px; }
+    .duration-act { color: var(--accent);  font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 13px; }
+
+    @media (max-width: 900px) {
+        .checkin-layout { grid-template-columns: 1fr; }
+        .page-tab-btn   { padding: 10px 14px; font-size: 13px; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>Attendance Management</h1>
-    <p>Manually check clients in and out, or view today's attendance</p>
+
+<!-- ══════════════════════════════
+     PAGE-LEVEL TABS
+══════════════════════════════ -->
+<nav class="page-tabs">
+    <button class="page-tab-btn active" data-page-tab="checkin">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        Check-In
+    </button>
+    <button class="page-tab-btn" data-page-tab="info">
+        <i class="fa-solid fa-clipboard-list"></i>
+        Attendance Log
+        <span class="tab-count">{{ attendance_list | length }}</span>
+    </button>
+</nav>
+
+<!-- ══════════════════════════════
+     TAB 1 — CHECK-IN
+══════════════════════════════ -->
+<div class="page-tab-panel active" id="tab-checkin">
+    <div class="checkin-layout">
+
+        <!-- PIN PAD -->
+        <div class="pinpad-card">
+            <div class="pinpad-header">
+                <h2><i class="fa-solid fa-right-to-bracket" style="color:var(--accent); margin-right:8px;"></i>Front Desk Check-In</h2>
+                <p>Type a phone number or tap the keypad below</p>
+            </div>
+            <div class="pinpad-body">
+
+                <!-- Phone display -->
+                <div class="phone-display" id="phone-display">
+                    <i class="fa-solid fa-phone"></i>
+                    <input type="text" id="phone-input"
+                           placeholder="Phone number"
+                           maxlength="10" autocomplete="off"
+                           inputmode="numeric">
+                </div>
+
+                <!-- Membership warning -->
+                <div class="mem-warning-banner" id="mem-banner">
+                    <i class="fa-solid fa-triangle-exclamation" style="flex-shrink:0;"></i>
+                    <span id="mem-banner-text"></span>
+                </div>
+
+                <!-- Client preview card -->
+                <div class="client-preview" id="client-preview">
+                    <div class="preview-avatar" id="preview-avatar">?</div>
+                    <div class="preview-info">
+                        <div class="preview-name" id="preview-name">—</div>
+                        <div class="preview-meta" id="preview-meta">—</div>
+                    </div>
+                    <div class="preview-status" id="preview-status-badge"></div>
+                </div>
+
+                <!-- Check-in form -->
+                <form id="checkin-form" method="POST" action="{{ url_for('admin_checkin') }}">
+                    <input type="hidden" id="checkin-client-id" name="client_id">
+                    <button type="submit" id="checkin-btn"
+                            class="btn btn-disabled"
+                            style="width:100%; justify-content:center; height:46px; font-size:15px;"
+                            disabled>
+                        <i class="fa-solid fa-right-to-bracket"></i> Check In
+                    </button>
+                </form>
+
+                <hr class="numpad-divider">
+
+                <!-- Numpad -->
+                <div class="numpad">
+                    {% for n in ['1','2','3','4','5','6','7','8','9','','0','⌫'] %}
+                    <button
+                        class="numpad-key{% if n == '⌫' %} del{% endif %}"
+                        {% if n == '' %}style="visibility:hidden;"{% endif %}
+                        data-val="{{ n }}">{{ n }}</button>
+                    {% endfor %}
+                </div>
+
+                <button class="btn btn-ghost" style="width:100%; justify-content:center;" id="clear-btn">
+                    <i class="fa-solid fa-xmark"></i> Clear
+                </button>
+
+            </div><!-- /pinpad-body -->
+        </div><!-- /pinpad-card -->
+
+        <!-- RIGHT: Live summary -->
+        <div class="checkin-right">
+
+            <!-- Mini KPIs -->
+            <div class="grid grid-3">
+                <div class="stat-card accent">
+                    <div class="stat-icon accent"><i class="fa-solid fa-users"></i></div>
+                    <div class="stat-value">{{ attendance_list | length }}</div>
+                    <div class="stat-label">Check-ins Today</div>
+                </div>
+                <div class="stat-card emerald">
+                    <div class="stat-icon emerald"><i class="fa-solid fa-circle-dot"></i></div>
+                    <div class="stat-value">{{ currently_in }}</div>
+                    <div class="stat-label">Currently Inside</div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="stat-icon amber"><i class="fa-solid fa-clock"></i></div>
+                    <div class="stat-value">{{ avg_duration }}</div>
+                    <div class="stat-label">Avg Duration (min)</div>
+                </div>
+            </div>
+
+            <!-- Who's in the gym right now -->
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header" style="margin-bottom:10px;">
+                    <div class="card-title" style="font-size:15px;">
+                        <span style="color:var(--emerald); margin-right:6px;">●</span> Currently in Gym
+                    </div>
+                    <span class="badge badge-emerald">{{ currently_in }} active</span>
+                </div>
+
+                {% set in_gym = attendance_list | selectattr('check_out_time', 'none') | list %}
+                {% if in_gym %}
+                    {% for record in in_gym %}
+                    <div class="live-person">
+                        <div style="
+                            width:32px; height:32px; border-radius:50%; flex-shrink:0;
+                            background:linear-gradient(135deg,var(--accent),var(--accent-2));
+                            display:flex; align-items:center; justify-content:center;
+                            font-family:'Rajdhani',sans-serif; font-weight:700; font-size:13px; color:white;">
+                            {{ record.client_name[0]|upper if record.client_name else '?' }}
+                        </div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:600; font-size:13.5px; color:var(--text-primary);">{{ record.client_name }}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">In since {{ record.check_in_time }}</div>
+                        </div>
+                        <div class="live-dot"></div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state" style="padding:24px 0;">
+                        <i class="fa-solid fa-person-walking-arrow-right" style="font-size:28px;"></i>
+                        <p>No one in the gym right now</p>
+                    </div>
+                {% endif %}
+            </div>
+
+        </div><!-- /checkin-right -->
+    </div><!-- /checkin-layout -->
 </div>
 
-<div class="grid grid-2">
-    <div class="card">
-    <h2>Check-in Client by Phone Number</h2>
-    <form id="checkin-form" method="POST" action="{{ url_for('admin_checkin') }}">
-        <div class="form-group">
-            <label for="client-phone">Client Phone Number</label>
-            <input type="text" id="client-phone" name="phone_number" required placeholder="Enter Phone Number" maxlength="10">
-            <input type="text" id="client-id" name="client_id" required style="display: none;">
+<!-- ══════════════════════════════
+     TAB 2 — ATTENDANCE LOG
+══════════════════════════════ -->
+<div class="page-tab-panel" id="tab-info">
+
+    <!-- KPI row -->
+    <div class="grid grid-3" style="margin-bottom:20px;">
+        <div class="stat-card accent">
+            <div class="stat-icon accent"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-value">{{ attendance_list | length }}</div>
+            <div class="stat-label">Total Check-ins Today</div>
         </div>
-        <div id="client-info" style="display:none; padding-top: 10px;">
-            <p><strong>Client Name:</strong> <span id="client-name"></span></p>
-            <p><strong>Status:</strong> <span id="client-status"></span></p>
+        <div class="stat-card emerald">
+            <div class="stat-icon emerald"><i class="fa-solid fa-circle-dot"></i></div>
+            <div class="stat-value">{{ currently_in }}</div>
+            <div class="stat-label">Currently Inside</div>
         </div>
-        <button type="submit" class="btn btn-disabled" style="width: 100%;" id="checkin-button" disabled>Check In Client</button>
-    </form>
+        <div class="stat-card amber">
+            <div class="stat-icon amber"><i class="fa-solid fa-clock"></i></div>
+            <div class="stat-value">{{ avg_duration }}</div>
+            <div class="stat-label">Avg Duration (min)</div>
+        </div>
     </div>
-</div>
 
-<div class="card">
-    <h2>Today's Attendance ({{ attendance_list|length }} clients)</h2>
-    {% if attendance_list %}
-    <table>
-        <thead>
-            <tr>
-                <th>Client Name</th>
-                <th>Phone</th>
-                <th>Check-in Time</th>
-                <th>Check-out Time</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in attendance_list %}
-            <tr>
-                <td><strong>{{ record.client_name }}</strong></td>
-                <td>{{ record.phone_number }}</td>
-                <td>{{ record.check_in_time }}</td>
-                <td>
-                    {% if record.check_out_time %}
-                        {{ record.check_out_time }}
-                    {% else %}
-                        <span style="color: #9ca3af;">-</span>
+    <!-- Attendance table card -->
+    <div class="card" style="padding:0; overflow:hidden; margin-bottom:0;">
+
+        <!-- Table toolbar -->
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    flex-wrap:wrap; gap:10px; padding:16px 20px; border-bottom:1px solid var(--border);">
+            <div>
+                <div class="card-title" style="font-size:16px;">
+                    <span class="card-title-icon">📋</span> Today's Log
+                </div>
+                <div class="section-subtitle">{{ today_date }}</div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="filter-pill active" data-att-filter="all">All</button>
+                <button class="filter-pill" data-att-filter="in">
+                    <i class="fa-solid fa-circle" style="font-size:7px; color:var(--emerald);"></i> In Gym
+                </button>
+                <button class="filter-pill" data-att-filter="out">Left</button>
+            </div>
+        </div>
+
+        <div class="table-wrapper" style="border:none; border-radius:0;">
+            <table id="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>EXP</th>
+                        <th style="text-align:right; padding-right:18px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in attendance_list %}
+                    <tr class="att-row" data-status="{{ 'in' if not record.check_out_time else 'out' }}">
+
+                        <!-- Client -->
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="
+                                    width:34px; height:34px; border-radius:50%; flex-shrink:0;
+                                    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+                                    display:flex; align-items:center; justify-content:center;
+                                    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:14px; color:white;">
+                                    {{ record.client_name[0]|upper if record.client_name else '?' }}
+                                </div>
+                                <div>
+                                    <div style="font-weight:600; color:var(--text-primary); font-size:13.5px;">{{ record.client_name }}</div>
+                                    <div style="font-size:11px; color:var(--text-muted);">{{ record.phone_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Times -->
+                        <td style="font-size:13px; color:var(--text-secondary);">{{ record.check_in_time }}</td>
+                        <td style="font-size:13px; color:var(--text-secondary);">
+                            {{ record.check_out_time if record.check_out_time else '—' }}
+                        </td>
+
+                        <!-- Duration -->
+                        <td>
+                            {% if record.check_out_time and record.duration_minutes is defined and record.duration_minutes is not none and record.duration_minutes >= 0 %}
+                                <span class="duration-pos">{{ record.duration_minutes }} min</span>
+                            {% elif not record.check_out_time %}
+                                <span class="duration-act"><i class="fa-regular fa-clock"></i> Active</span>
+                            {% else %}
+                                <span style="font-size:12px; color:var(--text-muted);">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status -->
+                        <td>
+                            {% if record.check_out_time %}
+                                <span class="badge badge-muted">Left</span>
+                            {% else %}
+                                <span class="badge badge-emerald">
+                                    <i class="fa-solid fa-circle" style="font-size:6px;"></i> In Gym
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- EXP -->
+                        <td>
+                            <span style="font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; color:var(--accent);">
+                                +{{ record.exp_earned if record.exp_earned else 0 }}
+                            </span>
+                        </td>
+
+                        <!-- Action -->
+                        <td style="text-align:right; padding-right:14px;">
+                            {% if not record.check_out_time %}
+                            <form method="POST" action="{{ url_for('admin_checkout') }}" style="display:inline;">
+                                <input type="hidden" name="client_id" value="{{ record.client_id }}">
+                                <button type="submit" class="btn btn-ghost btn-sm">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Check Out
+                                </button>
+                            </form>
+                            {% else %}
+                                <span style="font-size:11px; color:var(--text-muted);">Completed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% if not attendance_list %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-person-walking-arrow-right"></i>
+                                <p>No check-ins yet today. Head to the Check-In tab to get started.</p>
+                            </div>
+                        </td>
+                    </tr>
                     {% endif %}
-                </td>
-                <td>
-                    {% if record.check_out_time %}
-                        <span style="color: #6b7280; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">Completed</span>
-                    {% else %}
-                        <span style="color: #10b981; background: #d1fae5; padding: 4px 8px; border-radius: 4px; font-weight: 600;">💪 In Gym</span>
-                    {% endif %}
-                </td>
-                <td><form id="checkou-form" method="POST" action="{{ url_for('admin_checkout') }}"> 
-                    <input id="client-id" name="client_id" type="text" value="{{ record.client_id}}" style="display: none;"> 
-                    {% if record.check_out_time %}
-                    <button class="btn btn-disabled" disabled="true">Checked Out</button>
-                    {% else %}
-                    <button class="btn btn-primary">Check Out</button>
-                    {% endif %}
-                </form></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color: #6b7280; padding: 40px; text-align: center; font-size: 16px;">
-        No attendance records for today yet. Start checking in clients! 👋
-    </p>
-    {% endif %}
-</div>
+                </tbody>
+            </table>
+        </div>
+
+    </div><!-- /card -->
+</div><!-- /tab-info -->
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
-document.getElementById('client-phone').addEventListener('input', async function() {
-    const phoneNumber = this.value.trim();
-    const button = document.getElementById('checkin-button');
-    button.disabled = true;
-    
-    // Only allow 10-digit phone numbers
-    if (phoneNumber.length === 10) {
-        try {
-            const response = await fetch('/get_client_by_phone', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ phone_number: phoneNumber })
-            });
+/* ══════════════════════════════════════
+   PAGE TAB SWITCHING
+══════════════════════════════════════ */
+document.querySelectorAll('.page-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.page-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.page-tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.pageTab)?.classList.add('active');
+    });
+});
 
-            const result = await response.json();
-            
-            if (result.success) {
-                // Show client information and enable the button
-                document.getElementById('client-name').textContent = result.client_name;
-                document.getElementById('client-status').textContent = result.client_status;
-                document.getElementById('client-id').value = result.client_id;
-                document.getElementById('client-info').style.display = 'block';
-                console.log(result.client_status);
-                if (result.client_status == "active") {
-                    button.classList.remove('btn-disabled');
-                    button.classList.add('btn-success');
-                    button.disabled = false;
-                } else {
-                    
-                    button.disabled = true;
-                }
-                
-            } else {
-                // If client is not found, hide client info and disable button
-                document.getElementById('client-info').style.display = 'none';
-                document.getElementById('client-id').value = '';
-                button.disabled = true;
-            }
-        } catch (error) {
-            console.error('Error fetching client data:', error);
+/* ══════════════════════════════════════
+   PIN PAD + PHONE LOOKUP
+══════════════════════════════════════ */
+const phoneInput    = document.getElementById('phone-input');
+const phoneDisplay  = document.getElementById('phone-display');
+const checkinBtn    = document.getElementById('checkin-btn');
+const clientIdInput = document.getElementById('checkin-client-id');
+const preview       = document.getElementById('client-preview');
+const previewAvatar = document.getElementById('preview-avatar');
+const previewName   = document.getElementById('preview-name');
+const previewMeta   = document.getElementById('preview-meta');
+const previewStatus = document.getElementById('preview-status-badge');
+const memBanner     = document.getElementById('mem-banner');
+const memBannerText = document.getElementById('mem-banner-text');
+
+/* Numpad */
+document.querySelectorAll('.numpad-key').forEach(key => {
+    key.addEventListener('click', () => {
+        const val = key.dataset.val;
+        if (val === '⌫') {
+            phoneInput.value = phoneInput.value.slice(0, -1);
+        } else if (val && phoneInput.value.length < 10) {
+            phoneInput.value += val;
         }
+        syncDisplay();
+        handlePhoneChange();
+    });
+});
+
+document.getElementById('clear-btn').addEventListener('click', resetPanel);
+phoneInput.addEventListener('input', () => { syncDisplay(); handlePhoneChange(); });
+
+function syncDisplay() {
+    phoneDisplay.classList.toggle('has-value', phoneInput.value.length > 0);
+}
+
+function handlePhoneChange() {
+    const phone = phoneInput.value.trim();
+    if (phone.length === 10) {
+        lookupClient(phone);
     } else {
-        document.getElementById('client-info').style.display = 'none';
-        document.getElementById('client-id').value = '';
-        button.disabled = true;
+        hidePreview();
     }
+}
+
+async function lookupClient(phone) {
+    try {
+        const res  = await fetch('/get_client_by_phone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone_number: phone })
+        });
+        const data = await res.json();
+        data.success ? showPreview(data) : showNotFound();
+    } catch (e) {
+        console.error(e);
+        hidePreview();
+    }
+}
+
+function showPreview(data) {
+    previewAvatar.textContent = (data.client_name || '?')[0].toUpperCase();
+    previewName.textContent   = data.client_name;
+    previewMeta.textContent   = `ID #${data.client_id || '—'}`;
+
+    /* Membership banner */
+    memBanner.className     = 'mem-warning-banner';
+    memBannerText.textContent = '';
+    const mem      = data.membership_status;
+    const daysLeft = data.membership_days_left;
+
+    if (mem === 'expiring') {
+        memBanner.classList.add('show', 'amber-warn');
+        memBannerText.textContent = `Membership expires in ${daysLeft} day(s) — remind client to renew.`;
+    } else if (mem === 'expired') {
+        memBanner.classList.add('show', 'red-warn');
+        memBannerText.textContent = 'Membership expired — check-in allowed but renewal is needed.';
+    }
+
+    /* Client status */
+    if (data.client_status === 'active') {
+        previewStatus.innerHTML  = '<span class="badge badge-emerald">Active</span>';
+        preview.className        = 'client-preview show found';
+        clientIdInput.value      = data.client_id;
+        checkinBtn.disabled      = false;
+        checkinBtn.className     = 'btn btn-success';
+        checkinBtn.style.cssText = 'width:100%; justify-content:center; height:46px; font-size:15px;';
+    } else {
+        previewStatus.innerHTML  = '<span class="badge badge-red">Inactive</span>';
+        preview.className        = 'client-preview show danger';
+        clientIdInput.value      = '';
+        checkinBtn.disabled      = true;
+        checkinBtn.className     = 'btn btn-disabled';
+        checkinBtn.style.cssText = 'width:100%; justify-content:center; height:46px; font-size:15px;';
+    }
+}
+
+function showNotFound() {
+    previewAvatar.textContent   = '?';
+    previewName.textContent     = 'Client not found';
+    previewMeta.textContent     = 'No account with this phone number';
+    previewStatus.innerHTML     = '<span class="badge badge-muted">Not Found</span>';
+    preview.className           = 'client-preview show unknown';
+    clientIdInput.value         = '';
+    checkinBtn.disabled         = true;
+    checkinBtn.className        = 'btn btn-disabled';
+    checkinBtn.style.cssText    = 'width:100%; justify-content:center; height:46px; font-size:15px;';
+    memBanner.className         = 'mem-warning-banner';
+}
+
+function hidePreview() {
+    preview.className       = 'client-preview';
+    checkinBtn.disabled     = true;
+    checkinBtn.className    = 'btn btn-disabled';
+    checkinBtn.style.cssText = 'width:100%; justify-content:center; height:46px; font-size:15px;';
+    clientIdInput.value     = '';
+    memBanner.className     = 'mem-warning-banner';
+}
+
+function resetPanel() {
+    phoneInput.value = '';
+    syncDisplay();
+    hidePreview();
+}
+
+/* ══════════════════════════════════════
+   ATTENDANCE TABLE FILTER PILLS
+══════════════════════════════════════ */
+const attRows = document.querySelectorAll('.att-row');
+
+document.querySelectorAll('[data-att-filter]').forEach(pill => {
+    pill.addEventListener('click', () => {
+        document.querySelectorAll('[data-att-filter]').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        const f = pill.dataset.attFilter;
+        attRows.forEach(row => {
+            row.style.display = (f === 'all' || row.dataset.status === f) ? '' : 'none';
+        });
+    });
 });
 </script>
-
 {% endblock %}
