@@ -7,403 +7,275 @@
 {% block extra_css %}
 <style>
     /* ══════════════════════════════════════
-       BUILDER LAYOUT — two columns
+       PAGE TABS
     ══════════════════════════════════════ */
-    .builder-layout {
-        display: grid;
-        grid-template-columns: 360px 1fr;
-        gap: 20px;
-        align-items: start;
+    .page-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border);
     }
 
-    /* ── Left: Exercise Library ── */
+    .page-tab-btn {
+        padding: 11px 22px;
+        border: none; background: none;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px; font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: all 0.2s;
+        display: flex; align-items: center; gap: 8px;
+        white-space: nowrap;
+    }
+
+    .page-tab-btn:hover { color: var(--text-primary); }
+
+    .page-tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+        font-weight: 600;
+    }
+
+    .tab-count {
+        background: var(--bg-hover);
+        color: var(--text-muted);
+        font-size: 11px; font-weight: 700;
+        padding: 1px 7px; border-radius: 20px;
+        min-width: 22px; text-align: center;
+    }
+
+    .page-tab-btn.active .tab-count {
+        background: var(--accent-glow);
+        color: var(--accent);
+    }
+
+    .page-tab-panel { display: none; }
+    .page-tab-panel.active { display: block; }
+
+    /* ══════════════════════════════════════
+       EXERCISE LIBRARY
+    ══════════════════════════════════════ */
     .library-panel {
         background: var(--bg-surface);
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
         overflow: hidden;
-        position: sticky;
-        top: 24px;
-        max-height: calc(100vh - 120px);
-        display: flex;
-        flex-direction: column;
     }
 
     .library-header {
         padding: 18px 20px 14px;
         border-bottom: 1px solid var(--border);
         background: var(--bg-elevated);
-        flex-shrink: 0;
     }
 
     .library-header h3 {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 16px;
-        font-weight: 700;
+        font-size: 16px; font-weight: 700;
         color: var(--text-primary);
         margin-bottom: 10px;
     }
 
-    .lib-search-wrap {
-        position: relative;
-        margin-bottom: 10px;
-    }
+    .lib-search-wrap { position: relative; margin-bottom: 10px; }
 
     .lib-search-wrap i {
-        position: absolute;
-        left: 10px; top: 50%;
+        position: absolute; left: 10px; top: 50%;
         transform: translateY(-50%);
-        color: var(--text-muted);
-        font-size: 12px;
-        pointer-events: none;
+        color: var(--text-muted); font-size: 12px; pointer-events: none;
     }
 
-    #lib-search {
-        padding-left: 30px;
-        height: 34px;
-        font-size: 13px;
-    }
+    #lib-search { padding-left: 30px; height: 36px; font-size: 13px; }
 
-    .lib-filters {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
+    .lib-filters { display: flex; gap: 6px; flex-wrap: wrap; }
 
     .lib-filter {
-        padding: 3px 10px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-        background: var(--bg-hover);
-        color: var(--text-muted);
-        font-size: 11px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s;
-        white-space: nowrap;
+        padding: 4px 12px; border-radius: 20px;
+        border: 1px solid var(--border); background: var(--bg-hover);
+        color: var(--text-muted); font-size: 11px; font-weight: 500;
+        cursor: pointer; transition: all 0.15s; white-space: nowrap;
     }
 
     .lib-filter:hover, .lib-filter.active {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--accent-glow);
+        border-color: var(--accent); color: var(--accent); background: var(--accent-glow);
     }
 
-    /* Exercise list inside library */
-    .library-list {
-        overflow-y: auto;
-        flex: 1;
-        padding: 10px;
-        scrollbar-width: thin;
-        scrollbar-color: var(--border) transparent;
+    .library-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 8px;
+        padding: 14px;
     }
 
     .lib-ex-card {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        padding: 10px 12px;
-        margin-bottom: 6px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        background: var(--bg-elevated); border: 1px solid var(--border);
+        border-radius: var(--radius-md); padding: 10px 12px;
+        display: flex; align-items: center; gap: 10px;
         transition: border-color 0.15s;
-        cursor: default;
     }
 
     .lib-ex-card:hover { border-color: var(--border-accent); }
-    .lib-ex-card.already-added { opacity: 0.45; pointer-events: none; }
+    .lib-ex-card.already-added { opacity: 0.4; pointer-events: none; }
 
     .lib-ex-info { flex: 1; min-width: 0; }
 
     .lib-ex-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-primary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 13px; font-weight: 600; color: var(--text-primary);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
     .lib-ex-meta {
-        font-size: 10.5px;
-        color: var(--text-muted);
-        margin-top: 1px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 11px; color: var(--text-muted); margin-top: 1px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
     .lib-add-btn {
-        flex-shrink: 0;
-        width: 28px; height: 28px;
-        border-radius: 50%;
-        border: 1px solid var(--border);
-        background: var(--bg-hover);
-        color: var(--text-muted);
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all 0.15s;
+        flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+        border: 1px solid var(--border); background: var(--bg-hover);
+        color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 14px; transition: all 0.15s;
     }
 
-    .lib-add-btn:hover {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: white;
-    }
+    .lib-add-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
 
-    /* Difficulty dot */
-    .diff-dot {
-        width: 7px; height: 7px;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-
+    .diff-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .diff-beginner     { background: var(--emerald); }
     .diff-intermediate { background: var(--amber); }
     .diff-advanced     { background: var(--red); }
 
-    /* ── Right: Routine ── */
+    #lib-no-results {
+        text-align: center; padding: 40px 20px;
+        color: var(--text-muted); font-size: 13px;
+        display: none; grid-column: 1 / -1;
+    }
+
+    /* ══════════════════════════════════════
+       ROUTINE BUILDER
+    ══════════════════════════════════════ */
     .builder-right { display: flex; flex-direction: column; gap: 16px; }
 
-    /* Routine meta card */
     .routine-meta-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 20px 24px;
-        position: relative;
-        overflow: hidden;
+        background: var(--bg-surface); border: 1px solid var(--border);
+        border-radius: var(--radius-lg); padding: 20px 24px;
+        position: relative; overflow: hidden;
     }
 
     .routine-meta-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
         background: linear-gradient(90deg, var(--accent), var(--accent-2));
     }
 
     .routine-title-row {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
+        display: flex; align-items: flex-start;
+        justify-content: space-between; gap: 16px; flex-wrap: wrap;
     }
 
     .routine-title {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 4px;
+        font-family: 'Rajdhani', sans-serif; font-size: 24px; font-weight: 700;
+        color: var(--text-primary); margin-bottom: 4px;
     }
 
-    .routine-desc {
-        font-size: 13px;
-        color: var(--text-muted);
-    }
+    .routine-desc { font-size: 13px; color: var(--text-muted); }
 
-    /* EXP counter */
-    .exp-counter {
-        text-align: center;
-        flex-shrink: 0;
-    }
+    .exp-counter { text-align: center; flex-shrink: 0; }
 
     .exp-counter-val {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 36px;
-        font-weight: 700;
-        color: var(--accent);
-        line-height: 1;
+        font-family: 'Rajdhani', sans-serif; font-size: 36px; font-weight: 700;
+        color: var(--accent); line-height: 1;
     }
 
     .exp-counter-lbl {
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--text-muted);
-        margin-top: 2px;
+        font-size: 10px; text-transform: uppercase;
+        letter-spacing: 1px; color: var(--text-muted); margin-top: 2px;
     }
 
-    /* ── Exercise rows in builder ── */
     .builder-ex-list { display: flex; flex-direction: column; gap: 10px; }
 
     .builder-ex-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        transition: border-color 0.2s;
+        background: var(--bg-surface); border: 1px solid var(--border);
+        border-radius: var(--radius-lg); overflow: hidden; transition: border-color 0.2s;
     }
 
     .builder-ex-card:hover { border-color: var(--border-accent); }
 
     .builder-ex-top {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 12px;
+        padding: 14px 16px; border-bottom: 1px solid var(--border);
     }
 
     .order-badge {
-        width: 28px; height: 28px;
-        border-radius: 50%;
-        background: var(--accent-glow);
-        border: 1px solid var(--border-accent);
+        width: 28px; height: 28px; border-radius: 50%;
+        background: var(--accent-glow); border: 1px solid var(--border-accent);
         display: flex; align-items: center; justify-content: center;
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 700; font-size: 13px;
-        color: var(--accent);
-        flex-shrink: 0;
+        font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 13px;
+        color: var(--accent); flex-shrink: 0;
     }
 
-    .builder-ex-name {
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--text-primary);
-        flex: 1;
-        min-width: 0;
-    }
+    .builder-ex-name { font-size: 15px; font-weight: 600; color: var(--text-primary); flex: 1; min-width: 0; }
+    .builder-ex-sub  { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
 
-    .builder-ex-sub {
-        font-size: 11.5px;
-        color: var(--text-muted);
-        margin-top: 1px;
-    }
-
-    /* Move up/down arrows */
-    .move-btns {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        flex-shrink: 0;
-    }
+    .move-btns { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 
     .move-btn {
-        width: 22px; height: 22px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--border);
-        background: var(--bg-elevated);
-        color: var(--text-muted);
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer;
-        font-size: 10px;
-        transition: all 0.15s;
+        width: 22px; height: 22px; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); background: var(--bg-elevated);
+        color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 10px; transition: all 0.15s;
     }
 
     .move-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
     .move-btn:disabled { opacity: 0.25; pointer-events: none; }
 
-    /* Builder exercise controls */
     .builder-ex-controls {
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+        padding: 12px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }
 
-    .ctrl-group {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-    }
+    .ctrl-group { display: flex; flex-direction: column; gap: 3px; }
 
     .ctrl-label {
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--text-muted);
-        font-weight: 600;
+        font-size: 10px; text-transform: uppercase;
+        letter-spacing: 0.8px; color: var(--text-muted); font-weight: 600;
     }
 
     .ctrl-input {
-        width: 70px;
-        height: 32px;
-        font-size: 14px;
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 600;
-        text-align: center;
-        padding: 0 6px;
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        color: var(--text-primary);
-        transition: border-color 0.2s;
+        width: 70px; height: 32px;
+        font-size: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+        text-align: center; padding: 0 6px;
+        background: var(--bg-elevated); border: 1px solid var(--border);
+        border-radius: var(--radius-sm); color: var(--text-primary); transition: border-color 0.2s;
     }
 
     .ctrl-input:focus { outline: none; border-color: var(--accent); }
 
     .ctrl-select {
-        height: 32px;
-        font-size: 12px;
-        font-family: 'DM Sans', sans-serif;
-        padding: 0 8px;
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: border-color 0.2s;
+        height: 32px; font-size: 12px; font-family: 'DM Sans', sans-serif;
+        padding: 0 8px; background: var(--bg-elevated);
+        border: 1px solid var(--border); border-radius: var(--radius-sm);
+        color: var(--text-primary); cursor: pointer; transition: border-color 0.2s;
     }
 
     .ctrl-select:focus { outline: none; border-color: var(--accent); }
 
     .ctrl-exp {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--accent);
-        white-space: nowrap;
+        font-family: 'Rajdhani', sans-serif; font-size: 13px;
+        font-weight: 700; color: var(--accent); white-space: nowrap;
     }
 
-    .ctrl-save-btn {
-        margin-left: auto;
-    }
+    .ctrl-save-btn { margin-left: auto; }
 
-    /* Empty builder state */
     .builder-empty {
-        background: var(--bg-surface);
-        border: 2px dashed var(--border);
-        border-radius: var(--radius-lg);
-        padding: 60px 20px;
-        text-align: center;
+        background: var(--bg-surface); border: 2px dashed var(--border);
+        border-radius: var(--radius-lg); padding: 60px 20px; text-align: center;
     }
 
-    .builder-empty i {
-        font-size: 40px;
-        color: var(--text-muted);
-        margin-bottom: 12px;
-    }
-
-    .builder-empty p {
-        color: var(--text-muted);
-        font-size: 14px;
-    }
-
-    /* No results */
-    #lib-no-results {
-        text-align: center;
-        padding: 24px 12px;
-        color: var(--text-muted);
-        font-size: 13px;
-        display: none;
-    }
-
-    @media (max-width: 900px) {
-        .builder-layout { grid-template-columns: 1fr; }
-        .library-panel  { position: static; max-height: 420px; }
-    }
+    .builder-empty i { font-size: 40px; color: var(--text-muted); margin-bottom: 12px; }
+    .builder-empty p { color: var(--text-muted); font-size: 14px; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Back + breadcrumb -->
+<!-- Back breadcrumb -->
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
     <a href="{{ url_for('admin_routines') }}" class="btn btn-ghost btn-sm">
         <i class="fa-solid fa-arrow-left"></i> All Routines
@@ -411,23 +283,34 @@
     <span style="color:var(--text-muted); font-size:13px;">/ {{ routine.routine_name }}</span>
 </div>
 
-<div class="builder-layout">
+<!-- Page-level tabs -->
+<nav class="page-tabs">
+    <button class="page-tab-btn" data-page-tab="library">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        Exercise Library
+        <span class="tab-count">{{ all_exercises | length }}</span>
+    </button>
+    <button class="page-tab-btn active" data-page-tab="builder">
+        <i class="fa-solid fa-pencil-ruler"></i>
+        Routine Builder
+        <span class="tab-count">{{ exercises | length }}</span>
+    </button>
+</nav>
 
-    <!-- ════════════════════════════
-         LEFT — EXERCISE LIBRARY
-    ════════════════════════════ -->
+<!-- ══════════════════════════════
+     TAB 1 — EXERCISE LIBRARY
+══════════════════════════════ -->
+<div class="page-tab-panel" id="tab-library">
     <div class="library-panel">
         <div class="library-header">
-            <h3><i class="fa-solid fa-magnifying-glass" style="color:var(--accent);margin-right:6px;"></i>Exercise Library</h3>
+            <h3><i class="fa-solid fa-dumbbell" style="color:var(--accent); margin-right:6px;"></i>Exercise Library</h3>
 
-            <!-- Search -->
             <div class="lib-search-wrap">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="lib-search" placeholder="Search exercises…">
+                <input type="text" id="lib-search" placeholder="Search by name or muscle…">
             </div>
 
-            <!-- Type filters -->
-            <div class="lib-filters" id="type-filters">
+            <div class="lib-filters">
                 <button class="lib-filter active" data-type="all">All</button>
                 <button class="lib-filter" data-type="strength">Strength</button>
                 <button class="lib-filter" data-type="cardio">Cardio</button>
@@ -437,15 +320,12 @@
             </div>
         </div>
 
-        <!-- Library list -->
-        <div class="library-list" id="library-list">
+        <div class="library-grid" id="library-grid">
             {% for ex in all_exercises %}
             <div class="lib-ex-card {% if ex.exercise_id in added_ids %}already-added{% endif %}"
-                 data-ex-id="{{ ex.exercise_id }}"
                  data-name="{{ ex.name | lower }}"
                  data-type="{{ ex.exercise_type | lower }}"
-                 data-muscle="{{ ex.target_muscle | lower }}"
-                 data-exp="{{ ex.base_exp }}">
+                 data-muscle="{{ ex.target_muscle | lower }}">
 
                 <div class="diff-dot diff-{{ ex.difficulty_level | default('beginner') }}"></div>
 
@@ -456,8 +336,7 @@
 
                 {% if ex.exercise_id not in added_ids %}
                 <form method="POST"
-                      action="{{ url_for('admin_add_exercise_to_routine', routine_id=routine.routine_id) }}"
-                      class="lib-add-form">
+                      action="{{ url_for('admin_add_exercise_to_routine', routine_id=routine.routine_id) }}">
                     <input type="hidden" name="exercise_id" value="{{ ex.exercise_id }}">
                     <input type="hidden" name="sets"        value="3">
                     <input type="hidden" name="reps"        value="10">
@@ -468,7 +347,7 @@
                     </button>
                 </form>
                 {% else %}
-                <div class="lib-add-btn" style="cursor:default; opacity:0.4;" title="Already in routine">
+                <div class="lib-add-btn" style="cursor:default; opacity:0.4;" title="Already added">
                     <i class="fa-solid fa-check"></i>
                 </div>
                 {% endif %}
@@ -481,10 +360,12 @@
             </div>
         </div>
     </div>
+</div>
 
-    <!-- ════════════════════════════
-         RIGHT — ROUTINE BUILDER
-    ════════════════════════════ -->
+<!-- ══════════════════════════════
+     TAB 2 — ROUTINE BUILDER
+══════════════════════════════ -->
+<div class="page-tab-panel active" id="tab-builder">
     <div class="builder-right">
 
         <!-- Routine meta -->
@@ -503,7 +384,6 @@
                         </span>
                     </div>
                 </div>
-                <!-- Live EXP counter -->
                 <div class="exp-counter">
                     <div class="exp-counter-val" id="exp-total">{{ total_exp }}</div>
                     <div class="exp-counter-lbl">Base EXP</div>
@@ -511,16 +391,15 @@
             </div>
         </div>
 
-        <!-- Exercise list -->
+        <!-- Exercise cards -->
         {% if exercises %}
-        <div class="builder-ex-list" id="builder-list">
+        <div class="builder-ex-list">
             {% for ex in exercises %}
             <div class="builder-ex-card"
                  data-re-id="{{ ex.routine_exercise_id }}"
                  data-exp="{{ ex.base_exp }}"
                  data-sets="{{ ex.sets }}">
 
-                <!-- Top row: order + name + move buttons -->
                 <div class="builder-ex-top">
                     <div class="order-badge">{{ loop.index }}</div>
                     <div style="flex:1; min-width:0;">
@@ -528,7 +407,6 @@
                         <div class="builder-ex-sub">{{ ex.target_muscle }} · {{ ex.exercise_type }}</div>
                     </div>
 
-                    <!-- Move up / Move down -->
                     <div class="move-btns">
                         <form method="POST" action="{{ url_for('admin_move_exercise', routine_id=routine.routine_id, routine_exercise_id=ex.routine_exercise_id, direction='up') }}">
                             <button type="submit" class="move-btn" {% if loop.first %}disabled{% endif %} title="Move up">
@@ -542,20 +420,17 @@
                         </form>
                     </div>
 
-                    <!-- Remove -->
                     <form method="POST"
                           action="{{ url_for('delete_routine_exercise', routine_exercise_id=ex.routine_exercise_id) }}"
                           onsubmit="return confirm('Remove {{ ex.name }} from this routine?')">
-                        <button type="submit" class="btn btn-danger btn-sm" title="Remove exercise">
+                        <button type="submit" class="btn btn-danger btn-sm" title="Remove">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </form>
                 </div>
 
-                <!-- Controls row: sets / reps / rest / measurement / save -->
                 <form method="POST" action="{{ url_for('update_routine_exercise') }}"
-                      class="builder-ex-controls ex-update-form"
-                      data-re-id="{{ ex.routine_exercise_id }}">
+                      class="builder-ex-controls">
                     <input type="hidden" name="routine_exercise_id" value="{{ ex.routine_exercise_id }}">
 
                     <div class="ctrl-group">
@@ -584,7 +459,7 @@
                         </select>
                     </div>
 
-                    <div class="ctrl-group" style="justify-content:flex-end;">
+                    <div class="ctrl-group">
                         <div class="ctrl-label">&nbsp;</div>
                         <span class="ctrl-exp" id="exp-row-{{ ex.routine_exercise_id }}">
                             {{ ex.base_exp * ex.sets }} EXP
@@ -603,39 +478,70 @@
         {% else %}
         <div class="builder-empty">
             <i class="fa-solid fa-dumbbell"></i>
-            <p>No exercises yet — add some from the library on the left.</p>
+            <p>No exercises yet — go to the <strong>Exercise Library</strong> tab to add some.</p>
+            <button class="btn btn-primary" style="margin-top:16px; display:inline-flex;"
+                    onclick="document.querySelector('[data-page-tab=library]').click()">
+                <i class="fa-solid fa-magnifying-glass"></i> Browse Library
+            </button>
         </div>
         {% endif %}
 
-    </div><!-- /builder-right -->
-</div><!-- /builder-layout -->
+    </div>
+</div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-/* ══════════════════════════════════════════
-   LIBRARY — Search + Type Filter
-══════════════════════════════════════════ */
-const libSearch  = document.getElementById('lib-search');
-const libCards   = document.querySelectorAll('.lib-ex-card');
-const noResults  = document.getElementById('lib-no-results');
-let activeType   = 'all';
+/* ════════════════════════════
+   TAB SWITCHING  +  HASH PERSISTENCE
+   - Saves active tab to URL hash on every click
+   - Restores it on page load (survives form submits / reloads)
+   - Falls back to 'builder' if no hash is present
+════════════════════════════ */
+function activateTab(name) {
+    document.querySelectorAll('.page-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page-tab-panel').forEach(p => p.classList.remove('active'));
+
+    const btn   = document.querySelector(`[data-page-tab="${name}"]`);
+    const panel = document.getElementById('tab-' + name);
+
+    if (btn)   btn.classList.add('active');
+    if (panel) panel.classList.add('active');
+}
+
+document.querySelectorAll('.page-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const name = btn.dataset.pageTab;
+        history.replaceState(null, '', '#' + name);   // update hash without scroll-jump
+        activateTab(name);
+    });
+});
+
+// On load: honour hash, default to 'builder'
+const initialTab = ['library', 'builder'].includes(location.hash.slice(1))
+    ? location.hash.slice(1)
+    : 'builder';
+
+activateTab(initialTab);
+
+/* ════════════════════════════
+   LIBRARY SEARCH + FILTER
+════════════════════════════ */
+const libSearch = document.getElementById('lib-search');
+const libCards  = document.querySelectorAll('.lib-ex-card');
+const noResults = document.getElementById('lib-no-results');
+let activeType  = 'all';
 
 function filterLibrary() {
     const q = libSearch.value.toLowerCase().trim();
     let visible = 0;
-
     libCards.forEach(card => {
-        const nameMatch   = card.dataset.name.includes(q);
-        const muscleMatch = card.dataset.muscle.includes(q);
-        const typeMatch   = activeType === 'all' || card.dataset.type === activeType;
-        const show = (nameMatch || muscleMatch) && typeMatch;
-
-        card.style.display = show ? '' : 'none';
-        if (show) visible++;
+        const match = (card.dataset.name.includes(q) || card.dataset.muscle.includes(q))
+                   && (activeType === 'all' || card.dataset.type === activeType);
+        card.style.display = match ? '' : 'none';
+        if (match) visible++;
     });
-
     noResults.style.display = visible === 0 ? 'block' : 'none';
 }
 
@@ -650,33 +556,25 @@ document.querySelectorAll('.lib-filter').forEach(btn => {
     });
 });
 
-/* ══════════════════════════════════════════
-   LIVE EXP COUNTER — updates when sets change
-══════════════════════════════════════════ */
+/* ════════════════════════════
+   LIVE EXP COUNTER
+════════════════════════════ */
 const expTotalEl = document.getElementById('exp-total');
 
 function recalcTotalExp() {
     let total = 0;
     document.querySelectorAll('.builder-ex-card').forEach(card => {
-        const baseExp = parseInt(card.dataset.exp) || 0;
+        const baseExp   = parseInt(card.dataset.exp) || 0;
         const setsInput = card.querySelector('.sets-input');
-        const sets = setsInput ? parseInt(setsInput.value) || 0 : parseInt(card.dataset.sets) || 0;
+        const sets      = setsInput ? (parseInt(setsInput.value) || 0) : (parseInt(card.dataset.sets) || 0);
         total += baseExp * sets;
-
-        // Update per-row EXP label
-        const reId = card.dataset.reId;
-        const rowExp = document.getElementById('exp-row-' + reId);
-        if (rowExp) rowExp.textContent = (baseExp * sets) + ' EXP';
+        const rowEl = document.getElementById('exp-row-' + card.dataset.reId);
+        if (rowEl) rowEl.textContent = (baseExp * sets) + ' EXP';
     });
-
     if (expTotalEl) expTotalEl.textContent = total;
 }
 
-document.querySelectorAll('.sets-input').forEach(input => {
-    input.addEventListener('input', recalcTotalExp);
-});
-
-// Run once on load
+document.querySelectorAll('.sets-input').forEach(i => i.addEventListener('input', recalcTotalExp));
 recalcTotalExp();
 </script>
 {% endblock %}

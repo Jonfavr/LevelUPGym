@@ -962,6 +962,14 @@ def admin_delete_exercise(exercise_id):
         flash('Exercise deleted successfully', 'success')
     return redirect(url_for('admin_exercises'))
 
+@app.route('/admin/routine_exercise/delete/<int:routine_exercise_id>', methods=['POST'])
+@admin_required
+def delete_routine_exercise(routine_exercise_id):
+    result = Routine().delete_routine_exercise(routine_exercise_id)
+    flash(result.get('message', 'Exercise removed.'), 'info')
+    return redirect(request.referrer or url_for('admin_routines'))
+
+
 @app.route('/admin/routines')
 @admin_required
 def admin_routines():
