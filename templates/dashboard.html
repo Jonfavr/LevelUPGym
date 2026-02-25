@@ -104,6 +104,7 @@
         background: linear-gradient(135deg, rgba(255,176,32,0.15), rgba(255,176,32,0.05));
         border: 1px solid rgba(255,176,32,0.3);
         border-radius: var(--radius-sm);
+        color: var(--text);
         padding: 12px 16px;
         margin-bottom: 10px;
         display: flex;
@@ -241,6 +242,64 @@
 {% endblock %}
 
 {% block content %}
+
+{% if announcements %}
+<div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+
+{% for ann in announcements %}
+<div style="
+    display:flex; align-items:flex-start; gap:12px;
+    padding:14px 16px;
+    border-radius:12px;
+    border-left:4px solid
+    {% if ann.ann_type == 'urgent' %}#ef4444
+    {% elif ann.ann_type == 'warning' %}#f59e0b
+    {% elif ann.ann_type == 'success' %}#10b981
+    {% elif ann.ann_type == 'event' %}#a855f7
+    {% else %}#667eea{% endif %};
+    background:
+    {% if ann.ann_type == 'urgent' %}rgba(239,68,68,.08)
+    {% elif ann.ann_type == 'warning' %}rgba(245,158,11,.08)
+    {% elif ann.ann_type == 'success' %}rgba(16,185,129,.08)
+    {% elif ann.ann_type == 'event' %}rgba(168,85,247,.08)
+    {% else %}rgba(102,126,234,.08){% endif %};
+    border:1px solid
+    {% if ann.ann_type == 'urgent' %}rgba(239,68,68,.25)
+    {% elif ann.ann_type == 'warning' %}rgba(245,158,11,.25)
+    {% elif ann.ann_type == 'success' %}rgba(16,185,129,.25)
+    {% elif ann.ann_type == 'event' %}rgba(168,85,247,.25)
+    {% else %}rgba(102,126,234,.25){% endif %};
+    ">
+
+    <!-- Icon -->
+    <div style="font-size:20px; flex-shrink:0; margin-top:2px;">
+      {% if ann.ann_type == 'urgent' %}🚨
+      {% elif ann.ann_type == 'warning' %}⚠️
+      {% elif ann.ann_type == 'success' %}✅
+      {% elif ann.ann_type == 'event' %}🎉
+      {% else %}📢{% endif %}
+    </div>
+
+    <!-- Content -->
+    <div style="flex:1; min-width:0;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+        <strong style="font-size:14px; color:#fff;">{{ ann.title }}</strong>
+        {% if ann.is_pinned %}
+        <span style="
+          font-size:10px; font-weight:700; text-transform:uppercase;
+          padding:2px 6px; border-radius:8px;
+          background:rgba(245,158,11,.15); color:#d97706;
+        ">📌 Pinned</span>
+        {% endif %}
+      </div>
+      <p style="font-size:13px; color: #fff; margin:0; line-height:1.5;">{{ ann.body }}</p>
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>
+{% endif %}
 
 {% if notification %}
 <div class="membership-warning">{{ notification }}</div>

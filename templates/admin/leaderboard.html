@@ -1,62 +1,309 @@
+<!-- templates/admin/leaderboard.html -->
 {% extends "admin/base.html" %}
-{% block title %}Leaderboard - LevelUp Gym{% endblock %}
+
+{% block title %}Leaderboard — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Leaderboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Category Tabs ── */
+    .lb-tabs {
+        display: flex; gap: 4px;
+        margin-bottom: 28px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .lb-tab-btn {
+        padding: 11px 24px;
+        border: none; background: none;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px; font-weight: 500;
+        color: var(--text-muted); cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px; transition: all 0.2s;
+        display: flex; align-items: center; gap: 8px;
+    }
+
+    .lb-tab-btn:hover { color: var(--text-primary); }
+    .lb-tab-btn.active { font-weight: 700; border-bottom-color: currentColor; }
+    .lb-tab-btn.exp     { color: var(--amber); }
+    .lb-tab-btn.reps    { color: var(--emerald); }
+    .lb-tab-btn.streaks { color: var(--accent); }
+
+    .lb-panel { display: none; }
+    .lb-panel.active { display: block; }
+
+    /* ── Podium ── */
+    .podium-section {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 32px;
+        padding: 32px 20px 0;
+    }
+
+    .podium-slot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        position: relative;
+    }
+
+    /* Avatar above podium */
+    .podium-avatar {
+        width: 60px; height: 60px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 22px;
+        color: white; margin-bottom: 8px;
+        border: 3px solid transparent;
+        transition: transform 0.3s;
+        position: relative;
+    }
+
+    .podium-slot:hover .podium-avatar { transform: translateY(-4px); }
+
+    .podium-slot.rank-1 .podium-avatar {
+        width: 72px; height: 72px; font-size: 26px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border-color: rgba(245,158,11,.5);
+        box-shadow: 0 0 24px rgba(245,158,11,.4);
+    }
+
+    .podium-slot.rank-2 .podium-avatar {
+        background: linear-gradient(135deg, #94a3b8, #64748b);
+        border-color: rgba(148,163,184,.4);
+    }
+
+    .podium-slot.rank-3 .podium-avatar {
+        background: linear-gradient(135deg, #cd7c4a, #b45309);
+        border-color: rgba(180,83,9,.4);
+    }
+
+    /* Crown on #1 */
+    .podium-slot.rank-1 .podium-avatar::before {
+        content: '👑';
+        position: absolute; top: -22px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 18px;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,.4));
+    }
+
+    .podium-name {
+        font-family: 'Rajdhani', sans-serif; font-weight: 700;
+        font-size: 14px; color: var(--text-primary);
+        text-align: center; margin-bottom: 2px;
+        max-width: 100px; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .podium-value {
+        font-family: 'Rajdhani', sans-serif; font-weight: 700;
+        font-size: 13px; margin-bottom: 8px; text-align: center;
+    }
+
+    /* Podium block */
+    .podium-block {
+        border-radius: 10px 10px 0 0;
+        width: 110px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif; font-weight: 900;
+        font-size: 28px; color: white;
+        transition: height 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .podium-slot.rank-1 .podium-block {
+        height: 130px;
+        background: linear-gradient(180deg, #f59e0b, #92400e);
+        box-shadow: 0 -4px 20px rgba(245,158,11,.3);
+    }
+
+    .podium-slot.rank-2 .podium-block {
+        height: 90px;
+        background: linear-gradient(180deg, #94a3b8, #334155);
+    }
+
+    .podium-slot.rank-3 .podium-block {
+        height: 70px;
+        background: linear-gradient(180deg, #cd7c4a, #78350f);
+    }
+
+    /* ── Ranked List ── */
+    .lb-list {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .lb-list-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 14px; font-weight: 700;
+        color: var(--text-muted);
+        display: grid; grid-template-columns: 48px 1fr 120px;
+        gap: 12px;
+    }
+
+    .lb-row {
+        display: grid;
+        grid-template-columns: 48px 1fr 120px;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s;
+    }
+
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: var(--bg-hover); }
+
+    /* Top 3 rows get subtle left accent */
+    .lb-row.top-1 { border-left: 3px solid #f59e0b; }
+    .lb-row.top-2 { border-left: 3px solid #94a3b8; }
+    .lb-row.top-3 { border-left: 3px solid #cd7c4a; }
+
+    .lb-rank-badge {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: var(--bg-elevated); border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .lb-row.top-1 .lb-rank-badge { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.4); color: #f59e0b; }
+    .lb-row.top-2 .lb-rank-badge { background: rgba(148,163,184,.15); border-color: rgba(148,163,184,.4); color: #94a3b8; }
+    .lb-row.top-3 .lb-rank-badge { background: rgba(180,83,9,.12); border-color: rgba(180,83,9,.4); color: #cd7c4a; }
+
+    .lb-client-info { display: flex; align-items: center; gap: 10px; }
+
+    .lb-mini-avatar {
+        width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif; font-weight: 700;
+        font-size: 13px; color: white;
+    }
+
+    .lb-client-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .lb-client-sub  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    .lb-score {
+        text-align: right;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 18px; font-weight: 700;
+    }
+
+    .lb-score-unit { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-left: 2px; }
+
+    @keyframes podiumRise {
+        from { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+        to   { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+    }
+
+    .podium-block { animation: podiumRise 0.7s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .podium-slot.rank-1 .podium-block { animation-delay: 0.1s; }
+    .podium-slot.rank-2 .podium-block { animation-delay: 0.0s; }
+    .podium-slot.rank-3 .podium-block { animation-delay: 0.2s; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-  <h1>🏆 Leaderboards</h1>
-  <p>Top 10 performers across the gym</p>
+
+<nav class="lb-tabs">
+    <button class="lb-tab-btn exp active" data-lb-tab="exp">
+        <i class="fa-solid fa-bolt"></i> EXP
+    </button>
+    <button class="lb-tab-btn reps" data-lb-tab="reps">
+        <i class="fa-solid fa-dumbbell"></i> Reps
+    </button>
+    <button class="lb-tab-btn streaks" data-lb-tab="streaks">
+        <i class="fa-solid fa-fire"></i> Streaks
+    </button>
+</nav>
+
+{% for category, rows, score_key, unit, color in [
+    ('exp',     top_exp,     'total_exp',       'EXP',  '#f59e0b'),
+    ('reps',    top_reps,    'total_reps',       'reps', '#10b981'),
+    ('streaks', top_streaks, 'current_streak',   'days', '#7c3aed')
+] %}
+
+<div class="lb-panel {% if loop.first %}active{% endif %}" id="lb-{{ category }}">
+
+    {% if rows %}
+
+    <!-- ── PODIUM ── -->
+    <div class="podium-section">
+        {% set order = [1, 0, 2] %}  {# silver | gold | bronze #}
+        {% for slot_rank in [2, 1, 3] %}
+            {% set idx = slot_rank - 1 %}
+            {% if rows | length > idx %}
+            {% set row = rows[idx] %}
+            <div class="podium-slot rank-{{ slot_rank }}">
+                <div class="podium-avatar">{{ row.full_name[0] | upper }}</div>
+                <div class="podium-name">{{ row.full_name.split(' ')[0] }}</div>
+                <div class="podium-value" style="color:{{ color }};">
+                    {{ row[score_key] | default(0) }} <span style="font-size:10px; font-weight:500;">{{ unit }}</span>
+                </div>
+                <div class="podium-block">{{ slot_rank }}</div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- ── FULL RANKED LIST ── -->
+    <div class="lb-list">
+        <div class="lb-list-header">
+            <span>Rank</span>
+            <span>Client</span>
+            <span style="text-align:right;">Score</span>
+        </div>
+
+        {% for row in rows %}
+        <div class="lb-row {% if loop.index == 1 %}top-1{% elif loop.index == 2 %}top-2{% elif loop.index == 3 %}top-3{% endif %}">
+            <div style="display:flex; justify-content:center;">
+                <div class="lb-rank-badge">{{ loop.index }}</div>
+            </div>
+            <div class="lb-client-info">
+                <div class="lb-mini-avatar">{{ row.full_name[0] | upper }}</div>
+                <div>
+                    <div class="lb-client-name">{{ row.full_name }}</div>
+                    <div class="lb-client-sub">ID #{{ row.client_id }}</div>
+                </div>
+            </div>
+            <div class="lb-score" style="color:{{ color }};">
+                {{ row[score_key] | default(0) }}<span class="lb-score-unit">{{ unit }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="card">
+        <div class="empty-state">
+            <i class="fa-solid fa-trophy"></i>
+            <p>No data yet for this category.</p>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
-<div class="grid grid-3">
-  <!-- EXP -->
-  <div class="card">
-    <h2 style="color:#fbbf24;">💥 Top 10 by EXP</h2>
-    <table class="table">
-      <thead><tr><th>Rank</th><th>Client</th><th>EXP</th></tr></thead>
-      <tbody>
-      {% for row in top_exp %}
-        <tr>
-          <td>#{{ loop.index }}</td>
-          <td>{{ row.full_name }}</td>
-          <td>{{ row.total_exp }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
+{% endfor %}
 
-  <!-- REPS -->
-  <div class="card">
-    <h2 style="color:#10b981;">💪 Top 10 by Reps</h2>
-    <table class="table">
-      <thead><tr><th>Rank</th><th>Client</th><th>Reps</th></tr></thead>
-      <tbody>
-      {% for row in top_reps %}
-        <tr>
-          <td>#{{ loop.index }}</td>
-          <td>{{ row.full_name }}</td>
-          <td>{{ row.total_reps }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
+{% endblock %}
 
-  <!-- STREAKS -->
-  <div class="card">
-    <h2 style="color:#3b82f6;">🔥 Top 10 by Streak</h2>
-    <table class="table">
-      <thead><tr><th>Rank</th><th>Client</th><th>Streak</th></tr></thead>
-      <tbody>
-      {% for row in top_streaks %}
-        <tr>
-          <td>#{{ loop.index }}</td>
-          <td>{{ row.full_name }}</td>
-          <td>{{ row.current_streak }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
+{% block extra_js %}
+<script>
+document.querySelectorAll('.lb-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.lb-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.lb-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('lb-' + btn.dataset.lbTab)?.classList.add('active');
+    });
+});
+</script>
 {% endblock %}

@@ -196,6 +196,15 @@ def dashboard():
     except Exception as e:
         print(f"Achievement check error for client {client_id}: {e}")
         newly_unlocked = []
+
+    ann_rows = db.execute_query(
+        """SELECT ann_id, title, body, ann_type, is_pinned
+            FROM announcements
+            WHERE (expires_at IS NULL OR expires_at >= ?)
+            ORDER BY is_pinned DESC, ann_id DESC""",
+        (date.today().isoformat(),)
+    )
+    announcements = [dict(r) for r in ann_rows]
     
     print("Notification:",notification)
     # --- Render dashboard ---
@@ -209,7 +218,8 @@ def dashboard():
         streak_data=streak_data,
         newly_unlocked=newly_unlocked,
         notification=notification,
-        status=routine_status
+        status=routine_status,
+        announcements=announcements
     )
 
 @app.route('/workout/<int:routine_id>')
@@ -1457,21 +1467,20 @@ def salespoint_add_item():
 @app.route('/admin/salespoint/create_sale', methods=['POST'])
 @admin_required
 def salespoint_create_sale():
-    data = request.get_json()
-    cashier_id = 151 # o como guardes al admin
-    cart = data.get('cart', [])
+    data         = request.get_json()
+    cashier_id   = 151
     payment_type = data.get('payment_type', 'cash')
-    paid_amount = float(data.get('paid_amount', 0.0))
-    paid_cents = int(round(paid_amount * 100))
+    paid_amount  = float(data.get('paid_amount', 0.0))
+    paid_cents   = int(round(paid_amount * 100))
 
-    # Normalizar cart items: expect [{item_id, qty, price}]
-    cart_items = []
-    for it in cart:
-        cart_items.append({
-            'item_id': int(it['item_id']),
-            'qty': int(it['qty']),
+    cart_items = [
+        {
+            'item_id':    int(it['item_id']),
+            'qty':        int(it['qty']),
             'price_cents': int(round(float(it.get('price', 0)) * 100))
-        })
+        }
+        for it in data.get('cart', [])
+    ]
 
     result = sales_ctrl.create_sale(cashier_id, cart_items, payment_type, paid_cents)
     return jsonify(result)
@@ -1517,6 +1526,84 @@ def get_local_ip():
     finally:
         s.close()
     return IP
+
+def _get_announcements():
+    """Helper — fetch active (non-expired) announcements, pinned first."""
+    from database.db_manager import DatabaseManager
+    from datetime import date
+    db = DatabaseManager()
+    rows = db.execute_query("""
+        SELECT ann_id, title, body, ann_type, is_pinned, expires_at, created_at
+        FROM   announcements
+        WHERE  (expires_at IS NULL OR expires_at >= ?)
+        ORDER  BY is_pinned DESC, ann_id DESC
+    """, (date.today().isoformat(),))
+    return [dict(r) for r in rows]
+
+
+@app.route('/admin/announcements')
+@admin_required
+def admin_announcements():
+    from datetime import date
+    return render_template(
+        'admin/announcements.html',
+        announcements = _get_announcements(),
+        today         = date.today().isoformat(),
+    )
+
+
+@app.route('/admin/announcements/create', methods=['POST'])
+@admin_required
+def admin_create_announcement():
+    from database.db_manager import DatabaseManager
+    db         = DatabaseManager()
+    title      = request.form.get('title', '').strip()
+    body       = request.form.get('body', '').strip()
+    ann_type   = request.form.get('ann_type', 'info')
+    is_pinned  = 1 if request.form.get('is_pinned') else 0
+    expires_at = request.form.get('expires_at') or None
+
+    if not title or not body:
+        flash('Title and message are required.', 'error')
+        return redirect(url_for('admin_announcements'))
+
+    db.execute_update("""
+        INSERT INTO announcements (title, body, ann_type, is_pinned, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+    """, (title, body, ann_type, is_pinned, expires_at))
+
+    flash(f'Announcement "{title}" published!', 'success')
+    return redirect(url_for('admin_announcements'))
+
+
+@app.route('/admin/announcements/<int:ann_id>/toggle_pin', methods=['POST'])
+@admin_required
+def admin_toggle_pin_announcement(ann_id):
+    from database.db_manager import DatabaseManager
+    db = DatabaseManager()
+    db.execute_update("""
+        UPDATE announcements SET is_pinned = CASE WHEN is_pinned=1 THEN 0 ELSE 1 END
+        WHERE ann_id = ?
+    """, (ann_id,))
+    return redirect(url_for('admin_announcements'))
+
+
+@app.route('/admin/announcements/<int:ann_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_announcement(ann_id):
+    from database.db_manager import DatabaseManager
+    db = DatabaseManager()
+    db.execute_update("DELETE FROM announcements WHERE ann_id = ?", (ann_id,))
+    flash('Announcement deleted.', 'info')
+    return redirect(url_for('admin_announcements'))
+
+
+@app.route('/api/announcements')
+@login_required
+def api_announcements():
+    """Return active announcements as JSON for the client portal."""
+    return jsonify({'announcements': _get_announcements()})
+
 
 if __name__ == '__main__':
     local_ip = get_local_ip()

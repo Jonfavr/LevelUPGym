@@ -431,10 +431,29 @@ class DatabaseManager:
             missed_days.append(day_iter.strftime("%A"))
         # Return True if all missed days are NOT available training days
         return all(day not in available_days for day in missed_days)
+    
+    def add_announcements_table(self):
+        """Create announcements table if it does not exist yet."""
+        self.connect()
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS announcements (
+                ann_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                title       TEXT    NOT NULL,
+                body        TEXT    NOT NULL,
+                ann_type    TEXT    NOT NULL DEFAULT 'info',
+                is_pinned   INTEGER NOT NULL DEFAULT 0,
+                expires_at  DATE,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.conn.commit()
+        self.disconnect()
+        print("✅ Announcements table ready.")
 
 
 # Usage example
 if __name__ == "__main__":
     db = DatabaseManager()
     db.initialize_database()
+    db.add_announcements_table()
     db.add_missing_columns()

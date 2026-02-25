@@ -1,286 +1,968 @@
-{# templates/admin/salespoint.html #}
+<!-- templates/admin/salespoint.html -->
 {% extends "admin/base.html" %}
-{% block title %}Sales Point - LevelUp Gym{% endblock %}
+
+{% block title %}Sales Point — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Sales Point{% endblock %}
 
 {% block extra_css %}
 <style>
-.cart { border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; background: #fff; }
-.item-card { border: 1px solid #e6e6f0; padding: 8px; border-radius: 6px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center; }
-.item-name { font-weight: 600; color: #111827; }
-.small { font-size: 0.9rem; color:#6b7280; }
-.badge-stock { padding: 4px 8px; border-radius: 6px; background:#f3f4f6; color:#1f2937; font-weight:600; }
-.btn-small { padding:6px 10px; border-radius:6px; border:none; cursor:pointer; }
+    /* ══════════════════════════════════════
+       LAYOUT
+    ══════════════════════════════════════ */
+    .sp-layout {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 20px;
+        align-items: start;
+    }
+
+    @media (max-width: 900px) { .sp-layout { grid-template-columns: 1fr; } }
+
+    /* ── Item Grid ── */
+    .item-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 10px;
+    }
+
+    .item-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        display: flex; flex-direction: column; gap: 8px;
+        cursor: pointer; transition: border-color 0.2s, transform 0.15s;
+        position: relative; overflow: hidden;
+    }
+
+    .item-card::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: var(--accent-glow);
+        opacity: 0; transition: opacity 0.2s;
+    }
+
+    .item-card:hover { border-color: var(--border-accent); transform: translateY(-2px); }
+    .item-card:hover::before { opacity: 1; }
+    .item-card.out-of-stock { opacity: 0.45; pointer-events: none; }
+
+    .item-icon {
+        width: 42px; height: 42px; border-radius: var(--radius-md);
+        background: var(--accent-glow); border: 1px solid var(--border-accent);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; flex-shrink: 0;
+    }
+
+    .item-name {
+        font-size: 13px; font-weight: 600;
+        color: var(--text-primary); line-height: 1.3;
+    }
+
+    .item-price {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 18px; font-weight: 700; color: var(--accent);
+    }
+
+    .item-stock-badge {
+        font-size: 10px; font-weight: 600;
+        padding: 2px 7px; border-radius: 10px;
+        background: var(--bg-elevated); border: 1px solid var(--border);
+        color: var(--text-muted); align-self: flex-start;
+    }
+
+    .item-stock-badge.low  { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.3); color: var(--amber); }
+    .item-stock-badge.zero { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.3);  color: var(--red);   }
+
+    /* ── Search bar above grid ── */
+    .inv-toolbar {
+        display: flex; gap: 10px; align-items: center;
+        margin-bottom: 14px; flex-wrap: wrap;
+    }
+
+    .inv-search-wrap { position: relative; flex: 1; min-width: 180px; }
+    .inv-search-wrap i {
+        position: absolute; left: 10px; top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted); font-size: 12px; pointer-events: none;
+    }
+    #inv-search { padding-left: 30px; height: 36px; font-size: 13px; }
+
+    /* ── Cart Panel (right column) ── */
+    .cart-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        position: sticky; top: 24px;
+    }
+
+    .cart-header {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .cart-header h3 {
+        font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .cart-body { padding: 14px 18px; }
+
+    .cart-empty {
+        text-align: center; padding: 28px 0;
+        color: var(--text-muted); font-size: 13px;
+    }
+
+    .cart-empty i { font-size: 28px; margin-bottom: 8px; display: block; }
+
+    /* Cart line item */
+    .cart-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+
+    .cart-item:last-child { border-bottom: none; }
+
+    .cart-item-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .cart-item-price { font-size: 12px; color: var(--text-muted); }
+
+    .cart-qty-ctrl {
+        display: flex; align-items: center; gap: 4px;
+    }
+
+    .qty-btn {
+        width: 22px; height: 22px; border-radius: 50%;
+        border: 1px solid var(--border); background: var(--bg-elevated);
+        color: var(--text-muted); font-size: 12px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.15s;
+    }
+
+    .qty-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .qty-num {
+        font-family: 'Rajdhani', sans-serif; font-weight: 700;
+        font-size: 14px; color: var(--text-primary);
+        min-width: 20px; text-align: center;
+    }
+
+    .remove-btn {
+        width: 22px; height: 22px; border-radius: 50%;
+        border: 1px solid transparent; background: transparent;
+        color: var(--text-muted); font-size: 11px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    }
+
+    .remove-btn:hover { border-color: var(--red); color: var(--red); background: rgba(239,68,68,.1); }
+
+    /* Totals + Payment */
+    .cart-totals {
+        margin-top: 14px; padding-top: 14px;
+        border-top: 1px solid var(--border);
+    }
+
+    .total-row {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 6px; font-size: 13px;
+    }
+
+    .total-row.grand {
+        margin-top: 10px; padding-top: 10px;
+        border-top: 1px solid var(--border);
+        font-size: 16px;
+    }
+
+    .total-label { color: var(--text-muted); }
+
+    .total-val {
+        font-family: 'Rajdhani', sans-serif; font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .grand .total-val { font-size: 22px; color: var(--accent); }
+
+    .payment-methods {
+        display: flex; gap: 8px; margin: 14px 0;
+    }
+
+    .pay-method-btn {
+        flex: 1; padding: 10px 0; border-radius: var(--radius-md);
+        border: 1px solid var(--border); background: var(--bg-elevated);
+        color: var(--text-secondary); font-size: 13px; font-weight: 600;
+        cursor: pointer; transition: all 0.15s;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+
+    .pay-method-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pay-method-btn.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+    .paid-input-wrap { margin-bottom: 12px; }
+    .paid-input-wrap label { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: block; }
+
+    .change-display {
+        background: var(--bg-elevated); border-radius: var(--radius-md);
+        padding: 10px 14px; text-align: center; margin-bottom: 12px;
+    }
+
+    .change-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .change-val {
+        font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700;
+        color: var(--emerald);
+    }
+
+    /* ══════════════════════════════════════
+       TODAY'S SALES LOG (below main grid)
+    ══════════════════════════════════════ */
+    .sales-log {
+        margin-top: 20px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .sales-log-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .sales-log-header h3 {
+        font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700;
+        color: var(--text-primary);
+        display: flex; align-items: center; gap: 8px;
+    }
+
+    .log-table { width: 100%; border-collapse: collapse; }
+
+    .log-table th {
+        padding: 10px 16px; text-align: left;
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px;
+        color: var(--text-muted); font-weight: 600;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+    }
+
+    .log-table td {
+        padding: 12px 16px; font-size: 13px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-secondary);
+    }
+
+    .log-table tr:last-child td { border-bottom: none; }
+    .log-table tr:hover td { background: var(--bg-hover); }
+
+    .pay-pill {
+        padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    }
+
+    .pay-pill.cash { background: rgba(16,185,129,.12); color: var(--emerald); }
+    .pay-pill.card { background: rgba(99,102,241,.12); color: var(--accent); }
+
+    .view-receipt-btn {
+        padding: 4px 10px; font-size: 11px; font-weight: 600;
+        border-radius: var(--radius-sm); border: 1px solid var(--border);
+        background: var(--bg-elevated); color: var(--text-muted);
+        cursor: pointer; transition: all 0.15s;
+    }
+
+    .view-receipt-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ══════════════════════════════════════
+       ADD ITEM PANEL
+    ══════════════════════════════════════ */
+    .add-item-panel {
+        margin-top: 20px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .add-item-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer; user-select: none;
+    }
+
+    .add-item-header h3 {
+        font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700;
+        color: var(--text-primary); display: flex; align-items: center; gap: 8px;
+    }
+
+    .add-item-body {
+        padding: 20px;
+        display: none;
+    }
+
+    .add-item-body.open { display: block; }
+
+    .form-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+
+    /* ══════════════════════════════════════
+       RECEIPT MODAL
+    ══════════════════════════════════════ */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.7);
+        backdrop-filter: blur(4px);
+        z-index: 300;
+        display: none;
+        align-items: center; justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .receipt-modal {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        width: 100%; max-width: 380px;
+        box-shadow: 0 24px 80px rgba(0,0,0,.6);
+        animation: modalIn 0.3s cubic-bezier(.34,1.56,.64,1);
+        overflow: hidden;
+    }
+
+    @keyframes modalIn {
+        from { opacity:0; transform: scale(.9) translateY(20px); }
+        to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+
+    /* Thermal receipt look */
+    .receipt-top {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        padding: 24px 20px 20px;
+        text-align: center;
+        color: white;
+    }
+
+    .receipt-top i { font-size: 32px; margin-bottom: 8px; display: block; }
+
+    .receipt-gym-name {
+        font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 900;
+        letter-spacing: 2px; text-transform: uppercase;
+    }
+
+    .receipt-subtitle { font-size: 11px; opacity: .8; margin-top: 2px; }
+
+    .receipt-body { padding: 20px; }
+
+    .receipt-meta {
+        display: flex; justify-content: space-between;
+        margin-bottom: 16px; font-size: 12px; color: var(--text-muted);
+    }
+
+    .receipt-divider {
+        border: none; border-top: 2px dashed var(--border);
+        margin: 14px 0;
+    }
+
+    .receipt-line {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 13px; margin-bottom: 8px;
+    }
+
+    .receipt-line-name { color: var(--text-secondary); flex: 1; }
+    .receipt-line-qty { color: var(--text-muted); font-size: 11px; margin: 0 10px; }
+
+    .receipt-line-price {
+        font-family: 'Rajdhani', sans-serif; font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .receipt-total-row {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 13px; margin-bottom: 6px;
+    }
+
+    .receipt-total-row.grand {
+        margin-top: 10px; padding-top: 10px;
+        border-top: 1px solid var(--border);
+    }
+
+    .receipt-total-label { color: var(--text-muted); }
+
+    .receipt-total-val {
+        font-family: 'Rajdhani', sans-serif; font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .receipt-total-row.grand .receipt-total-val { font-size: 22px; color: var(--accent); }
+
+    .receipt-change {
+        background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25);
+        border-radius: var(--radius-md); padding: 10px 14px;
+        text-align: center; margin-top: 14px;
+    }
+
+    .receipt-change-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--emerald); }
+    .receipt-change-val {
+        font-family: 'Rajdhani', sans-serif; font-size: 30px; font-weight: 900; color: var(--emerald);
+    }
+
+    .receipt-footer {
+        text-align: center; padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        font-size: 11px; color: var(--text-muted);
+        background: var(--bg-elevated);
+    }
+
+    .receipt-actions {
+        display: flex; gap: 10px; padding: 14px 20px;
+        border-top: 1px solid var(--border);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card">
-  <h1>Sales Point</h1>
-  <p>Vende agua, merch, suplementos y membresías desde aquí.</p>
+
+<!-- Section header -->
+<div class="section-header" style="margin-bottom:20px;">
+    <div>
+        <div class="section-title">
+            <div class="title-icon"><i class="fa-solid fa-cash-register"></i></div>
+            Sales Point
+        </div>
+        <div class="section-subtitle">Today: {{ sales_today | length }} sale{{ 's' if sales_today | length != 1 }}</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a href="{{ url_for('admin_sales_report', period='daily') }}" class="btn btn-ghost btn-sm">
+            <i class="fa-solid fa-chart-bar"></i> Reports
+        </a>
+    </div>
 </div>
 
-<div class="grid grid-2" style="gap:20px;">
-  <!-- LEFT: Items & add item form -->
-  <div class="card">
-    <h2>Inventory / Items</h2>
+<!-- ── Main Two-Column Layout ── -->
+<div class="sp-layout">
 
-    <div id="items-list">
-      {% for it in items %}
-      <div class="item-card" data-item-id="{{ it.item_id }}" data-price="{{ (it.price_cents/100)|round(2) }}" data-stock="{{ it.stock }}">
-        <div>
-          <div class="item-name">{{ it.name }}</div>
-          <div class="small">SKU: {{ it.sku or '—' }} · ${{ '%.2f' % (it.price_cents / 100) }}</div>
+    <!-- LEFT: Inventory -->
+    <div>
+        <div class="inv-toolbar">
+            <div class="inv-search-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="inv-search" placeholder="Search items…">
+            </div>
         </div>
+
+        <div class="item-grid" id="item-grid">
+            {% for it in items %}
+            {% set stock = it.stock %}
+            <div class="item-card {% if stock == 0 %}out-of-stock{% endif %}"
+                 data-item-id="{{ it.item_id }}"
+                 data-name="{{ it.name | lower }}"
+                 data-price="{{ (it.price_cents / 100) | round(2) }}"
+                 data-stock="{{ stock }}"
+                 onclick="addToCart(this)"
+                 title="{{ it.name }}">
+
+                <div class="item-icon">
+                    {% if 'water' in it.name | lower %}💧
+                    {% elif 'protein' in it.name | lower or 'supplement' in it.name | lower %}💊
+                    {% elif 'shirt' in it.name | lower or 'merch' in it.name | lower %}👕
+                    {% elif 'shaker' in it.name | lower or 'bottle' in it.name | lower %}🧴
+                    {% elif 'bar' in it.name | lower or 'snack' in it.name | lower %}🍫
+                    {% elif 'energy' in it.name | lower or 'drink' in it.name | lower %}⚡
+                    {% else %}🏋️{% endif %}
+                </div>
+
+                <div class="item-name">{{ it.name }}</div>
+                <div class="item-price">${{ '%.2f' % (it.price_cents / 100) }}</div>
+
+                <span class="item-stock-badge {% if stock == 0 %}zero{% elif stock <= 3 %}low{% endif %}">
+                    {{ 'Out of stock' if stock == 0 else ('Low: ' ~ stock if stock <= 3 else stock ~ ' in stock') }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- RIGHT: Cart Panel -->
+    <div class="cart-panel">
+        <div class="cart-header">
+            <h3><i class="fa-solid fa-cart-shopping" style="color:var(--accent); margin-right:6px;"></i>Cart</h3>
+            <button class="btn btn-ghost btn-sm" onclick="clearCart()" id="clear-btn" style="display:none;">
+                <i class="fa-solid fa-trash"></i> Clear
+            </button>
+        </div>
+
+        <div class="cart-body">
+
+            <!-- Empty state -->
+            <div class="cart-empty" id="cart-empty">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <p>Click an item to add it</p>
+            </div>
+
+            <!-- Items -->
+            <div id="cart-items"></div>
+
+            <!-- Totals + Payment (hidden when empty) -->
+            <div id="cart-checkout" style="display:none;">
+                <div class="cart-totals">
+                    <div class="total-row">
+                        <span class="total-label">Subtotal</span>
+                        <span class="total-val">$<span id="cart-subtotal">0.00</span></span>
+                    </div>
+                    <div class="total-row grand">
+                        <span class="total-label" style="font-weight:700; color:var(--text-primary);">Total</span>
+                        <span class="total-val" style="font-size:22px; color:var(--accent);">$<span id="cart-total">0.00</span></span>
+                    </div>
+                </div>
+
+                <!-- Payment method -->
+                <div class="payment-methods">
+                    <button class="pay-method-btn selected" data-method="cash" onclick="selectPayment(this)">
+                        <i class="fa-solid fa-money-bill-wave"></i> Cash
+                    </button>
+                    <button class="pay-method-btn" data-method="card" onclick="selectPayment(this)">
+                        <i class="fa-solid fa-credit-card"></i> Card
+                    </button>
+                </div>
+
+                <!-- Amount paid (cash only) -->
+                <div class="paid-input-wrap" id="paid-wrap">
+                    <label>Amount received ($)</label>
+                    <input type="number" id="paid-amount" step="0.01" placeholder="0.00"
+                           oninput="updateChange()">
+                </div>
+
+                <!-- Change -->
+                <div class="change-display" id="change-display" style="display:none;">
+                    <div class="change-lbl">Change</div>
+                    <div class="change-val">$<span id="change-amount">0.00</span></div>
+                </div>
+
+                <button class="btn btn-primary" style="width:100%;" onclick="completeSale()">
+                    <i class="fa-solid fa-circle-check"></i> Complete Sale
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Today's Sales Log ── -->
+<div class="sales-log">
+    <div class="sales-log-header">
+        <h3><i class="fa-regular fa-clock" style="color:var(--accent);"></i> Today's Sales</h3>
         <div style="display:flex; gap:8px; align-items:center;">
-          <div class="badge-stock">Stock: <span class="stock-val">{{ it.stock }}</span></div>
-          <button class="btn-small btn-add-to-cart" data-item-id="{{ it.item_id }}">Agregar</button>
+            {% set today_total = sales_today | sum(attribute='total') %}
+            <span class="badge badge-accent" style="font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:700;">
+                ${{ '%.2f' % today_total }} today
+            </span>
         </div>
-      </div>
-      {% endfor %}
     </div>
-  </div>
 
-  <!-- RIGHT: Cart & Payment -->
-  <div class="card">
-    <h2>Cart / Checkout</h2>
-    <div class="cart" id="cart-container">
-      <p id="cart-empty" class="small">El carrito está vacío</p>
-      <div id="cart-items"></div>
-
-      <hr>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-        <div class="small">Subtotal:</div>
-        <div style="font-weight:700;">$<span id="cart-total">0.00</span></div>
-      </div>
-
-      <div style="margin-top:10px;">
-        <label>Pago con:</label>
-        <div style="display:flex; gap:8px; margin-top:6px;">
-          <label><input type="radio" name="payment_type" value="cash" checked> Cash</label>
-          <label><input type="radio" name="payment_type" value="card"> Card</label>
-        </div>
-      </div>
-
-      <div style="margin-top:10px;">
-        <label>Monto recibido</label>
-        <input type="number" id="paid-amount" step="0.01" value="0.00" />
-      </div>
-
-      <div style="margin-top:10px; display:flex; gap:8px;">
-        <button class="btn btn-success" id="btn-complete-sale">Cobrar y registrar</button>
-        <button class="btn btn-secondary" id="btn-clear-cart">Limpiar</button>
-      </div>
-
-      <div style="margin-top:8px;">
-        <div>Cambio: $<span id="change-amount">0.00</span></div>
-      </div>
+    {% if sales_today %}
+    <table class="log-table">
+        <thead>
+            <tr>
+                <th>Sale #</th>
+                <th>Time</th>
+                <th>Payment</th>
+                <th>Total</th>
+                <th>Change</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in sales_today %}
+            <tr>
+                <td style="color:var(--text-primary); font-weight:600;">#{{ s.sale_id }}</td>
+                <td>{{ s.created_at.split(' ')[1][:5] if ' ' in s.created_at else s.created_at }}</td>
+                <td><span class="pay-pill {{ s.payment_type }}">{{ s.payment_type | capitalize }}</span></td>
+                <td style="font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; color:var(--accent);">
+                    ${{ '%.2f' % s.total }}
+                </td>
+                <td style="color:var(--emerald);">
+                    {% if s.payment_type == 'cash' %}${{ '%.2f' % s.change }}{% else %}—{% endif %}
+                </td>
+                <td>
+                    <button class="view-receipt-btn" onclick="viewReceipt({{ s.sale_id }})">
+                        <i class="fa-solid fa-receipt"></i> Receipt
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="cart-empty" style="padding:32px 0;">
+        <i class="fa-regular fa-receipt" style="font-size:28px; margin-bottom:8px; display:block;"></i>
+        <p>No sales recorded today yet.</p>
     </div>
-  </div>
+    {% endif %}
 </div>
 
-<div class="card">
-    <hr>
-    <h3>Sales Today</h3>
-    <div id="sales-today">
-      {% for s in sales_today %}
-        <div style="border-bottom:1px solid #f3f4f6; padding:8px 0;">
-          <div style="display:flex; justify-content:space-between;">
-            <div>#{{ s.sale_id }} · {{ s.created_at }}</div>
-            <div style="font-weight:700;">${{ '%.2f' % (s.total_cents/100) }}</div>
-          </div>
-          <div class="small">Pago: {{ s.payment_type }} · Cambió: ${{ '%.2f' % (s.change_cents/100) }}</div>
+<!-- ── Add Item Panel (collapsible) ── -->
+<div class="add-item-panel">
+    <div class="add-item-header" onclick="toggleAddItem(this)">
+        <h3><i class="fa-solid fa-plus" style="color:var(--accent);"></i> Add New Inventory Item</h3>
+        <i class="fa-solid fa-chevron-down" id="add-item-chevron" style="color:var(--text-muted); transition:transform .2s;"></i>
+    </div>
+    <div class="add-item-body" id="add-item-body">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Item Name *</label>
+                <input type="text" id="new-name" placeholder="e.g. Protein Bar">
+            </div>
+            <div class="form-group">
+                <label>Price ($) *</label>
+                <input type="number" id="new-price" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>Stock Qty *</label>
+                <input type="number" id="new-stock" placeholder="0">
+            </div>
+            <div class="form-group">
+                <label>SKU (optional)</label>
+                <input type="text" id="new-sku" placeholder="SKU-001">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="new-desc" placeholder="Short description">
+            </div>
         </div>
-      {% else %}
-        <p class="small">No sales today.</p>
-      {% endfor %}
+        <button class="btn btn-primary" onclick="addNewItem()">
+            <i class="fa-solid fa-plus"></i> Add Item
+        </button>
     </div>
 </div>
 
-<div class="card">
-    <hr>
-    <h3>Añadir nuevo item</h3>
-    <form id="form-add-item" onsubmit="return false;">
-      <div>
-        <label>SKU</label>
-        <input type="text" id="new-sku" />
-      </div>
-      <div>
-        <label>Nombre</label>
-        <input type="text" id="new-name" required/>
-      </div>
-      <div>
-        <label>Precio (USD)</label>
-        <input type="number" step="0.01" id="new-price" required/>
-      </div>
-      <div>
-        <label>Stock</label>
-        <input type="number" id="new-stock" value="0" required/>
-      </div>
-      <div>
-        <label>Descripción</label>
-        <input type="text" id="new-desc" />
-      </div>
-      <div style="margin-top:8px;">
-        <button class="btn btn-primary" id="btn-add-item">Agregar Item</button>
-      </div>
-    </form>
-</div>
+<!-- ══════════════════════════════
+     RECEIPT MODAL
+══════════════════════════════ -->
+<div class="modal-overlay" id="receipt-modal">
+    <div class="receipt-modal">
 
-<div class="card">
-  <h2>📊 Sales Reports</h2>
-  <div class="flex" style="gap: 10px;">
-    <a href="{{ url_for('admin_sales_report', period='daily') }}" class="btn btn-primary">View Daily Report</a>
-    <a href="{{ url_for('admin_sales_report', period='weekly') }}" class="btn btn-primary">View Weekly Report</a>
-    <a href="{{ url_for('admin_sales_report', period='monthly') }}" class="btn btn-primary">View Monthly Report</a>
-  </div>
+        <div class="receipt-top">
+            <i class="fa-solid fa-dumbbell"></i>
+            <div class="receipt-gym-name">LevelUp Gym</div>
+            <div class="receipt-subtitle">Thank you for your purchase!</div>
+        </div>
+
+        <div class="receipt-body">
+            <div class="receipt-meta">
+                <span id="receipt-date"></span>
+                <span>Sale <strong id="receipt-sale-id"></strong></span>
+            </div>
+
+            <hr class="receipt-divider">
+
+            <div id="receipt-lines"></div>
+
+            <hr class="receipt-divider">
+
+            <div class="receipt-total-row">
+                <span class="receipt-total-label">Subtotal</span>
+                <span class="receipt-total-val">$<span id="receipt-subtotal"></span></span>
+            </div>
+            <div class="receipt-total-row grand">
+                <span class="receipt-total-label">Total</span>
+                <span class="receipt-total-val">$<span id="receipt-total"></span></span>
+            </div>
+            <div class="receipt-total-row" style="margin-top:8px;">
+                <span class="receipt-total-label">Payment</span>
+                <span class="receipt-total-val" id="receipt-payment"></span>
+            </div>
+            <div class="receipt-total-row">
+                <span class="receipt-total-label">Paid</span>
+                <span class="receipt-total-val">$<span id="receipt-paid"></span></span>
+            </div>
+
+            <div class="receipt-change" id="receipt-change-row">
+                <div class="receipt-change-lbl">Change</div>
+                <div class="receipt-change-val">$<span id="receipt-change"></span></div>
+            </div>
+        </div>
+
+        <div class="receipt-footer">
+            📍 LevelUp Gym · Come back stronger! 💪
+        </div>
+
+        <div class="receipt-actions">
+            <button class="btn btn-ghost" style="flex:1;" onclick="closeReceipt()">
+                <i class="fa-solid fa-xmark"></i> Close
+            </button>
+            <button class="btn btn-primary" style="flex:1;" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Print
+            </button>
+        </div>
+
+    </div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Frontend cart handling
-let cart = []; // {item_id, name, price, qty}
-function formatMoney(n){ return Number(n).toFixed(2); }
+/* ════════════════════════════
+   CART STATE
+════════════════════════════ */
+let cart = [];          // [{item_id, name, price, qty}]
+let paymentMethod = 'cash';
 
-function refreshCartUI(){
-  const container = document.getElementById('cart-items');
-  container.innerHTML = '';
-  if(cart.length === 0){
-    document.getElementById('cart-empty').style.display = 'block';
-    document.getElementById('cart-total').textContent = '0.00';
-    return;
-  }
-  document.getElementById('cart-empty').style.display = 'none';
-  let total = 0;
-  cart.forEach((it, idx) => {
-    const line = document.createElement('div');
-    line.style.display = 'flex';
-    line.style.justifyContent = 'space-between';
-    line.style.alignItems = 'center';
-    line.style.padding = '6px 0';
-    line.innerHTML = `
-      <div>
-        <div style="font-weight:600">${it.name}</div>
-        <div class="small">$${formatMoney(it.price)} x ${it.qty}</div>
-      </div>
-      <div style="display:flex; gap:6px;">
-        <button class="btn-small" onclick="decreaseQty(${idx})">−</button>
-        <button class="btn-small" onclick="increaseQty(${idx})">＋</button>
-        <button class="btn-small" onclick="removeFromCart(${idx})">✕</button>
-      </div>
-    `;
-    container.appendChild(line);
-    total += it.price * it.qty;
-  });
-  document.getElementById('cart-total').textContent = formatMoney(total);
-  // update change display
-  updateChange();
-}
+function fmt(n){ return Number(n).toFixed(2); }
 
-function addToCartFromElement(elem){
-  const itemId = elem.dataset.itemId || elem.getAttribute('data-item-id');
-  const parent = elem.closest('.item-card');
-  const name = parent.querySelector('.item-name').textContent.trim();
-  const price = parseFloat(parent.getAttribute('data-price') || parent.dataset.price || 0);
-  const stock = parseInt(parent.getAttribute('data-stock') || parent.dataset.stock || 0);
-  // find existing
-  const existingIndex = cart.findIndex(c => c.item_id == itemId);
-  if(existingIndex >= 0){
-    // check stock
-    if(cart[existingIndex].qty + 1 > stock){
-      alert('No hay suficiente stock');
-      return;
+/* ── Add to Cart ── */
+function addToCart(card) {
+    const id    = card.dataset.itemId;
+    const name  = card.querySelector('.item-name').textContent.trim();
+    const price = parseFloat(card.dataset.price);
+    const stock = parseInt(card.dataset.stock);
+    const idx   = cart.findIndex(c => c.item_id == id);
+
+    if (idx >= 0) {
+        if (cart[idx].qty + 1 > stock) { showToast('Not enough stock', 'warning'); return; }
+        cart[idx].qty++;
+    } else {
+        if (stock <= 0) { showToast('Out of stock', 'error'); return; }
+        cart.push({ item_id: id, name, price, qty: 1 });
     }
-    cart[existingIndex].qty += 1;
-  } else {
-    if(stock <= 0){ alert('Sin stock'); return; }
-    cart.push({ item_id: itemId, name: name, price: price, qty: 1 });
-  }
-  refreshCartUI();
+    renderCart();
 }
 
-document.addEventListener('click', function(e){
-  if(e.target.classList.contains('btn-add-to-cart')){
-    addToCartFromElement(e.target);
-  }
-});
+function increaseQty(i)  { const s = parseInt(document.querySelectorAll('[data-item-id]')[0]?.dataset.stock||999); cart[i].qty++; renderCart(); }
+function decreaseQty(i)  { cart[i].qty = Math.max(1, cart[i].qty - 1); renderCart(); }
+function removeItem(i)   { cart.splice(i, 1); renderCart(); }
+function clearCart()     { cart = []; renderCart(); }
 
-// qty handlers
-function increaseQty(i){ cart[i].qty += 1; refreshCartUI(); }
-function decreaseQty(i){ cart[i].qty = Math.max(1, cart[i].qty - 1); refreshCartUI(); }
-function removeFromCart(i){ cart.splice(i,1); refreshCartUI(); }
-function clearCart(){ cart = []; refreshCartUI(); }
-document.getElementById('btn-clear-cart').addEventListener('click', clearCart);
+/* ── Render Cart ── */
+function renderCart() {
+    const itemsEl    = document.getElementById('cart-items');
+    const emptyEl    = document.getElementById('cart-empty');
+    const checkoutEl = document.getElementById('cart-checkout');
+    const clearBtn   = document.getElementById('clear-btn');
 
-// add item form
-document.getElementById('btn-add-item').addEventListener('click', async function(){
-  const sku = document.getElementById('new-sku').value.trim();
-  const name = document.getElementById('new-name').value.trim();
-  const price = parseFloat(document.getElementById('new-price').value||0);
-  const stock = parseInt(document.getElementById('new-stock').value||0);
-  const desc = document.getElementById('new-desc').value.trim();
+    itemsEl.innerHTML = '';
 
-  if(!name || isNaN(price)){
-    alert('Completa nombre y precio');
-    return;
-  }
+    if (cart.length === 0) {
+        emptyEl.style.display     = 'block';
+        checkoutEl.style.display  = 'none';
+        clearBtn.style.display    = 'none';
+        return;
+    }
 
-  const res = await fetch('{{ url_for("salespoint_add_item") }}', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ sku: sku, name: name, price: price, stock: stock, description: desc })
-  });
-  const j = await res.json();
-  if(j.success){
-    location.reload(); // para simplicidad recargamos y vemos el nuevo item
-  } else {
-    alert('Error al crear item');
-  }
-});
+    emptyEl.style.display    = 'none';
+    checkoutEl.style.display = 'block';
+    clearBtn.style.display   = 'inline-flex';
 
-// payment / finalize
-document.getElementById('btn-complete-sale').addEventListener('click', async function(){
-  if(cart.length === 0){ alert('Carrito vacío'); return; }
-  const paymentType = document.querySelector('input[name="payment_type"]:checked').value;
-  const paidAmount = parseFloat(document.getElementById('paid-amount').value || 0);
-  const total = parseFloat(document.getElementById('cart-total').textContent || 0);
-  if(paymentType === 'cash' && paidAmount < total){
-    if(!confirm('Pago en efectivo menor al total. Registrar igual?')) return;
-  }
+    let total = 0;
 
-  // preparar payload
-  const payload = {
-    cart: cart.map(i => ({ item_id: i.item_id, qty: i.qty, price: i.price })),
-    payment_type: paymentType,
-    paid_amount: paidAmount
-  };
+    cart.forEach((it, idx) => {
+        total += it.price * it.qty;
+        const row = document.createElement('div');
+        row.className = 'cart-item';
+        row.innerHTML = `
+            <div class="cart-item-name">
+                ${it.name}
+                <div class="cart-item-price">$${fmt(it.price)} each</div>
+            </div>
+            <div class="cart-qty-ctrl">
+                <button class="qty-btn" onclick="decreaseQty(${idx})">−</button>
+                <span class="qty-num">${it.qty}</span>
+                <button class="qty-btn" onclick="increaseQty(${idx})">+</button>
+            </div>
+            <div style="font-family:'Rajdhani',sans-serif; font-weight:700; font-size:14px; color:var(--text-primary); min-width:52px; text-align:right;">
+                $${fmt(it.price * it.qty)}
+            </div>
+            <button class="remove-btn" onclick="removeItem(${idx})"><i class="fa-solid fa-xmark"></i></button>
+        `;
+        itemsEl.appendChild(row);
+    });
 
-  const resp = await fetch('{{ url_for("salespoint_create_sale") }}', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  });
-  const j = await resp.json();
-  if(j.success){
-    alert('Venta registrada. Cambio: $' + (j.change_cents/100).toFixed(2));
-    clearCart();
-    location.reload(); // recargar para actualizar stock y ventas del día
-  } else {
-    alert('Error registrando venta: ' + (j.message || 'unknown'));
-  }
-});
-
-function updateChange(){
-  const paid = parseFloat(document.getElementById('paid-amount').value || 0);
-  const total = parseFloat(document.getElementById('cart-total').textContent || 0);
-  const change = Math.max(0, paid - total);
-  document.getElementById('change-amount').textContent = formatMoney(change);
+    document.getElementById('cart-subtotal').textContent = fmt(total);
+    document.getElementById('cart-total').textContent    = fmt(total);
+    updateChange();
 }
 
-document.getElementById('paid-amount').addEventListener('input', updateChange);
+/* ── Payment Method ── */
+function selectPayment(btn) {
+    document.querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    paymentMethod = btn.dataset.method;
+    document.getElementById('paid-wrap').style.display    = paymentMethod === 'cash' ? 'block' : 'none';
+    document.getElementById('change-display').style.display = paymentMethod === 'cash' ? 'block' : 'none';
+}
 
-// init
-refreshCartUI();
+function updateChange() {
+    if (paymentMethod !== 'cash') return;
+    const paid  = parseFloat(document.getElementById('paid-amount').value) || 0;
+    const total = parseFloat(document.getElementById('cart-total').textContent) || 0;
+    const change = Math.max(0, paid - total);
+    document.getElementById('change-amount').textContent = fmt(change);
+    document.getElementById('change-display').style.display = 'block';
+}
+
+/* ── Complete Sale ── */
+async function completeSale() {
+    if (cart.length === 0) return;
+
+    const paid = paymentMethod === 'cash'
+        ? (parseFloat(document.getElementById('paid-amount').value) || 0)
+        : parseFloat(document.getElementById('cart-total').textContent);
+
+    const payload = {
+        cart: cart.map(i => ({ item_id: i.item_id, qty: i.qty, price: i.price })),
+        payment_type: paymentMethod,
+        paid_amount: paid
+    };
+
+    const resp = await fetch('{{ url_for("salespoint_create_sale") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const j = await resp.json();
+
+    if (j.success) {
+        showReceiptFromCart(j);
+        clearCart();
+    } else {
+        showToast('Error: ' + (j.message || 'Unknown error'), 'error');
+    }
+}
+
+/* ── Inventory Search ── */
+document.getElementById('inv-search').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.item-card').forEach(card => {
+        card.style.display = card.dataset.name.includes(q) ? '' : 'none';
+    });
+});
+
+/* ── Toggle Add-Item Panel ── */
+function toggleAddItem(header) {
+    const body    = document.getElementById('add-item-body');
+    const chevron = document.getElementById('add-item-chevron');
+    body.classList.toggle('open');
+    chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+/* ── Add New Item ── */
+async function addNewItem() {
+    const name  = document.getElementById('new-name').value.trim();
+    const price = parseFloat(document.getElementById('new-price').value || 0);
+    const stock = parseInt(document.getElementById('new-stock').value || 0);
+    const sku   = document.getElementById('new-sku').value.trim();
+    const desc  = document.getElementById('new-desc').value.trim();
+
+    if (!name || isNaN(price)) { showToast('Name and price are required', 'error'); return; }
+
+    const res = await fetch('{{ url_for("salespoint_add_item") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku, name, price, stock, description: desc })
+    });
+
+    const j = await res.json();
+    if (j.success) { showToast('Item added!', 'success'); location.reload(); }
+    else           { showToast('Failed to add item', 'error'); }
+}
+
+/* ════════════════════════════
+   RECEIPT MODAL
+════════════════════════════ */
+function showReceiptFromCart(saleResult) {
+    const now = new Date();
+
+    document.getElementById('receipt-sale-id').textContent = '#' + saleResult.sale_id;
+    document.getElementById('receipt-date').textContent    = now.toLocaleString();
+
+    const lines = document.getElementById('receipt-lines');
+    lines.innerHTML = '';
+
+    let subtotal = 0;
+    // Capture cart snapshot before clearing
+    const snapshot = [...cart];
+    snapshot.forEach(it => {
+        subtotal += it.price * it.qty;
+        lines.innerHTML += `
+            <div class="receipt-line">
+                <span class="receipt-line-name">${it.name}</span>
+                <span class="receipt-line-qty">x${it.qty}</span>
+                <span class="receipt-line-price">$${fmt(it.price * it.qty)}</span>
+            </div>`;
+    });
+
+    const total  = saleResult.total_cents / 100;
+    const paid   = parseFloat(document.getElementById('paid-amount')?.value || total);
+    const change = saleResult.change_cents / 100;
+
+    document.getElementById('receipt-subtotal').textContent = fmt(subtotal);
+    document.getElementById('receipt-total').textContent    = fmt(total);
+    document.getElementById('receipt-payment').textContent  = paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+    document.getElementById('receipt-paid').textContent     = fmt(paid);
+    document.getElementById('receipt-change').textContent   = fmt(change);
+
+    const changeRow = document.getElementById('receipt-change-row');
+    changeRow.style.display = paymentMethod === 'cash' ? 'block' : 'none';
+
+    document.getElementById('receipt-modal').classList.add('open');
+}
+
+async function viewReceipt(saleId) {
+    const resp = await fetch(`/admin/salespoint/sale/${saleId}`);
+    const j    = await resp.json();
+
+    document.getElementById('receipt-sale-id').textContent = '#' + saleId;
+    document.getElementById('receipt-date').textContent    = 'Historical Record';
+
+    const lines = document.getElementById('receipt-lines');
+    lines.innerHTML = '';
+    let subtotal = 0;
+
+    j.items.forEach(it => {
+        const lineTotal = (it.price_cents / 100) * it.qty;
+        subtotal += lineTotal;
+        lines.innerHTML += `
+            <div class="receipt-line">
+                <span class="receipt-line-name">${it.name}</span>
+                <span class="receipt-line-qty">x${it.qty}</span>
+                <span class="receipt-line-price">$${fmt(lineTotal)}</span>
+            </div>`;
+    });
+
+    document.getElementById('receipt-subtotal').textContent = fmt(subtotal);
+    document.getElementById('receipt-total').textContent    = fmt(subtotal);
+    document.getElementById('receipt-payment').textContent  = '—';
+    document.getElementById('receipt-paid').textContent     = '—';
+    document.getElementById('receipt-change-row').style.display = 'none';
+
+    document.getElementById('receipt-modal').classList.add('open');
+}
+
+function closeReceipt() {
+    document.getElementById('receipt-modal').classList.remove('open');
+    location.reload();   // refresh stock counts after a new sale
+}
+
+/* ── close modal on backdrop click ── */
+document.getElementById('receipt-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeReceipt();
+});
+
+/* ════════════════════════════
+   TOAST HELPER
+════════════════════════════ */
+function showToast(msg, type='info') {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    Object.assign(t.style, {
+        position:'fixed', bottom:'24px', right:'24px', zIndex:'9999',
+        padding:'12px 18px', borderRadius:'8px', fontWeight:'600', fontSize:'13px',
+        background: type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : type === 'success' ? '#10b981' : '#6366f1',
+        color:'white', boxShadow:'0 4px 20px rgba(0,0,0,.4)',
+        animation:'fadeIn .2s ease'
+    });
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
 </script>
 {% endblock %}

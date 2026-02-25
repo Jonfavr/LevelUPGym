@@ -1,0 +1,366 @@
+<!-- templates/admin/announcements.html -->
+{% extends "admin/base.html" %}
+
+{% block title %}Announcements — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ann-layout {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 20px;
+        align-items: start;
+    }
+
+    @media (max-width: 900px) { .ann-layout { grid-template-columns: 1fr; } }
+
+    /* ── Announcement Card ── */
+    .ann-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 12px;
+        transition: border-color .2s;
+        position: relative;
+    }
+
+    .ann-card:hover { border-color: var(--border-accent); }
+
+    .ann-card.pinned {
+        border-color: var(--amber);
+        box-shadow: 0 0 0 1px rgba(245,158,11,.2);
+    }
+
+    /* Type accent stripe */
+    .ann-card::before {
+        content: '';
+        position: absolute; top: 0; left: 0;
+        width: 4px; height: 100%;
+    }
+
+    .ann-card.type-info::before      { background: var(--accent); }
+    .ann-card.type-warning::before   { background: var(--amber); }
+    .ann-card.type-success::before   { background: var(--emerald); }
+    .ann-card.type-urgent::before    { background: var(--red); }
+    .ann-card.type-event::before     { background: #a855f7; }
+
+    .ann-card-body { padding: 16px 16px 16px 22px; }
+
+    .ann-top {
+        display: flex; align-items: flex-start;
+        justify-content: space-between; gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .ann-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+    .ann-type-badge {
+        padding: 3px 9px; border-radius: 12px;
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    }
+
+    .badge-info    { background: rgba(99,102,241,.15); color: var(--accent); border: 1px solid rgba(99,102,241,.3); }
+    .badge-warning { background: rgba(245,158,11,.15); color: var(--amber);  border: 1px solid rgba(245,158,11,.3); }
+    .badge-success { background: rgba(16,185,129,.15); color: var(--emerald);border: 1px solid rgba(16,185,129,.3); }
+    .badge-urgent  { background: rgba(239,68,68,.15);  color: var(--red);    border: 1px solid rgba(239,68,68,.3); }
+    .badge-event   { background: rgba(168,85,247,.15); color: #a855f7;       border: 1px solid rgba(168,85,247,.3); }
+
+    .pin-badge {
+        background: rgba(245,158,11,.12); color: var(--amber);
+        border: 1px solid rgba(245,158,11,.3);
+        padding: 3px 8px; border-radius: 12px;
+        font-size: 10px; font-weight: 700;
+        display: flex; align-items: center; gap: 4px;
+    }
+
+    .ann-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .ann-title {
+        font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700;
+        color: var(--text-primary); margin-bottom: 4px;
+    }
+
+    .ann-body {
+        font-size: 13px; color: var(--text-secondary);
+        line-height: 1.6; margin-bottom: 10px;
+    }
+
+    .ann-meta {
+        font-size: 11px; color: var(--text-muted);
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+
+    .ann-meta i { font-size: 10px; }
+
+    /* ── Create Panel ── */
+    .create-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        position: sticky; top: 24px;
+    }
+
+    .create-panel-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+    }
+
+    .create-panel-header h3 {
+        font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .create-panel-body { padding: 20px; }
+
+    /* Type selector grid */
+    .type-grid {
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .type-opt {
+        padding: 8px 4px; border-radius: var(--radius-md);
+        border: 1px solid var(--border); background: var(--bg-elevated);
+        text-align: center; cursor: pointer; transition: all .15s;
+        font-size: 10px; font-weight: 600; color: var(--text-muted);
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+
+    .type-opt i { font-size: 16px; }
+    .type-opt:hover { border-color: var(--border-accent); color: var(--text-primary); }
+
+    .type-opt.selected-info    { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .type-opt.selected-warning { border-color: var(--amber);  color: var(--amber);  background: rgba(245,158,11,.1); }
+    .type-opt.selected-success { border-color: var(--emerald);color: var(--emerald);background: rgba(16,185,129,.1); }
+    .type-opt.selected-urgent  { border-color: var(--red);    color: var(--red);    background: rgba(239,68,68,.1); }
+    .type-opt.selected-event   { border-color: #a855f7;       color: #a855f7;       background: rgba(168,85,247,.1); }
+
+    /* Pin toggle */
+    .pin-toggle {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-radius: var(--radius-md);
+        border: 1px solid var(--border); background: var(--bg-elevated);
+        cursor: pointer; margin-bottom: 16px; transition: border-color .15s;
+    }
+
+    .pin-toggle:hover { border-color: var(--amber); }
+    .pin-toggle input { width: auto; accent-color: var(--amber); }
+    .pin-toggle label { font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+
+    /* ── Empty state ── */
+    .ann-empty {
+        background: var(--bg-surface); border: 2px dashed var(--border);
+        border-radius: var(--radius-lg); padding: 60px 20px; text-align: center;
+    }
+
+    .ann-empty i { font-size: 40px; color: var(--text-muted); margin-bottom: 12px; display: block; }
+    .ann-empty p { color: var(--text-muted); font-size: 14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="section-header" style="margin-bottom:24px;">
+    <div>
+        <div class="section-title">
+            <div class="title-icon"><i class="fa-solid fa-bullhorn"></i></div>
+            Announcements
+        </div>
+        <div class="section-subtitle">
+            {{ announcements | length }} announcement{{ 's' if announcements | length != 1 }}
+            {% if announcements | selectattr('is_pinned') | list | length > 0 %}
+            · {{ announcements | selectattr('is_pinned') | list | length }} pinned
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="ann-layout">
+
+    <!-- ── LEFT: Feed ── -->
+    <div>
+
+        {% if announcements %}
+
+        <!-- Pinned first -->
+        {% for ann in announcements if ann.is_pinned %}
+        <div class="ann-card pinned type-{{ ann.ann_type }}">
+            <div class="ann-card-body">
+                <div class="ann-top">
+                    <div class="ann-badges">
+                        <span class="ann-type-badge badge-{{ ann.ann_type }}">
+                            {% if ann.ann_type == 'info' %}ℹ️ Info
+                            {% elif ann.ann_type == 'warning' %}⚠️ Warning
+                            {% elif ann.ann_type == 'success' %}✅ Good News
+                            {% elif ann.ann_type == 'urgent' %}🚨 Urgent
+                            {% elif ann.ann_type == 'event' %}🎉 Event
+                            {% endif %}
+                        </span>
+                        <span class="pin-badge"><i class="fa-solid fa-thumbtack"></i> Pinned</span>
+                    </div>
+                    <div class="ann-actions">
+                        <form method="POST" action="{{ url_for('admin_toggle_pin_announcement', ann_id=ann.ann_id) }}">
+                            <button type="submit" class="btn btn-ghost btn-sm" title="Unpin">
+                                <i class="fa-solid fa-thumbtack"></i>
+                            </button>
+                        </form>
+                        <form method="POST"
+                              action="{{ url_for('admin_delete_announcement', ann_id=ann.ann_id) }}"
+                              onsubmit="return confirm('Delete this announcement?')">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="ann-title">{{ ann.title }}</div>
+                <div class="ann-body">{{ ann.body }}</div>
+                <div class="ann-meta">
+                    <span><i class="fa-regular fa-calendar"></i> {{ ann.created_at }}</span>
+                    <span><i class="fa-solid fa-eye"></i> Visible to all clients</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Then unpinned -->
+        {% for ann in announcements if not ann.is_pinned %}
+        <div class="ann-card type-{{ ann.ann_type }}">
+            <div class="ann-card-body">
+                <div class="ann-top">
+                    <div class="ann-badges">
+                        <span class="ann-type-badge badge-{{ ann.ann_type }}">
+                            {% if ann.ann_type == 'info' %}ℹ️ Info
+                            {% elif ann.ann_type == 'warning' %}⚠️ Warning
+                            {% elif ann.ann_type == 'success' %}✅ Good News
+                            {% elif ann.ann_type == 'urgent' %}🚨 Urgent
+                            {% elif ann.ann_type == 'event' %}🎉 Event
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="ann-actions">
+                        <form method="POST" action="{{ url_for('admin_toggle_pin_announcement', ann_id=ann.ann_id) }}">
+                            <button type="submit" class="btn btn-ghost btn-sm" title="Pin">
+                                <i class="fa-regular fa-thumbtack"></i>
+                            </button>
+                        </form>
+                        <form method="POST"
+                              action="{{ url_for('admin_delete_announcement', ann_id=ann.ann_id) }}"
+                              onsubmit="return confirm('Delete this announcement?')">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="ann-title">{{ ann.title }}</div>
+                <div class="ann-body">{{ ann.body }}</div>
+                <div class="ann-meta">
+                    <span><i class="fa-regular fa-calendar"></i> {{ ann.created_at }}</span>
+                    <span><i class="fa-solid fa-eye"></i> Visible to all clients</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% else %}
+        <div class="ann-empty">
+            <i class="fa-solid fa-bullhorn"></i>
+            <p>No announcements yet. Create one to notify your clients.</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- ── RIGHT: Create Panel ── -->
+    <div class="create-panel">
+        <div class="create-panel-header">
+            <h3><i class="fa-solid fa-pen-to-square" style="color:var(--accent); margin-right:6px;"></i>New Announcement</h3>
+        </div>
+        <div class="create-panel-body">
+            <form method="POST" action="{{ url_for('admin_create_announcement') }}">
+
+                <!-- Type selector -->
+                <div class="form-group">
+                    <label>Type</label>
+                    <div class="type-grid">
+                        <div class="type-opt selected-info" data-type="info" onclick="selectType(this)">
+                            <i class="fa-solid fa-circle-info"></i> Info
+                        </div>
+                        <div class="type-opt" data-type="warning" onclick="selectType(this)">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Warn
+                        </div>
+                        <div class="type-opt" data-type="success" onclick="selectType(this)">
+                            <i class="fa-solid fa-circle-check"></i> Good
+                        </div>
+                        <div class="type-opt" data-type="urgent" onclick="selectType(this)">
+                            <i class="fa-solid fa-siren-on"></i> Urgent
+                        </div>
+                        <div class="type-opt" data-type="event" onclick="selectType(this)">
+                            <i class="fa-solid fa-calendar-star"></i> Event
+                        </div>
+                    </div>
+                    <input type="hidden" name="ann_type" id="ann_type_input" value="info">
+                </div>
+
+                <!-- Title -->
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" name="title" placeholder="e.g. Gym closed Sunday" required>
+                </div>
+
+                <!-- Body -->
+                <div class="form-group">
+                    <label>Message *</label>
+                    <textarea name="body" rows="4"
+                              placeholder="Write your announcement here…"
+                              style="resize:vertical;" required></textarea>
+                </div>
+
+                <!-- Expires at (optional) -->
+                <div class="form-group">
+                    <label>Expires (optional)</label>
+                    <input type="date" name="expires_at"
+                           min="{{ today }}">
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                        Leave blank to show indefinitely.
+                    </div>
+                </div>
+
+                <!-- Pin toggle -->
+                <div class="pin-toggle">
+                    <input type="checkbox" name="is_pinned" id="is_pinned_chk" value="1">
+                    <label for="is_pinned_chk">
+                        <i class="fa-solid fa-thumbtack" style="color:var(--amber); margin-right:4px;"></i>
+                        Pin to top of client dashboard
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%;">
+                    <i class="fa-solid fa-bullhorn"></i> Publish Announcement
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectType(el) {
+    const type = el.dataset.type;
+    document.querySelectorAll('.type-opt').forEach(o => {
+        o.className = 'type-opt';   // reset
+    });
+    el.classList.add('selected-' + type);
+    document.getElementById('ann_type_input').value = type;
+}
+</script>
+{% endblock %}

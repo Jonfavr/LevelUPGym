@@ -987,6 +987,10 @@
     </nav>
 
     <div class="sidebar-footer">
+        <a href="{{ url_for('admin_announcements') }}"
+        class=" nav-item {% if request.endpoint == 'admin_announcements' %}active{% endif %}">
+            <i class="fa-solid fa-bullhorn"></i> Announcements
+        </a>
         <a href="{{ url_for('admin_logout') }}" class="nav-item-logout">
             <i class="fa-solid fa-right-from-bracket"></i>
             Sign Out
