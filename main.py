@@ -1604,6 +1604,26 @@ def api_announcements():
     """Return active announcements as JSON for the client portal."""
     return jsonify({'announcements': _get_announcements()})
 
+@app.route('/kiosk/leaderboard')
+def kiosk_leaderboard():
+    """
+    Public leaderboard kiosk page.
+    Renders as a standalone full-screen page (no admin sidebar).
+    Designed to be displayed on a gym TV/monitor.
+    """
+    from controllers.leaderboard_controller import LeaderboardController
+    leaderboard = LeaderboardController()
+
+    top_exp     = leaderboard.get_top_exp(limit=10)
+    top_reps    = leaderboard.get_top_reps(limit=10)
+    top_streaks = leaderboard.get_top_streaks(limit=10)
+
+    return render_template(
+        'kiosk/leaderboard_kiosk.html',
+        top_exp=top_exp,
+        top_reps=top_reps,
+        top_streaks=top_streaks
+    )
 
 if __name__ == '__main__':
     local_ip = get_local_ip()

@@ -417,6 +417,46 @@
         display: flex; gap: 10px; padding: 14px 20px;
         border-top: 1px solid var(--border);
     }
+
+    /* ══════════════════════════════════════
+    PRINT STYLES — isolate receipt only
+    When window.print() is called, only
+    the .receipt-modal is rendered.
+    ══════════════════════════════════════ */
+    @media print {
+        /* 1. Hide every direct child of body (sidebar, topbar, page content) */
+        body > *                  { display: none !important; }
+
+        /* 2. Un-hide the modal overlay and its children */
+        #receipt-modal            { display: block !important;
+                                    position: static !important;
+                                    background: transparent !important;
+                                    inset: auto !important;
+                                    backdrop-filter: none !important; }
+
+        /* 3. Strip decorative chrome from the modal box */
+        .receipt-modal            { box-shadow: none !important;
+                                    border: none !important;
+                                    border-radius: 0 !important;
+                                    max-width: 100% !important;
+                                    width: 100% !important;
+                                    animation: none !important;
+                                    page-break-inside: avoid; }
+
+        /* 4. Keep accent colour on most printers */
+        .receipt-top              { -webkit-print-color-adjust: exact;
+                                    print-color-adjust: exact; }
+
+        /* 5. Readable text on white paper */
+        .receipt-body             { background: white !important; }
+        .receipt-line-name        { color: #333 !important; }
+        .receipt-line-qty         { color: #666 !important; }
+        .receipt-total-label      { color: #555 !important; }
+        .receipt-total-val        { color: #111 !important; }
+        .receipt-divider          { border-top-color: #ccc !important; }
+
+        /* 6. Don't print the Close / Print buttons */
+        .receipt-actions          { display: none !important; }
 </style>
 {% endblock %}
 
@@ -690,7 +730,7 @@
             <button class="btn btn-ghost" style="flex:1;" onclick="closeReceipt()">
                 <i class="fa-solid fa-xmark"></i> Close
             </button>
-            <button class="btn btn-primary" style="flex:1;" onclick="window.print()">
+            <button class="btn btn-primary" style="flex:1;" onclick="printReceipt()">
                 <i class="fa-solid fa-print"></i> Print
             </button>
         </div>
@@ -963,6 +1003,15 @@ function showToast(msg, type='info') {
     });
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
+}
+
+/* ── Print Receipt ──
+    Wraps window.print() so we can do any pre-print
+    work (e.g. ensuring modal is open) in one place. */
+function printReceipt() {
+    const modal = document.getElementById('receipt-modal');
+    if (!modal.classList.contains('open')) return; // safety check
+    window.print();
 }
 </script>
 {% endblock %}

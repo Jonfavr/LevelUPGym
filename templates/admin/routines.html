@@ -176,6 +176,48 @@
 
     .modal-sub { font-size: 12.5px; color: var(--text-muted); margin-bottom: 20px; }
     .modal-footer { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+
+    /* ══════════════════════════════════════
+        ROUTINE SEARCH BAR
+    ══════════════════════════════════════ */
+    .routine-search-wrap {
+        position: relative;
+        flex: 1;
+        max-width: 420px;
+    }
+
+    .routine-search-wrap i {
+        position: absolute;
+        left: 13px; top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 13px;
+        pointer-events: none;
+    }
+
+    .routine-search-wrap input {
+        width: 100%;
+        padding-left: 38px;
+        height: 40px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        font-family: 'DM Sans', sans-serif;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .routine-search-wrap input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .routine-search-wrap input::placeholder { color: var(--text-muted); }
+
+    /* Cards hidden by search */
+    .routine-card.hidden-by-search { display: none !important; }
 </style>
 {% endblock %}
 
@@ -193,6 +235,44 @@
     <button class="btn btn-primary" id="open-create-modal">
         <i class="fa-solid fa-plus"></i> New Routine
     </button>
+</div>
+
+<!-- ── Search Bar ── -->
+<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+
+    <div class="routine-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input
+            type="text"
+            id="routineSearch"
+            placeholder="Search routines by name or description…"
+            autocomplete="off">
+    </div>
+
+    <div style="margin-left:auto; font-size:12px; color:var(--text-muted);">
+        Showing <strong id="routineVisibleCount">{{ routines | length }}</strong>
+        of {{ routines | length }} routine{{ 's' if routines | length != 1 }}
+    </div>
+
+</div>
+
+<!-- No-results message -->
+<div id="routineNoResults" style="display:none; margin-bottom:20px;">
+    <div style="
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--text-muted);">
+        <i class="fa-solid fa-magnifying-glass" style="font-size:28px; margin-bottom:12px; display:block; opacity:.4;"></i>
+        <p style="font-size:14px; margin-bottom:14px;">
+            No routines match <strong id="routineSearchTerm" style="color:var(--text-primary);"></strong>
+        </p>
+        <button class="btn btn-ghost btn-sm" onclick="clearRoutineSearch()">
+            <i class="fa-solid fa-xmark"></i> Clear search
+        </button>
+    </div>
 </div>
 
 <!-- Routines Grid -->
@@ -299,5 +379,56 @@ const closeBtn = document.getElementById('close-modal');
 openBtns.forEach(b => b?.addEventListener('click', () => modal.classList.add('open')));
 closeBtn?.addEventListener('click', () => modal.classList.remove('open'));
 modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+/* ════════════════════════════
+    ROUTINE SEARCH
+════════════════════════════ */
+(function () {
+    const searchInput  = document.getElementById('routineSearch');
+    const visibleCount = document.getElementById('routineVisibleCount');
+    const noResults    = document.getElementById('routineNoResults');
+    const searchTermEl = document.getElementById('routineSearchTerm');
+
+    // Real cards only — exclude the dashed "Create New" card
+    const cards    = document.querySelectorAll('.routine-card:not(.routine-card-new)');
+    const newCard  = document.querySelector('.routine-card-new');
+    const total    = cards.length;
+
+    function filter() {
+        const q = searchInput.value.toLowerCase().trim();
+        let visible = 0;
+
+        cards.forEach(card => {
+            const name = (card.querySelector('.routine-card-name')?.textContent || '').toLowerCase();
+            const desc = (card.querySelector('.routine-card-desc')?.textContent || '').toLowerCase();
+            const match = !q || name.includes(q) || desc.includes(q);
+
+            card.classList.toggle('hidden-by-search', !match);
+            if (match) visible++;
+        });
+
+        visibleCount.textContent = visible;
+
+        const hasQuery = q.length > 0;
+        noResults.style.display = (hasQuery && visible === 0) ? 'block' : 'none';
+        if (searchTermEl) searchTermEl.textContent = `"${q}"`;
+
+        // Hide "Create New" dashed card while searching to keep results clean
+        if (newCard) newCard.style.display = hasQuery ? 'none' : '';
+    }
+
+    searchInput.addEventListener('input', filter);
+
+    // Escape key clears search
+    searchInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { searchInput.value = ''; filter(); searchInput.blur(); }
+    });
+
+    window.clearRoutineSearch = function () {
+        searchInput.value = '';
+        filter();
+        searchInput.focus();
+    };
+})();
 </script>
 {% endblock %}

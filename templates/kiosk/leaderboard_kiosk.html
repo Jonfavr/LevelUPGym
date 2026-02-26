@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LevelUp Gym — Leaderboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* ═══════════════════════════════
+           DESIGN TOKENS
+        ═══════════════════════════════ */
+        :root {
+            --bg-base:      #0b0d14;
+            --bg-surface:   #12151f;
+            --bg-elevated:  #1a1e2e;
+            --bg-hover:     #212540;
+
+            --accent:       #667eea;
+            --accent-glow:  rgba(102,126,234,0.25);
+            --accent-2:     #764ba2;
+
+            --emerald:      #10b981;
+            --amber:        #fbbf24;
+            --red:          #ef4444;
+
+            --text-primary: #f0f2ff;
+            --text-secondary:#8b8fa8;
+            --text-muted:   #555975;
+
+            --border:       rgba(255,255,255,0.06);
+            --radius-sm:    8px;
+            --radius-md:    12px;
+            --radius-lg:    16px;
+        }
+
+        /* ═══════════════════════════════
+           RESET & FULL SCREEN LOCK
+        ═══════════════════════════════ */
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        /* Subtle grid texture */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(102,126,234,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102,126,234,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ═══════════════════════════════
+           LAYOUT — header + body
+        ═══════════════════════════════ */
+        .kiosk-wrap {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* ── Top header bar ── */
+        .kiosk-header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            height: 80px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .kiosk-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--amber));
+        }
+
+        .kiosk-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .kiosk-logo-icon {
+            width: 48px; height: 48px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+        }
+
+        .kiosk-logo img {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(124,92,252,0.5));
+        }
+
+        .kiosk-logo-text {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .kiosk-logo-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Category tabs in header */
+        .kiosk-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .kiosk-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border-radius: var(--radius-md);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: default;
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            transition: all 0.5s ease;
+        }
+
+        .kiosk-tab.active-exp    { background: rgba(102,126,234,0.15); border-color: rgba(102,126,234,0.4); color: var(--accent); }
+        .kiosk-tab.active-reps   { background: rgba(16,185,129,0.15);  border-color: rgba(16,185,129,0.4);  color: var(--emerald); }
+        .kiosk-tab.active-streaks{ background: rgba(251,191,36,0.15);  border-color: rgba(251,191,36,0.4);  color: var(--amber); }
+
+        /* Clock in header */
+        .kiosk-clock {
+            text-align: right;
+        }
+
+        .kiosk-time {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .kiosk-date {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Progress bar (auto-advance timer) ── */
+        .kiosk-progress-bar {
+            flex-shrink: 0;
+            height: 3px;
+            background: var(--bg-hover);
+            overflow: hidden;
+        }
+
+        .kiosk-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            width: 0%;
+            transition: width linear;
+        }
+
+        /* ── Main content area ── */
+        .kiosk-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─────────────────────────────
+           PANELS — only one visible
+        ───────────────────────────── */
+        .kiosk-panel {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            animation: fadeSlideIn 0.6s cubic-bezier(0.22,1,0.36,1);
+        }
+
+        .kiosk-panel.active { display: flex; }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ═══════════════════════════════
+           PODIUM SECTION
+        ═══════════════════════════════ */
+        .podium-section {
+            flex-shrink: 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 20px;
+            padding: 24px 40px 0;
+            background: linear-gradient(180deg, var(--bg-elevated) 0%, transparent 100%);
+        }
+
+        .podium-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .podium-avatar {
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+            border: 3px solid transparent;
+            position: relative;
+        }
+
+        .podium-slot.rank-1 .podium-avatar {
+            width: 90px; height: 90px; font-size: 34px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-color: #f59e0b;
+            box-shadow: 0 0 30px rgba(245,158,11,0.5);
+        }
+
+        .podium-slot.rank-2 .podium-avatar {
+            width: 72px; height: 72px; font-size: 26px;
+            background: linear-gradient(135deg, #94a3b8, #64748b);
+            border-color: #94a3b8;
+            box-shadow: 0 0 20px rgba(148,163,184,0.3);
+        }
+
+        .podium-slot.rank-3 .podium-avatar {
+            width: 64px; height: 64px; font-size: 22px;
+            background: linear-gradient(135deg, #cd7c4a, #92400e);
+            border-color: #cd7c4a;
+            box-shadow: 0 0 20px rgba(180,83,9,0.3);
+        }
+
+        /* Crown on rank 1 */
+        .podium-slot.rank-1 .podium-avatar::before {
+            content: '👑';
+            position: absolute;
+            top: -22px;
+            font-size: 20px;
+        }
+
+        .podium-name {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+            text-align: center;
+            max-width: 110px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .podium-value {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .podium-slot.rank-1 .podium-value { font-size: 22px; color: #f59e0b; }
+        .podium-slot.rank-2 .podium-value { font-size: 18px; color: #94a3b8; }
+        .podium-slot.rank-3 .podium-value { font-size: 16px; color: #cd7c4a; }
+
+        .podium-block {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 20px;
+            font-weight: 900;
+            color: rgba(255,255,255,0.4);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            animation: podiumRise 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+
+        .podium-slot.rank-1 .podium-block { height: 80px; width: 140px; background: linear-gradient(180deg, rgba(245,158,11,0.3), rgba(245,158,11,0.1)); border: 1px solid rgba(245,158,11,0.3); animation-delay: 0.1s; }
+        .podium-slot.rank-2 .podium-block { height: 56px; width: 120px; background: linear-gradient(180deg, rgba(148,163,184,0.2), rgba(148,163,184,0.05)); border: 1px solid rgba(148,163,184,0.2); animation-delay: 0.0s; }
+        .podium-slot.rank-3 .podium-block { height: 40px; width: 110px; background: linear-gradient(180deg, rgba(180,83,9,0.2), rgba(180,83,9,0.05)); border: 1px solid rgba(180,83,9,0.2); animation-delay: 0.2s; }
+
+        @keyframes podiumRise {
+            from { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+            to   { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+        }
+
+        /* ═══════════════════════════════
+           RANKED LIST (fills remaining height)
+        ═══════════════════════════════ */
+        .kiosk-list-wrap {
+            flex: 1;
+            overflow: hidden;
+            padding: 16px 40px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .kiosk-list-header {
+            display: grid;
+            grid-template-columns: 60px 1fr 160px;
+            gap: 12px;
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .kiosk-list {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .kiosk-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 160px;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 16px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .kiosk-row:hover { border-color: var(--border-accent); }
+
+        .kiosk-row.top-1 { border-left: 4px solid #f59e0b; background: rgba(245,158,11,0.05); }
+        .kiosk-row.top-2 { border-left: 4px solid #94a3b8; background: rgba(148,163,184,0.04); }
+        .kiosk-row.top-3 { border-left: 4px solid #cd7c4a; background: rgba(180,83,9,0.04); }
+
+        .rank-badge {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px; font-weight: 700;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .kiosk-row.top-1 .rank-badge { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.4); color: #f59e0b; }
+        .kiosk-row.top-2 .rank-badge { background: rgba(148,163,184,0.15); border-color: rgba(148,163,184,0.4); color: #94a3b8; }
+        .kiosk-row.top-3 .rank-badge { background: rgba(180,83,9,0.12);    border-color: rgba(180,83,9,0.4);    color: #cd7c4a; }
+
+        .kiosk-client {
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .kiosk-mini-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px; font-weight: 700;
+            color: white; flex-shrink: 0;
+        }
+
+        .kiosk-client-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .kiosk-client-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .kiosk-score {
+            text-align: right;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .kiosk-score-unit {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 2px;
+        }
+
+        /* ═══════════════════════════════
+           EMPTY STATE
+        ═══════════════════════════════ */
+        .kiosk-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-muted);
+        }
+
+        .kiosk-empty i { font-size: 48px; opacity: 0.3; }
+        .kiosk-empty p { font-size: 16px; }
+
+        /* ═══════════════════════════════
+           CATEGORY TITLE BANNER
+        ═══════════════════════════════ */
+        .category-banner {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 40px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .category-icon {
+            width: 40px; height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+
+        .category-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .category-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="kiosk-wrap">
+
+    <!-- ══ HEADER ══ -->
+    <header class="kiosk-header">
+
+        <div class="kiosk-logo">
+            <img src="/static/image/Untitled design - Copy.png" alt="LevelUp">
+            <div>
+                <div class="kiosk-logo-text">LEVELUP</div>
+                <div class="kiosk-logo-sub">Leaderboard</div>
+            </div>
+        </div>
+
+        <div class="kiosk-tabs">
+            <div class="kiosk-tab" id="tab-btn-exp">
+                <i class="fa-solid fa-bolt"></i> EXP
+            </div>
+            <div class="kiosk-tab" id="tab-btn-reps">
+                <i class="fa-solid fa-dumbbell"></i> Reps
+            </div>
+            <div class="kiosk-tab" id="tab-btn-streaks">
+                <i class="fa-solid fa-fire"></i> Streaks
+            </div>
+        </div>
+
+        <div class="kiosk-clock">
+            <div class="kiosk-time" id="clock-time">--:--</div>
+            <div class="kiosk-date" id="clock-date">---</div>
+        </div>
+
+    </header>
+
+    <!-- ── Auto-advance progress bar ── -->
+    <div class="kiosk-progress-bar">
+        <div class="kiosk-progress-fill" id="progress-fill"></div>
+    </div>
+
+    <!-- ══ PANELS ══ -->
+    <div class="kiosk-body">
+
+        <!-- ─ EXP Panel ─ -->
+        {% set panels = [
+            ('exp',     top_exp,     'total_exp',     'EXP',  '#667eea', 'fa-bolt',     'Top Earners by Experience', 'Total experience points earned'),
+            ('reps',    top_reps,    'total_reps',    'reps', '#10b981', 'fa-dumbbell', 'Top Performers by Reps',    'Total repetitions logged'),
+            ('streaks', top_streaks, 'current_streak','days', '#fbbf24', 'fa-fire',     'Longest Active Streaks',    'Consecutive days training')
+        ] %}
+
+        {% for category, rows, score_key, unit, color, icon, title, desc in panels %}
+        <div class="kiosk-panel {% if loop.first %}active{% endif %}" id="panel-{{ category }}">
+
+            <!-- Category banner -->
+            <div class="category-banner">
+                <div class="category-icon" style="background: {{ color }}22; color: {{ color }};">
+                    <i class="fa-solid {{ icon }}"></i>
+                </div>
+                <div class="category-title" style="color: {{ color }};">{{ title }}</div>
+                <div class="category-desc">{{ desc }}</div>
+            </div>
+
+            {% if rows %}
+
+            <!-- Podium -->
+            <div class="podium-section">
+                {% for slot_rank in [2, 1, 3] %}
+                    {% set idx = slot_rank - 1 %}
+                    {% if rows | length > idx %}
+                    {% set row = rows[idx] %}
+                    <div class="podium-slot rank-{{ slot_rank }}">
+                        <div class="podium-avatar">{{ row.full_name[0] | upper }}</div>
+                        <div class="podium-name">{{ row.full_name.split(' ')[0] }}</div>
+                        <div class="podium-value" style="color:{{ color }};">
+                            {{ row[score_key] | default(0) }}
+                            <span style="font-size:12px; font-weight:500; color:var(--text-muted);">{{ unit }}</span>
+                        </div>
+                        <div class="podium-block">{{ slot_rank }}</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Ranked list -->
+            <div class="kiosk-list-wrap">
+                <div class="kiosk-list-header">
+                    <span>Rank</span>
+                    <span>Athlete</span>
+                    <span style="text-align:right;">Score</span>
+                </div>
+                <div class="kiosk-list">
+                    {% for row in rows %}
+                    {% if loop.index > 3 %} 
+                    <div class="kiosk-row {% if loop.index == 1 %}top-1{% elif loop.index == 2 %}top-2{% elif loop.index == 3 %}top-3{% endif %}">
+                        <div style="display:flex; justify-content:center;">
+                            <div class="rank-badge">{{ loop.index }}</div>
+                        </div>
+                        <div class="kiosk-client">
+                            <div class="kiosk-mini-avatar">{{ row.full_name[0] | upper }}</div>
+                            <div>
+                                <div class="kiosk-client-name">{{ row.full_name }}</div>
+                                <div class="kiosk-client-sub">Member #{{ row.client_id }}</div>
+                            </div>
+                        </div>
+                        <div class="kiosk-score" style="color:{{ color }};">
+                            {{ row[score_key] | default(0) }}<span class="kiosk-score-unit">{{ unit }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% else %}
+            <div class="kiosk-empty">
+                <i class="fa-solid {{ icon }}"></i>
+                <p>No data yet — keep training!</p>
+            </div>
+            {% endif %}
+
+        </div>
+        {% endfor %}
+
+    </div><!-- /kiosk-body -->
+</div><!-- /kiosk-wrap -->
+
+<script>
+/* ════════════════════════════════════════
+   CLOCK
+════════════════════════════════════════ */
+function updateClock() {
+    const now  = new Date();
+    const hh   = String(now.getHours()).padStart(2, '0');
+    const mm   = String(now.getMinutes()).padStart(2, '0');
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    document.getElementById('clock-time').textContent = `${hh}:${mm}`;
+    document.getElementById('clock-date').textContent =
+        `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ════════════════════════════════════════
+   AUTO-ROTATING TABS
+   Cycles: EXP → Reps → Streaks → EXP …
+   Each tab shows for ROTATION_MS milliseconds
+════════════════════════════════════════ */
+const ROTATION_MS = 12000;   // 12 seconds per tab — adjust freely
+const categories  = ['exp', 'reps', 'streaks'];
+let   current     = 0;
+let   progressStart = null;
+let   progressRaf   = null;
+
+function activateTab(idx) {
+    const cat = categories[idx];
+
+    // Update panels
+    document.querySelectorAll('.kiosk-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + cat)?.classList.add('active');
+
+    // Update header tab highlights — remove all active classes first
+    document.querySelectorAll('.kiosk-tab').forEach(t => {
+        t.className = 'kiosk-tab';
+    });
+    const btn = document.getElementById('tab-btn-' + cat);
+    if (btn) btn.classList.add('active-' + cat);
+}
+
+function startProgress() {
+    if (progressRaf) cancelAnimationFrame(progressRaf);
+    const fill = document.getElementById('progress-fill');
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+
+    progressStart = performance.now();
+
+    function tick(now) {
+        const elapsed = now - progressStart;
+        const pct     = Math.min((elapsed / ROTATION_MS) * 100, 100);
+        fill.style.width = pct + '%';
+
+        if (pct < 100) {
+            progressRaf = requestAnimationFrame(tick);
+        } else {
+            // Advance to next tab
+            current = (current + 1) % categories.length;
+            activateTab(current);
+            startProgress();
+        }
+    }
+
+    progressRaf = requestAnimationFrame(tick);
+}
+
+// Kick everything off
+activateTab(current);
+startProgress();
+</script>
+</body>
+</html>
