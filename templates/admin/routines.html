@@ -196,10 +196,10 @@
 </div>
 
 <!-- Routines Grid -->
-<div class="routines-grid">
+<div class="grid grid-3">
 
     {% for routine in routines %}
-    <div class="routine-card">
+    <div class="routine-card"  style="margin-bottom:24px;">
         <div class="routine-card-body">
             <div class="routine-card-name">{{ routine.routine_name }}</div>
             <div class="routine-card-desc">{{ routine.description or 'No description provided.' }}</div>

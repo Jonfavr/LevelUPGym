@@ -450,7 +450,7 @@
             </div>
         </div>
 
-        <div class="item-grid" id="item-grid">
+        <div class="item-grid" id="item-grid"  style="margin-bottom:24px;">
             {% for it in items %}
             {% set stock = it.stock %}
             <div class="item-card {% if stock == 0 %}out-of-stock{% endif %}"
