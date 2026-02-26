@@ -101,7 +101,7 @@ class Routine:
         db = DatabaseManager()
         query = '''
             SELECT re.*, e.name, e.description, e.exercise_type, 
-                   e.target_muscle, e.base_exp, e.image_path
+                   e.primary_muscle, e.complementary_muscle, e.base_exp, e.image_path
             FROM routine_exercises re
             JOIN exercises e ON re.exercise_id = e.exercise_id
             WHERE re.routine_id=?
@@ -117,7 +117,8 @@ class Routine:
                 'name': row['name'],
                 'description': row['description'],
                 'exercise_type': row['exercise_type'],
-                'target_muscle': row['target_muscle'],
+                'primary_muscle': row['primary_muscle'],
+                'complementary_muscle': row['complementary_muscle'],
                 'base_exp': row['base_exp'],
                 'image_path': row['image_path'],
                 'sets': row['sets'],
@@ -449,7 +450,7 @@ if __name__ == "__main__":
             print(f"  {i}. {ex['name']}")
             print(f"     {ex['sets']} sets × {ex['reps']} reps")
             print(f"     Rest: {ex['rest_seconds']}s")
-            print(f"     Target: {ex['target_muscle']}")
+            print(f"     Primary Muscle: {ex['primary_muscle']}")
             print(f"     Base EXP per set: {ex['base_exp']}")
             print()
     

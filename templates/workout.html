@@ -28,6 +28,8 @@
     :root {
         --brand: #7c5cfc;
         --brand-glow: rgba(124, 92, 252, 0.4);
+        --cyan: #00b0e5;
+        --cyan-glow: rgba(0, 164, 229, 0.35);
         --green: #00e5a0;
         --green-glow: rgba(0, 229, 160, 0.35);
         --amber: #ffb020;
@@ -238,6 +240,7 @@
     }
 
     .ex-tag.muscle { color: var(--brand); border-color: var(--brand-glow); background: rgba(124,92,252,0.12); }
+    .ex-tag.complementary { color: var(--cyan); border-color: var(--cyan-glow); background: rgba(92, 188, 252, 0.12); }
     .ex-tag.exp { color: var(--amber); border-color: rgba(255,176,32,0.3); background: rgba(255,176,32,0.1); }
 
     /* Inline swap button (sits next to view/hide) */
@@ -923,7 +926,10 @@
                 {% endif %}
 
                 <div class="ex-meta">
-                    <span class="ex-tag muscle">{{ exercise.target_muscle }}</span>
+                    <span class="ex-tag muscle">{{ exercise.primary_muscle }}</span>
+                    {% if exercise.complementary_muscle %}
+                    <span class="ex-tag complementary">{{ exercise.complementary_muscle }}</span>
+                    {% endif %}
                     <span class="ex-tag">{{ exercise.exercise_type.title() }}</span>
                     <span class="ex-tag exp">⚡ {{ exercise.base_exp }} EXP/set</span>
                 </div>
@@ -1520,7 +1526,7 @@ function openSwapModal(exerciseId, primaryMuscle, exerciseType, routineId, clien
     list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;">Loading alternatives...</div>';
     document.getElementById('swapModal').classList.add('active');
 
-    fetch(`/get_swap_options?exercise_id=${exerciseId}&target_muscle=${encodeURIComponent(primaryMuscle)}&exercise_type=${encodeURIComponent(exerciseType)}&routine_id=${routineId}&client_id=${clientId}`)
+    fetch(`/get_swap_options?exercise_id=${exerciseId}&primary_muscle=${encodeURIComponent(primaryMuscle)}&exercise_type=${encodeURIComponent(exerciseType)}&routine_id=${routineId}&client_id=${clientId}`)
         .then(r => r.json())
         .then(data => {
             if (data.options && data.options.length > 0) {
@@ -1528,7 +1534,7 @@ function openSwapModal(exerciseId, primaryMuscle, exerciseType, routineId, clien
                     <button class="swap-option" onclick="confirmSwap(${exerciseId}, ${opt.exercise_id})">
                         <strong>${opt.name}</strong><br>
                         <span style="color:var(--text-muted); font-size:12px;">
-                            ${opt.primary_muscle || opt.target_muscle || ''} · ${opt.exercise_type}
+                            ${opt.primary_muscle || opt.primary_muscle || ''} · ${opt.exercise_type}
                         </span>
                     </button>
                 `).join('');
