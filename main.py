@@ -486,22 +486,58 @@ def profile():
                          end_date=end_date,
                          days_left=days_left)
 
-@app.route("/api/get_similar_exercises")
+@app.route('/get_swap_options')
+@login_required
+def get_swap_options():
+    """Return exercise alternatives for the swap modal in workout.html"""
+    exercise_id    = request.args.get('exercise_id', type=int)
+    primary_muscle = request.args.get('primary_muscle', '')   # param name kept for JS compatibility
+    exercise_type  = request.args.get('exercise_type', '')
+
+    db = DatabaseManager()
+    query = """
+        SELECT exercise_id, name, primary_muscle, complementary_muscle,
+               exercise_type, difficulty_level, base_exp
+        FROM   exercises
+        WHERE  primary_muscle = ?
+          AND  exercise_type  = ?
+          AND  exercise_id   != ?
+        ORDER  BY name
+    """
+    rows = db.execute_query(query, (primary_muscle, exercise_type, exercise_id))
+
+    # If exact primary_muscle match gives nothing, broaden to same type only
+    if not rows:
+        query_broad = """
+            SELECT exercise_id, name, primary_muscle, complementary_muscle,
+                   exercise_type, difficulty_level, base_exp
+            FROM   exercises
+            WHERE  exercise_type = ?
+              AND  exercise_id  != ?
+            ORDER  BY name
+            LIMIT  8
+        """
+        rows = db.execute_query(query_broad, (exercise_type, exercise_id))
+
+    return jsonify({
+        'options': [dict(r) for r in rows]
+    })
+
+@app.route('/api/get_similar_exercises')
 def api_similar_exercises():
-    muscle = request.args.get("muscle")
-    ex_type = request.args.get("type")
-    exclude = request.args.get("exclude")
+    muscle     = request.args.get('muscle', '')
+    ex_type    = request.args.get('type', '')
+    exclude    = request.args.get('exclude', type=int)
 
     db = DatabaseManager()
     query = """
         SELECT * FROM exercises
-        WHERE target_muscle = ?
-        AND exercise_type = ?
-        AND exercise_id != ?
-        ORDER BY name
+        WHERE  primary_muscle = ?
+          AND  exercise_type  = ?
+          AND  exercise_id   != ?
+        ORDER  BY name
     """
     rows = db.execute_query(query, (muscle, ex_type, exclude))
-
     return jsonify([dict(r) for r in rows])
 
 @app.route("/api/swap_exercise", methods=["POST"])
@@ -922,45 +958,40 @@ def admin_add_exercise():
     if request.method == 'POST':
         try:
             exercise = Exercise(
-                name=request.form.get('name'),
-                description=request.form.get('description'),
-                exercise_type=request.form.get('type'),
-                target_muscle=request.form.get('muscle'),
-                difficulty_level=request.form.get('difficulty'),
-                base_exp=int(request.form.get('exp'))
+                name                 = request.form.get('name'),
+                description          = request.form.get('description'),
+                exercise_type        = request.form.get('type'),
+                primary_muscle       = request.form.get('primary_muscle'),
+                complementary_muscle = request.form.get('complementary_muscle') or None,
+                difficulty_level     = request.form.get('difficulty'),
+                base_exp             = int(request.form.get('exp', 10))
             )
             exercise.save()
             flash('Exercise created successfully!', 'success')
-            return redirect(url_for('admin_exercises'))
         except Exception as e:
-            flash(f'Error creating exercise: {str(e)}', 'error')
-    
-    return render_template('admin/exercise_form.html', exercise=None)
+            flash(f'Error adding exercise: {e}', 'error')
+    return redirect(url_for('admin_exercises'))
 
-@app.route('/admin/exercise/<int:exercise_id>/edit', methods=['GET', 'POST'])
+@app.route('/admin/exercise/<int:exercise_id>/edit', methods=['POST'])
 @admin_required
 def admin_edit_exercise(exercise_id):
-    """Edit exercise"""
+    """Save edits to an existing exercise (POST from inline modal)"""
     exercise = Exercise.get_by_id(exercise_id)
     if not exercise:
-        flash('Exercise not found', 'error')
+        flash('Exercise not found.', 'error')
         return redirect(url_for('admin_exercises'))
-    
-    if request.method == 'POST':
-        try:
-            exercise.name = request.form.get('name')
-            exercise.description = request.form.get('description')
-            exercise.exercise_type = request.form.get('type')
-            exercise.target_muscle = request.form.get('muscle')
-            exercise.difficulty_level = request.form.get('difficulty')
-            exercise.base_exp = int(request.form.get('exp'))
-            exercise.update()
-            flash('Exercise updated successfully!', 'success')
-            return redirect(url_for('admin_exercises'))
-        except Exception as e:
-            flash(f'Error updating exercise: {str(e)}', 'error')
-    
-    return render_template('admin/exercise_form.html', exercise=exercise)
+
+    exercise.name                 = request.form.get('name')
+    exercise.description          = request.form.get('description')
+    exercise.exercise_type        = request.form.get('type')
+    exercise.primary_muscle       = request.form.get('primary_muscle')
+    exercise.complementary_muscle = request.form.get('complementary_muscle') or None
+    exercise.difficulty_level     = request.form.get('difficulty')
+    exercise.base_exp             = int(request.form.get('exp', 10))
+
+    exercise.update()
+    flash(f'"{exercise.name}" updated successfully!', 'success')
+    return redirect(url_for('admin_exercises'))
 
 @app.route('/admin/exercise/<int:exercise_id>/delete', methods=['POST'])
 @admin_required
@@ -969,7 +1000,7 @@ def admin_delete_exercise(exercise_id):
     exercise = Exercise.get_by_id(exercise_id)
     if exercise:
         exercise.delete()
-        flash('Exercise deleted successfully', 'success')
+        flash('Exercise deleted.', 'success')
     return redirect(url_for('admin_exercises'))
 
 @app.route('/admin/routine_exercise/delete/<int:routine_exercise_id>', methods=['POST'])

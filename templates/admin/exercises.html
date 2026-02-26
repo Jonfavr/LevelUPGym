@@ -1,47 +1,827 @@
 <!-- templates/admin/exercises.html -->
 {% extends "admin/base.html" %}
 
-{% block title %}Exercises - Admin{% endblock %}
+{% block title %}Exercise Library — LevelUp Gym Admin{% endblock %}
+{% block page_title %}Exercise Library{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ══════════════════════════════════════
+       TOOLBAR
+    ══════════════════════════════════════ */
+    .ex-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .ex-search-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 220px;
+        max-width: 400px;
+    }
+
+    .ex-search-wrap i {
+        position: absolute;
+        left: 13px; top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted); font-size: 13px;
+        pointer-events: none;
+    }
+
+    .ex-search-wrap input {
+        width: 100%;
+        padding-left: 38px;
+        height: 40px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        font-family: 'DM Sans', sans-serif;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .ex-search-wrap input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .ex-search-wrap input::placeholder { color: var(--text-muted); }
+
+    /* Filter pills */
+    .ex-filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .ex-filter {
+        padding: 7px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    .ex-filter:hover  { border-color: var(--accent); color: var(--accent); }
+    .ex-filter.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+    /* Result count */
+    .ex-count {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    /* ══════════════════════════════════════
+       EXERCISE TABLE CARD
+    ══════════════════════════════════════ */
+    .ex-table-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .ex-table-header {
+        display: grid;
+        grid-template-columns: 40px 1fr 120px 150px 110px 80px 110px;
+        gap: 12px;
+        padding: 11px 20px;
+        background: var(--bg-elevated);
+        border-bottom: 1px solid var(--border);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--text-muted);
+    }
+
+    .ex-row {
+        display: grid;
+        grid-template-columns: 40px 1fr 120px 150px 110px 80px 110px;
+        gap: 12px;
+        align-items: center;
+        padding: 13px 20px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s;
+    }
+
+    .ex-row:last-child { border-bottom: none; }
+    .ex-row:hover { background: var(--bg-hover); }
+
+    .ex-row.hidden-row { display: none; }
+
+    /* ID badge */
+    .ex-id {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 12px; font-weight: 700;
+        color: var(--text-muted);
+        text-align: center;
+    }
+
+    /* Name cell */
+    .ex-name-cell { min-width: 0; }
+
+    .ex-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ex-desc-preview {
+        font-size: 11px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+    }
+
+    /* Type pill */
+    .ex-type-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    .ex-type-pill.strength  { background: rgba(102,126,234,0.12); border-color: rgba(102,126,234,0.3); color: var(--accent); }
+    .ex-type-pill.cardio    { background: rgba(239,68,68,0.12);   border-color: rgba(239,68,68,0.3);   color: var(--red); }
+    .ex-type-pill.power     { background: rgba(245,158,11,0.12);  border-color: rgba(245,158,11,0.3);  color: var(--amber); }
+    .ex-type-pill.core      { background: rgba(16,185,129,0.12);  border-color: rgba(16,185,129,0.3);  color: var(--emerald); }
+    .ex-type-pill.functional{ background: rgba(139,92,246,0.12);  border-color: rgba(139,92,246,0.3);  color: #8b5cf6; }
+    .ex-type-pill.hiit      { background: rgba(239,68,68,0.12);   border-color: rgba(239,68,68,0.3);   color: var(--red); }
+    .ex-type-pill.endurance { background: rgba(59,130,246,0.12);  border-color: rgba(59,130,246,0.3);  color: var(--blue); }
+    .ex-type-pill.flexibility{background: rgba(16,185,129,0.08);  border-color: rgba(16,185,129,0.2);  color: var(--emerald); }
+    .ex-type-pill.balance   { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.2);  color: var(--amber); }
+    .ex-type-pill.agility   { background: rgba(245,158,11,0.08);  border-color: rgba(245,158,11,0.2);  color: var(--amber); }
+
+    /* Muscle cell */
+    .ex-muscle-cell { min-width: 0; }
+
+    .ex-primary-muscle {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ex-comp-muscle {
+        font-size: 11px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+    }
+
+    /* Difficulty badge */
+    .diff-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 8px;
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .diff-badge.beginner     { background: rgba(16,185,129,0.12); color: var(--emerald); }
+    .diff-badge.intermediate { background: rgba(251,191,36,0.12); color: var(--amber); }
+    .diff-badge.advanced     { background: rgba(239,68,68,0.12);  color: var(--red); }
+
+    /* EXP cell */
+    .ex-exp {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Actions */
+    .ex-actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    /* ══════════════════════════════════════
+       EMPTY STATE
+    ══════════════════════════════════════ */
+    .ex-empty {
+        padding: 48px 20px;
+        text-align: center;
+        color: var(--text-muted);
+        display: none;
+    }
+
+    .ex-empty i { font-size: 36px; margin-bottom: 12px; display: block; opacity: .4; }
+    .ex-empty p { font-size: 14px; }
+
+    /* ══════════════════════════════════════
+       ADD / EDIT MODAL
+    ══════════════════════════════════════ */
+    .ex-modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(4px);
+        z-index: 300;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 40px 16px;
+        overflow-y: auto;
+    }
+
+    .ex-modal-overlay.open { display: flex; }
+
+    .ex-modal {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        width: 100%;
+        max-width: 640px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.93) translateY(16px); }
+        to   { opacity: 1; transform: scale(1)    translateY(0); }
+    }
+
+    .ex-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        position: relative;
+    }
+
+    .ex-modal-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+
+    .ex-modal-title {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 20px; font-weight: 700;
+        color: var(--text-primary);
+        display: flex; align-items: center; gap: 10px;
+    }
+
+    .ex-modal-close {
+        width: 32px; height: 32px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px;
+        transition: all 0.15s;
+    }
+
+    .ex-modal-close:hover { border-color: var(--red); color: var(--red); }
+
+    .ex-modal-body { padding: 24px; }
+
+    /* Two-column form grid */
+    .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-grid-2.full { grid-template-columns: 1fr; }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-group label {
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        font-family: 'DM Sans', sans-serif;
+        padding: 10px 12px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        width: 100%;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-group textarea { resize: vertical; min-height: 80px; }
+
+    .form-group select option { background: var(--bg-elevated); }
+
+    .form-section-divider {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+        margin: 20px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ex-modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        background: var(--bg-elevated);
+    }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════ */
+    @media (max-width: 900px) {
+        .ex-table-header,
+        .ex-row {
+            grid-template-columns: 40px 1fr 100px 90px 80px;
+        }
+        /* Hide description preview and comp muscle on small screens */
+        .ex-desc-preview,
+        .ex-comp-muscle,
+        .col-difficulty { display: none; }
+    }
+
+    @media (max-width: 600px) {
+        .form-grid-2 { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Exercise Library</h1>
-        <a href="{{ url_for('admin_add_exercise') }}" class="btn btn-primary">+ Add Exercise</a>
+
+<!-- ── Page Header ── -->
+<div class="section-header" style="margin-bottom:24px;">
+    <div>
+        <div class="section-title">
+            <div class="title-icon"><i class="fa-solid fa-dumbbell"></i></div>
+            Exercise Library
+        </div>
+        <div class="section-subtitle">{{ exercises | length }} exercise{{ 's' if exercises | length != 1 }}</div>
     </div>
+    <button class="btn btn-primary" id="open-add-modal">
+        <i class="fa-solid fa-plus"></i> Add Exercise
+    </button>
 </div>
 
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Target Muscle</th>
-                <th>Difficulty</th>
-                <th>Base EXP</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for exercise in exercises %}
-            <tr>
-                <td>{{ exercise.exercise_id }}</td>
-                <td><strong>{{ exercise.name }}</strong></td>
-                <td>{{ exercise.exercise_type or 'N/A' }}</td>
-                <td>{{ exercise.target_muscle or 'N/A' }}</td>
-                <td>{{ exercise.difficulty_level or 'N/A' }}</td>
-                <td><strong style="color: #667eea;">{{ exercise.base_exp }}</strong></td>
-                <td>
-                    <a href="{{ url_for('admin_edit_exercise', exercise_id=exercise.exercise_id) }}" class="btn btn-success btn-sm">Edit</a>
-                    <form method="POST" action="{{ url_for('admin_delete_exercise', exercise_id=exercise.exercise_id) }}" style="display: inline;" onsubmit="return confirm('Delete this exercise?')">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- ── Toolbar: Search + Filters ── -->
+<div class="ex-toolbar">
+
+    <div class="ex-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="ex-search" placeholder="Search by name, muscle or type…" autocomplete="off">
+    </div>
+
+    <div class="ex-filters">
+        <button class="ex-filter active" data-type="all">All</button>
+        <button class="ex-filter" data-type="strength">Strength</button>
+        <button class="ex-filter" data-type="cardio">Cardio</button>
+        <button class="ex-filter" data-type="power">Power</button>
+        <button class="ex-filter" data-type="core">Core</button>
+        <button class="ex-filter" data-type="functional">Functional</button>
+        <button class="ex-filter" data-type="hiit">HIIT</button>
+        <button class="ex-filter" data-type="endurance">Endurance</button>
+        <button class="ex-filter" data-type="flexibility">Flexibility</button>
+    </div>
+
+    <div class="ex-count">
+        Showing <strong id="ex-visible-count">{{ exercises | length }}</strong> of {{ exercises | length }}
+    </div>
+
 </div>
+
+<!-- ── Exercise Table ── -->
+<div class="ex-table-card">
+
+    <div class="ex-table-header">
+        <span>#</span>
+        <span>Exercise</span>
+        <span>Type</span>
+        <span>Primary Muscle</span>
+        <span class="col-difficulty">Difficulty</span>
+        <span>EXP</span>
+        <span style="text-align:right;">Actions</span>
+    </div>
+
+    {% for ex in exercises %}
+    <div class="ex-row"
+         data-name="{{ ex.name | lower }}"
+         data-type="{{ ex.exercise_type | lower }}"
+         data-muscle="{{ (ex.primary_muscle or '') | lower }} {{ (ex.complementary_muscle or '') | lower }}">
+
+        <div class="ex-id">{{ ex.exercise_id }}</div>
+
+        <div class="ex-name-cell">
+            <div class="ex-name">{{ ex.name }}</div>
+            {% if ex.description %}
+            <div class="ex-desc-preview">{{ ex.description[:60] }}{% if ex.description | length > 60 %}…{% endif %}</div>
+            {% endif %}
+        </div>
+
+        <div>
+            <span class="ex-type-pill {{ ex.exercise_type | lower }}">
+                {{ ex.exercise_type | title if ex.exercise_type else 'N/A' }}
+            </span>
+        </div>
+
+        <div class="ex-muscle-cell">
+            <div class="ex-primary-muscle">{{ ex.primary_muscle or '—' }}</div>
+            {% if ex.complementary_muscle %}
+            <div class="ex-comp-muscle">+ {{ ex.complementary_muscle }}</div>
+            {% endif %}
+        </div>
+
+        <div class="col-difficulty">
+            <span class="diff-badge {{ ex.difficulty_level | lower }}">
+                {{ ex.difficulty_level | title if ex.difficulty_level else '—' }}
+            </span>
+        </div>
+
+        <div class="ex-exp">
+            <i class="fa-solid fa-bolt" style="font-size:10px;"></i>
+            {{ ex.base_exp }}
+        </div>
+
+        <div class="ex-actions">
+            <button class="btn btn-ghost btn-sm ex-edit-btn"
+                    data-id="{{ ex.exercise_id }}"
+                    data-name="{{ ex.name | e }}"
+                    data-desc="{{ (ex.description or '') | e }}"
+                    data-type="{{ (ex.exercise_type or '') | e }}"
+                    data-primary="{{ (ex.primary_muscle or '') | e }}"
+                    data-comp="{{ (ex.complementary_muscle or '') | e }}"
+                    data-difficulty="{{ (ex.difficulty_level or '') | e }}"
+                    data-exp="{{ ex.base_exp }}"
+                    title="Edit">
+                <i class="fa-solid fa-pencil"></i>
+            </button>
+            <form method="POST"
+                  action="{{ url_for('admin_delete_exercise', exercise_id=ex.exercise_id) }}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Delete \'{{ ex.name }}\'? This cannot be undone.')">
+                <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </form>
+        </div>
+
+    </div>
+    {% endfor %}
+
+    <div class="ex-empty" id="ex-empty">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>No exercises match your search or filter.</p>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     ADD / EDIT MODAL
+══════════════════════════════════════ -->
+<div class="ex-modal-overlay" id="ex-modal-overlay">
+<div class="ex-modal">
+
+    <div class="ex-modal-header">
+        <div class="ex-modal-title">
+            <i class="fa-solid fa-dumbbell" style="color:var(--accent);"></i>
+            <span id="modal-title-text">Add Exercise</span>
+        </div>
+        <button type="button" class="ex-modal-close" onclick="closeModal()">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <form method="POST" id="ex-form" action="{{ url_for('admin_add_exercise') }}">
+        <input type="hidden" name="exercise_id" id="form-exercise-id">
+
+        <div class="ex-modal-body">
+
+            <!-- Name + Type -->
+            <div class="form-grid-2">
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label>Exercise Name *</label>
+                    <input type="text" name="name" id="form-name"
+                           placeholder="e.g. Barbell Bench Press" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label>Exercise Type *</label>
+                    <select name="type" id="form-type" required>
+                        <option value="">— Select type —</option>
+                        <option value="strength">Strength</option>
+                        <option value="power">Power</option>
+                        <option value="cardio">Cardio</option>
+                        <option value="endurance">Endurance</option>
+                        <option value="core">Core</option>
+                        <option value="functional">Functional</option>
+                        <option value="hiit">HIIT</option>
+                        <option value="agility">Agility</option>
+                        <option value="balance">Balance</option>
+                        <option value="flexibility">Flexibility</option>
+                        <option value="speed">Speed</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Difficulty *</label>
+                    <select name="difficulty" id="form-difficulty" required>
+                        <option value="">— Select difficulty —</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Muscle section -->
+            <div class="form-section-divider">
+                <i class="fa-solid fa-person-running"></i> Muscle Groups
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label>Primary Muscle * <span style="color:var(--accent); font-size:9px; font-weight:500; text-transform:none; letter-spacing:0;">Used by Swap matching</span></label>
+                    <select name="primary_muscle" id="form-primary-muscle" required>
+                        <option value="">— Select muscle —</option>
+                        <option value="Chest">Chest</option>
+                        <option value="Back">Back</option>
+                        <option value="Shoulders">Shoulders</option>
+                        <option value="Biceps">Biceps</option>
+                        <option value="Triceps">Triceps</option>
+                        <option value="Forearms">Forearms</option>
+                        <option value="Core">Core</option>
+                        <option value="Quadriceps">Quadriceps</option>
+                        <option value="Hamstrings">Hamstrings</option>
+                        <option value="Glutes">Glutes</option>
+                        <option value="Calves">Calves</option>
+                        <option value="Hip Flexors">Hip Flexors</option>
+                        <option value="Lower Back">Lower Back</option>
+                        <option value="Legs">Legs</option>
+                        <option value="Arms">Arms</option>
+                        <option value="Full Body">Full Body</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Complementary Muscle <span style="color:var(--text-muted); font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></label>
+                    <select name="complementary_muscle" id="form-comp-muscle">
+                        <option value="">— None —</option>
+                        <option value="Chest">Chest</option>
+                        <option value="Back">Back</option>
+                        <option value="Shoulders">Shoulders</option>
+                        <option value="Biceps">Biceps</option>
+                        <option value="Triceps">Triceps</option>
+                        <option value="Forearms">Forearms</option>
+                        <option value="Core">Core</option>
+                        <option value="Quadriceps">Quadriceps</option>
+                        <option value="Hamstrings">Hamstrings</option>
+                        <option value="Glutes">Glutes</option>
+                        <option value="Calves">Calves</option>
+                        <option value="Hip Flexors">Hip Flexors</option>
+                        <option value="Lower Back">Lower Back</option>
+                        <option value="Legs">Legs</option>
+                        <option value="Arms">Arms</option>
+                        <option value="Full Body">Full Body</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- EXP + Description -->
+            <div class="form-section-divider">
+                <i class="fa-solid fa-bolt"></i> Gamification & Details
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label>Base EXP per Set *</label>
+                    <input type="number" name="exp" id="form-exp"
+                           min="1" max="999" value="10" required>
+                </div>
+                <div></div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label>Description / Coaching Notes</label>
+                    <textarea name="description" id="form-description"
+                              placeholder="Technique cues, common mistakes, progressions…"></textarea>
+                </div>
+            </div>
+
+        </div><!-- /modal-body -->
+
+        <div class="ex-modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="form-submit-btn">
+                <i class="fa-solid fa-plus"></i>
+                <span id="form-submit-label">Add Exercise</span>
+            </button>
+        </div>
+
+    </form>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* ════════════════════════════════════════
+       SEARCH + FILTER
+    ════════════════════════════════════════ */
+    var exSearchInput  = document.getElementById('ex-search');
+    var exRows         = document.querySelectorAll('.ex-row');
+    var exEmptyState   = document.getElementById('ex-empty');
+    var exVisibleCount = document.getElementById('ex-visible-count');
+    var exActiveType   = 'all';
+
+    function exApplyFilters() {
+        var q = exSearchInput.value.toLowerCase().trim();
+        var visible = 0;
+
+        exRows.forEach(function(row) {
+            var name   = row.dataset.name   || '';
+            var type   = row.dataset.type   || '';
+            var muscle = row.dataset.muscle || '';
+
+            var matchesSearch = !q || name.includes(q) || type.includes(q) || muscle.includes(q);
+            var matchesType   = exActiveType === 'all' || type === exActiveType;
+            var show = matchesSearch && matchesType;
+
+            row.classList.toggle('hidden-row', !show);
+            if (show) visible++;
+        });
+
+        exVisibleCount.textContent = visible;
+        exEmptyState.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    exSearchInput.addEventListener('input', exApplyFilters);
+    exSearchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { exSearchInput.value = ''; exApplyFilters(); }
+    });
+
+    document.querySelectorAll('.ex-filter').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.ex-filter').forEach(function(b) {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            exActiveType = btn.dataset.type;
+            exApplyFilters();
+        });
+    });
+
+    /* ════════════════════════════════════════
+       MODAL
+    ════════════════════════════════════════ */
+    var exOverlay = document.getElementById('ex-modal-overlay');
+    var exForm    = document.getElementById('ex-form');
+
+    function exOpenModal() {
+        exOverlay.classList.add('open');
+    }
+
+    function exCloseModal() {
+        exOverlay.classList.remove('open');
+    }
+
+    // Close on backdrop click
+    exOverlay.addEventListener('click', function(e) {
+        if (e.target === exOverlay) exCloseModal();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && exOverlay.classList.contains('open')) exCloseModal();
+    });
+
+    // ── Close button inside modal ──
+    document.querySelectorAll('.ex-modal-close').forEach(function(btn) {
+        btn.addEventListener('click', exCloseModal);
+    });
+
+    // ── "Add Exercise" header button ──
+    var addBtn = document.getElementById('open-add-modal');
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            exResetModal();
+            exOpenModal();
+            document.getElementById('form-name').focus();
+        });
+    }
+
+    function exResetModal() {
+        document.getElementById('modal-title-text').textContent  = 'Add Exercise';
+        document.getElementById('form-submit-label').textContent = 'Add Exercise';
+        document.getElementById('form-submit-btn').querySelector('i').className = 'fa-solid fa-plus';
+        exForm.action = "{{ url_for('admin_add_exercise') }}";
+        exForm.reset();
+        document.getElementById('form-exercise-id').value = '';
+        document.getElementById('form-exp').value = '10';
+    }
+
+    /* ── Edit buttons — event delegation reads data-* attributes ── */
+    document.querySelectorAll('.ex-edit-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var d = btn.dataset;
+
+            document.getElementById('modal-title-text').textContent  = 'Edit Exercise';
+            document.getElementById('form-submit-label').textContent = 'Save Changes';
+            document.getElementById('form-submit-btn').querySelector('i').className = 'fa-solid fa-floppy-disk';
+            exForm.action = '/admin/exercise/' + d.id + '/edit';
+
+            document.getElementById('form-exercise-id').value = d.id;
+            document.getElementById('form-name').value        = d.name;
+            document.getElementById('form-description').value = d.desc;
+            document.getElementById('form-exp').value         = d.exp;
+
+            exSetSelect('form-type',           d.type);
+            exSetSelect('form-difficulty',     d.difficulty);
+            exSetSelect('form-primary-muscle', d.primary);
+            exSetSelect('form-comp-muscle',    d.comp);
+
+            exOpenModal();
+            document.getElementById('form-name').focus();
+        });
+    });
+
+    function exSetSelect(id, value) {
+        var sel = document.getElementById(id);
+        if (!sel) return;
+        for (var i = 0; i < sel.options.length; i++) {
+            sel.options[i].selected = sel.options[i].value === value;
+        }
+    }
+
+    /* Expose closeModal globally for the Cancel button onclick */
+    window.closeModal = exCloseModal;
+
+}); // end DOMContentLoaded
+</script>
 {% endblock %}

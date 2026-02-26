@@ -899,9 +899,8 @@
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px;">
                     <div class="ex-name" style="margin-bottom:0; flex:1;">{{ exercise.name }}</div>
                     <div style="display:flex; gap:8px; flex-shrink:0; margin-top:6px;">
-                        <button class="btn-swap-inline"
-                                onclick="openSwapModal({{ exercise.exercise_id }},'{{ exercise.target_muscle }}','{{ exercise.exercise_type }}', '{{ routine.rotuine_id }}', '{{ client_id }}')">
-                            🔄
+                        <button class="btn-swap-inline" onclick="openSwapModal({{ exercise.exercise_id }},'{{ exercise.primary_muscle }}','{{ exercise.exercise_type }}','{{ routine.routine_id }}','{{ client_id }}')">
+                        🔄
                         </button>
                         {% if exercise.image_path %}
                         <button class="btn-view-image open"
@@ -1515,29 +1514,56 @@ function closeLevelUp() {
 // ============================================================
 //  SWAP MODAL
 // ============================================================
-function openSwapModal(exerciseId, targetMuscle, exerciseType, routineId, clientId) {
+function openSwapModal(exerciseId, primaryMuscle, exerciseType, routineId, clientId) {
     swapCurrentExerciseId = exerciseId;
     const list = document.getElementById('swap-options-list');
     list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;">Loading alternatives...</div>';
     document.getElementById('swapModal').classList.add('active');
 
-    fetch(`/get_swap_options?exercise_id=${exerciseId}&target_muscle=${encodeURIComponent(targetMuscle)}&exercise_type=${encodeURIComponent(exerciseType)}&routine_id=${routineId}&client_id=${clientId}`)
+    fetch(`/get_swap_options?exercise_id=${exerciseId}&target_muscle=${encodeURIComponent(primaryMuscle)}&exercise_type=${encodeURIComponent(exerciseType)}&routine_id=${routineId}&client_id=${clientId}`)
         .then(r => r.json())
         .then(data => {
             if (data.options && data.options.length > 0) {
                 list.innerHTML = data.options.map(opt => `
-                    <button class="swap-option" onclick="confirmSwap(${exerciseId}, ${opt.exercise_id}, '${routineId}', '${clientId}')">
+                    <button class="swap-option" onclick="confirmSwap(${exerciseId}, ${opt.exercise_id})">
                         <strong>${opt.name}</strong><br>
-                        <span style="color:var(--text-muted); font-size:12px;">${opt.target_muscle} · ${opt.exercise_type}</span>
+                        <span style="color:var(--text-muted); font-size:12px;">
+                            ${opt.primary_muscle || opt.target_muscle || ''} · ${opt.exercise_type}
+                        </span>
                     </button>
                 `).join('');
             } else {
-                list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;">No alternatives available</div>';
+                list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;">No alternatives found for this muscle group.</div>';
             }
         })
         .catch(() => {
             list.innerHTML = '<div style="color:var(--red); font-size:13px; text-align:center; padding:16px;">Failed to load options</div>';
         });
+}
+
+function closeSwapModal() {
+    document.getElementById('swapModal').classList.remove('active');
+}
+
+async function confirmSwap(oldExId, newExId) {
+    try {
+        // FIX 3: correct endpoint  /api/swap_exercise  (not /swap_exercise)
+        // FIX 4: correct keys      old_id / new_id     (not old_exercise_id / new_exercise_id)
+        const response = await fetch('/api/swap_exercise', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ old_id: oldExId, new_id: newExId })
+        });
+        const result = await response.json();
+        if (result.success) {
+            closeSwapModal();
+            window.location.reload();
+        } else {
+            alert(result.error || result.message || 'Swap failed');
+        }
+    } catch (err) {
+        alert('Error performing swap: ' + err.message);
+    }
 }
 
 function closeSwapModal() {

@@ -1,141 +1,1211 @@
 <!-- templates/admin/tests.html -->
 {% extends "admin/base.html" %}
 
-{% block title %}Physical Tests - Admin{% endblock %}
+{% block title %}Physical Assessment — LevelUp Gym{% endblock %}
+{% block page_title %}Physical Assessment{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ══════════════════════════════════════
+       PAGE LAYOUT
+    ══════════════════════════════════════ */
+    .assessment-layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+        .assessment-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ══════════════════════════════════════
+       SECTION HEADING
+    ══════════════════════════════════════ */
+    .page-eyebrow {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 4px;
+    }
+
+    .page-headline {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 32px;
+        font-weight: 900;
+        color: var(--text-primary);
+        line-height: 1.1;
+        margin-bottom: 6px;
+    }
+
+    .page-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 28px;
+    }
+
+    /* ══════════════════════════════════════
+       CLIENT SEARCH CARD
+    ══════════════════════════════════════ */
+    .client-search-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .client-search-header {
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .client-search-header-icon {
+        width: 32px; height: 32px;
+        border-radius: var(--radius-sm);
+        background: var(--accent-glow);
+        border: 1px solid var(--border-accent);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--accent); font-size: 13px;
+    }
+
+    .client-search-header h3 {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px; font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .client-search-header span {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-left: auto;
+    }
+
+    .client-search-body { padding: 16px 20px; }
+
+    /* Search input */
+    .cs-search-wrap {
+        position: relative;
+        margin-bottom: 12px;
+    }
+
+    .cs-search-wrap i {
+        position: absolute;
+        left: 13px; top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted); font-size: 13px;
+        pointer-events: none;
+    }
+
+    .cs-search-wrap input {
+        width: 100%;
+        padding-left: 38px;
+        padding-right: 38px;
+        height: 42px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        font-family: 'DM Sans', sans-serif;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .cs-search-wrap input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .cs-search-wrap input::placeholder { color: var(--text-muted); }
+
+    .cs-clear-btn {
+        position: absolute;
+        right: 10px; top: 50%;
+        transform: translateY(-50%);
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: var(--bg-hover);
+        border: none; cursor: pointer;
+        display: none; align-items: center; justify-content: center;
+        color: var(--text-muted); font-size: 11px;
+        transition: all 0.15s;
+    }
+
+    .cs-clear-btn:hover { background: var(--accent-glow); color: var(--accent); }
+    .cs-clear-btn.visible { display: flex; }
+
+    /* Client list */
+    .cs-list {
+        max-height: 240px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        scrollbar-width: thin;
+        scrollbar-color: var(--bg-hover) transparent;
+    }
+
+    .cs-list::-webkit-scrollbar { width: 4px; }
+    .cs-list::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 2px; }
+
+    .cs-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s;
+    }
+
+    .cs-option:last-child { border-bottom: none; }
+    .cs-option:hover { background: var(--bg-hover); }
+
+    .cs-option.selected {
+        background: var(--accent-glow);
+        border-color: transparent;
+    }
+
+    .cs-avatar {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 13px; font-weight: 700;
+        color: white; flex-shrink: 0;
+    }
+
+    .cs-option.selected .cs-avatar {
+        box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .cs-name {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-primary);
+        flex: 1;
+    }
+
+    .cs-id {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .cs-check {
+        color: var(--accent);
+        font-size: 13px;
+        opacity: 0;
+        transition: opacity 0.15s;
+    }
+
+    .cs-option.selected .cs-check { opacity: 1; }
+
+    .cs-no-results {
+        padding: 24px 16px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 13px;
+        display: none;
+    }
+
+    /* Selected client preview */
+    .selected-client-preview {
+        margin-top: 12px;
+        padding: 12px 14px;
+        background: var(--accent-glow);
+        border: 1px solid var(--border-accent);
+        border-radius: var(--radius-md);
+        display: none;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .selected-client-preview.visible { display: flex; }
+
+    .selected-client-preview .cs-avatar {
+        box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .scp-info { flex: 1; }
+    .scp-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .scp-sub  { font-size: 11px; color: var(--accent); }
+
+    /* ══════════════════════════════════════
+       TEST METRIC CARDS
+    ══════════════════════════════════════ */
+    .test-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .test-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        transition: border-color 0.2s, transform 0.2s;
+        position: relative;
+    }
+
+    .test-card:focus-within {
+        border-color: var(--border-accent);
+        transform: translateY(-1px);
+    }
+
+    /* Coloured top bar per test */
+    .test-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+        transition: opacity 0.3s;
+        opacity: 0.5;
+    }
+
+    .test-card:focus-within::before { opacity: 1; }
+
+    .test-card[data-color="accent"]::before  { background: var(--accent); }
+    .test-card[data-color="emerald"]::before { background: var(--emerald); }
+    .test-card[data-color="amber"]::before   { background: var(--amber); }
+    .test-card[data-color="purple"]::before  { background: #8b5cf6; }
+    .test-card[data-color="red"]::before     { background: var(--red); }
+
+    .test-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 18px 10px;
+    }
+
+    .test-card-label {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .test-card-icon {
+        width: 34px; height: 34px;
+        border-radius: var(--radius-sm);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px;
+    }
+
+    .test-card[data-color="accent"]  .test-card-icon { background: rgba(102,126,234,0.15); }
+    .test-card[data-color="emerald"] .test-card-icon { background: rgba(16,185,129,0.15); }
+    .test-card[data-color="amber"]   .test-card-icon { background: rgba(251,191,36,0.15); }
+    .test-card[data-color="purple"]  .test-card-icon { background: rgba(139,92,246,0.15); }
+    .test-card[data-color="red"]     .test-card-icon { background: rgba(239,68,68,0.15); }
+
+    .test-card-name {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 15px; font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .test-card-unit {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-weight: 500;
+        margin-top: 1px;
+    }
+
+    /* Live rank badge */
+    .rank-badge-live {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 22px; font-weight: 900;
+        width: 44px; height: 44px;
+        border-radius: var(--radius-sm);
+        display: flex; align-items: center; justify-content: center;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+    }
+
+    .rank-badge-live[data-rank="SS"] { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.4); color: #f59e0b; box-shadow: 0 0 16px rgba(245,158,11,0.2); }
+    .rank-badge-live[data-rank="S"]  { background: rgba(148,163,184,0.15); border-color: rgba(148,163,184,0.4); color: #94a3b8; }
+    .rank-badge-live[data-rank="A"]  { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: var(--emerald); }
+    .rank-badge-live[data-rank="B"]  { background: rgba(102,126,234,0.15); border-color: rgba(102,126,234,0.4); color: var(--accent); }
+    .rank-badge-live[data-rank="C"]  { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: #8b5cf6; }
+    .rank-badge-live[data-rank="D"]  { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.3); color: var(--amber); }
+    .rank-badge-live[data-rank="E"]  { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red); }
+
+    /* Input area */
+    .test-card-input-wrap { padding: 0 18px 18px; }
+
+    .test-card-input-wrap input {
+        width: 100%;
+        height: 48px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 22px; font-weight: 700;
+        text-align: center;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        letter-spacing: 1px;
+    }
+
+    .test-card-input-wrap input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .test-card-input-wrap input::placeholder {
+        color: var(--text-muted);
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: 0;
+    }
+
+    /* Threshold hints beneath input */
+    .test-thresholds {
+        display: flex;
+        justify-content: space-between;
+        gap: 2px;
+        margin-top: 8px;
+    }
+
+    .threshold-pip {
+        flex: 1;
+        text-align: center;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 9px; font-weight: 700;
+        padding: 3px 2px;
+        border-radius: 4px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        transition: all 0.25s;
+        line-height: 1.3;
+        letter-spacing: 0.3px;
+        cursor: default;
+    }
+
+    .threshold-pip.active-rank { color: white; }
+    .threshold-pip[data-r="SS"].active-rank { background: rgba(245,158,11,0.3); border-color: rgba(245,158,11,0.5); color: #f59e0b; }
+    .threshold-pip[data-r="S"].active-rank  { background: rgba(148,163,184,0.25); border-color: rgba(148,163,184,0.5); color: #94a3b8; }
+    .threshold-pip[data-r="A"].active-rank  { background: rgba(16,185,129,0.25); border-color: rgba(16,185,129,0.5); color: var(--emerald); }
+    .threshold-pip[data-r="B"].active-rank  { background: rgba(102,126,234,0.25); border-color: rgba(102,126,234,0.5); color: var(--accent); }
+    .threshold-pip[data-r="C"].active-rank  { background: rgba(139,92,246,0.25); border-color: rgba(139,92,246,0.5); color: #8b5cf6; }
+    .threshold-pip[data-r="D"].active-rank  { background: rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.4); color: var(--amber); }
+    .threshold-pip[data-r="E"].active-rank  { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); color: var(--red); }
+
+    /* ══════════════════════════════════════
+       OVERALL RANK PREVIEW
+    ══════════════════════════════════════ */
+    .overall-preview {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        transition: border-color 0.3s;
+    }
+
+    .overall-preview.has-rank { border-color: var(--border-accent); }
+
+    .overall-rank-display {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 56px; font-weight: 900;
+        width: 80px; height: 80px;
+        border-radius: var(--radius-md);
+        display: flex; align-items: center; justify-content: center;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        flex-shrink: 0;
+        transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        letter-spacing: 1px;
+    }
+
+    .overall-rank-display[data-rank="SS"] { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.4); color: #f59e0b; box-shadow: 0 0 30px rgba(245,158,11,0.2); }
+    .overall-rank-display[data-rank="S"]  { background: rgba(148,163,184,0.15); border-color: rgba(148,163,184,0.4); color: #94a3b8; }
+    .overall-rank-display[data-rank="A"]  { background: rgba(16,185,129,0.15);  border-color: rgba(16,185,129,0.4);  color: var(--emerald); box-shadow: 0 0 20px rgba(16,185,129,0.15); }
+    .overall-rank-display[data-rank="B"]  { background: rgba(102,126,234,0.15); border-color: rgba(102,126,234,0.4); color: var(--accent); }
+    .overall-rank-display[data-rank="C"]  { background: rgba(139,92,246,0.15);  border-color: rgba(139,92,246,0.4);  color: #8b5cf6; }
+    .overall-rank-display[data-rank="D"]  { background: rgba(251,191,36,0.12);  border-color: rgba(251,191,36,0.3);  color: var(--amber); }
+    .overall-rank-display[data-rank="E"]  { background: rgba(239,68,68,0.12);   border-color: rgba(239,68,68,0.3);   color: var(--red); }
+
+    .overall-info { flex: 1; }
+
+    .overall-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .overall-rank-name {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 22px; font-weight: 900;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .overall-points-label {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .overall-points-val {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 13px; font-weight: 700;
+        color: var(--accent);
+    }
+
+    /* Points progress bar */
+    .overall-points-bar {
+        margin-top: 10px;
+        height: 6px;
+        background: var(--bg-hover);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .overall-points-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 3px;
+        width: 0%;
+        transition: width 0.5s ease;
+    }
+
+    /* ══════════════════════════════════════
+       SUBMIT BUTTON
+    ══════════════════════════════════════ */
+    .submit-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .btn-submit-assessment {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 20px; font-weight: 900;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    .btn-submit-assessment:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px var(--accent-glow);
+    }
+
+    .btn-submit-assessment:active { transform: translateY(0); }
+
+    .btn-submit-assessment:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .submit-hint {
+        text-align: center;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 10px;
+    }
+
+    .submit-hint.error { color: var(--red); }
+    .submit-hint.ready { color: var(--emerald); }
+
+    /* ══════════════════════════════════════
+       RIGHT SIDEBAR — RANK REFERENCE
+    ══════════════════════════════════════ */
+    .ref-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        position: sticky;
+        top: 24px;
+    }
+
+    .ref-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+        display: flex; align-items: center; gap: 8px;
+    }
+
+    .ref-header h3 {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 15px; font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .ref-body { padding: 0; }
+
+    .ref-section {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .ref-section:last-child { border-bottom: none; }
+
+    .ref-section-title {
+        display: flex; align-items: center; gap: 7px;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 13px; font-weight: 700;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+    }
+
+    .ref-ranks {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .ref-rank-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
+        border-radius: var(--radius-sm);
+        transition: background 0.15s;
+    }
+
+    .ref-rank-row:hover { background: var(--bg-hover); }
+
+    .ref-rank-pill {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 12px; font-weight: 800;
+        width: 28px; text-align: center;
+        padding: 2px 0;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+
+    .ref-rank-pill.rSS { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .ref-rank-pill.rS  { background: rgba(148,163,184,0.15); color: #94a3b8; border: 1px solid rgba(148,163,184,0.3); }
+    .ref-rank-pill.rA  { background: rgba(16,185,129,0.12); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
+    .ref-rank-pill.rB  { background: rgba(102,126,234,0.12); color: var(--accent); border: 1px solid rgba(102,126,234,0.3); }
+    .ref-rank-pill.rC  { background: rgba(139,92,246,0.12); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.3); }
+    .ref-rank-pill.rD  { background: rgba(251,191,36,0.12); color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+    .ref-rank-pill.rE  { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+    .ref-threshold {
+        font-size: 12px;
+        color: var(--text-secondary);
+        flex: 1;
+    }
+
+    .ref-exp-pill {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 11px; font-weight: 700;
+        color: var(--accent);
+        background: var(--accent-glow);
+        padding: 1px 6px;
+        border-radius: 10px;
+        flex-shrink: 0;
+    }
+
+    /* How it works box */
+    .how-it-works {
+        padding: 14px 18px;
+        border-top: 1px solid var(--border);
+    }
+
+    .how-it-works p {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.6;
+    }
+
+    .how-it-works strong { color: var(--text-secondary); }
+
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>Physical Testing & Rankings</h1>
-    <p>Submit client test results to calculate their rank (E to SS)</p>
-</div>
 
-<div class="card">
-    <h2>Submit Test Results</h2>
-    <form method="POST" action="{{ url_for('admin_submit_test') }}">
-        <div class="form-group">
-            <label for="client_id">Select Client *</label>
-            <select id="client_id" name="client_id" required>
-                <option value="">-- Choose Client --</option>
-                {% for client in clients %}
-                <option value="{{ client.client_id }}">{{ client.full_name }} (ID: {{ client.client_id }})</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <h3 style="margin-top: 30px; margin-bottom: 15px; color: #667eea;">Test Results</h3>
-        
-        <div class="grid grid-2">
-            <div class="form-group">
-                <label for="pushups">💪 Push-ups (repetitions) *</label>
-                <input type="number" id="pushups" name="pushups" min="0" placeholder="Enter number of push-ups" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="squats">🦵 Squats (repetitions) *</label>
-                <input type="number" id="squats" name="squats" min="0" placeholder="Enter number of squats" required>
-            </div>
-        </div>
-        
-        <div class="grid grid-2">
-            <div class="form-group">
-                <label for="situps">🔥 Sit-ups (repetitions) *</label>
-                <input type="number" id="situps" name="situps" min="0" placeholder="Enter number of sit-ups" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="jump">🚀 High Jump (cm) *</label>
-                <input type="number" id="jump" name="jump" step="0.1" min="0" placeholder="Enter jump height in cm" required>
-            </div>
-        </div>
-        
-        <div class="form-group">
-            <label for="sprint">⚡ Sprint 100m (seconds) *</label>
-            <input type="number" id="sprint" name="sprint" step="0.1" min="0" placeholder="Enter sprint time in seconds" required>
-        </div>
-        
-        <button type="submit" class="btn btn-primary" style="margin-top: 20px; font-size: 16px; padding: 12px 30px;">
-            📊 Submit Assessment
-        </button>
-    </form>
-</div>
+<!-- Page header -->
+<div class="page-eyebrow">Assessment System</div>
+<div class="page-headline">Physical Testing</div>
+<div class="page-sub">Submit results to calculate rank (E → SS) and award EXP</div>
 
-<div class="card" style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);">
-    <h2>📋 Rank Requirements Reference</h2>
-    <div style="display: grid; gap: 20px; margin-top: 20px;">
-        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
-            <h3 style="color: #667eea; margin-bottom: 10px;">💪 Push-ups</h3>
-            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <span><strong>SS:</strong> 60+</span>
-                <span><strong>S:</strong> 50+</span>
-                <span><strong>A:</strong> 40+</span>
-                <span><strong>B:</strong> 30+</span>
-                <span><strong>C:</strong> 20+</span>
-                <span><strong>D:</strong> 10+</span>
-                <span><strong>E:</strong> 0-9</span>
+<form method="POST" action="{{ url_for('admin_submit_test') }}" id="assessment-form">
+
+    <!-- Hidden real client_id field (populated by JS) -->
+    <input type="hidden" name="client_id" id="selected-client-id" value="" required>
+
+    <div class="assessment-layout">
+
+        <!-- ════════════════════ LEFT COLUMN ════════════════════ -->
+        <div>
+
+            <!-- ── Client Selector ── -->
+            <div class="client-search-card">
+                <div class="client-search-header">
+                    <div class="client-search-header-icon">
+                        <i class="fa-solid fa-user-astronaut"></i>
+                    </div>
+                    <h3>Select Athlete</h3>
+                    <span>{{ clients | length }} active member{{ 's' if clients|length != 1 }}</span>
+                </div>
+                <div class="client-search-body">
+                    <div class="cs-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input
+                            type="text"
+                            id="client-search-input"
+                            placeholder="Search by name or ID…"
+                            autocomplete="off">
+                        <button type="button" class="cs-clear-btn" id="cs-clear-btn" title="Clear">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="cs-list" id="cs-list">
+                        {% for client in clients %}
+                        <div class="cs-option"
+                             data-id="{{ client.client_id }}"
+                             data-name="{{ client.full_name | lower }}"
+                             onclick="selectClient(this)">
+                            <div class="cs-avatar">{{ client.full_name[0] | upper }}</div>
+                            <div class="cs-name">{{ client.full_name }}</div>
+                            <div class="cs-id">#{{ client.client_id }}</div>
+                            <i class="fa-solid fa-circle-check cs-check"></i>
+                        </div>
+                        {% endfor %}
+                        <div class="cs-no-results" id="cs-no-results">
+                            <i class="fa-solid fa-user-slash" style="display:block; font-size:20px; margin-bottom:6px; opacity:.4;"></i>
+                            No clients match your search
+                        </div>
+                    </div>
+
+                    <!-- Selected client preview -->
+                    <div class="selected-client-preview" id="selected-preview">
+                        <div class="cs-avatar" id="selected-preview-avatar">?</div>
+                        <div class="scp-info">
+                            <div class="scp-name" id="selected-preview-name">—</div>
+                            <div class="scp-sub" id="selected-preview-id">No client selected</div>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="clearClientSelection()">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
-            <h3 style="color: #10b981; margin-bottom: 10px;">🦵 Squats</h3>
-            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <span><strong>SS:</strong> 100+</span>
-                <span><strong>S:</strong> 80+</span>
-                <span><strong>A:</strong> 60+</span>
-                <span><strong>B:</strong> 45+</span>
-                <span><strong>C:</strong> 30+</span>
-                <span><strong>D:</strong> 15+</span>
-                <span><strong>E:</strong> 0-14</span>
+
+            <!-- ── Overall Rank Preview ── -->
+            <div class="overall-preview" id="overall-preview">
+                <div class="overall-rank-display" id="overall-rank-display">—</div>
+                <div class="overall-info">
+                    <div class="overall-label">Projected Overall Rank</div>
+                    <div class="overall-rank-name" id="overall-rank-name">Enter test scores</div>
+                    <div class="overall-points-label">
+                        Points: <span class="overall-points-val" id="overall-points">0</span> / 1000
+                    </div>
+                    <div class="overall-points-bar">
+                        <div class="overall-points-fill" id="overall-points-fill"></div>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <h3 style="color: #f59e0b; margin-bottom: 10px;">🔥 Sit-ups</h3>
-            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <span><strong>SS:</strong> 80+</span>
-                <span><strong>S:</strong> 65+</span>
-                <span><strong>A:</strong> 50+</span>
-                <span><strong>B:</strong> 35+</span>
-                <span><strong>C:</strong> 25+</span>
-                <span><strong>D:</strong> 15+</span>
-                <span><strong>E:</strong> 0-14</span>
+
+            <!-- ── Test Metric Cards ── -->
+            <div class="test-cards-grid">
+
+                <!-- Push-ups -->
+                <div class="test-card" data-color="accent" data-test="pushups">
+                    <div class="test-card-top">
+                        <div class="test-card-label">
+                            <div class="test-card-icon">💪</div>
+                            <div>
+                                <div class="test-card-name">Push-ups</div>
+                                <div class="test-card-unit">repetitions</div>
+                            </div>
+                        </div>
+                        <div class="rank-badge-live" id="rank-pushups">—</div>
+                    </div>
+                    <div class="test-card-input-wrap">
+                        <input type="number" name="pushups" id="input-pushups"
+                               min="0" max="999" step="1"
+                               placeholder="reps"
+                               oninput="updateRank('pushups')" required>
+                        <div class="test-thresholds" data-test="pushups">
+                            <div class="threshold-pip" data-r="SS" title="SS: 60+">SS<br>60</div>
+                            <div class="threshold-pip" data-r="S"  title="S: 50+">S<br>50</div>
+                            <div class="threshold-pip" data-r="A"  title="A: 40+">A<br>40</div>
+                            <div class="threshold-pip" data-r="B"  title="B: 30+">B<br>30</div>
+                            <div class="threshold-pip" data-r="C"  title="C: 20+">C<br>20</div>
+                            <div class="threshold-pip" data-r="D"  title="D: 10+">D<br>10</div>
+                            <div class="threshold-pip" data-r="E"  title="E: 0-9">E<br>0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Squats -->
+                <div class="test-card" data-color="emerald" data-test="squats">
+                    <div class="test-card-top">
+                        <div class="test-card-label">
+                            <div class="test-card-icon">🦵</div>
+                            <div>
+                                <div class="test-card-name">Squats</div>
+                                <div class="test-card-unit">repetitions</div>
+                            </div>
+                        </div>
+                        <div class="rank-badge-live" id="rank-squats">—</div>
+                    </div>
+                    <div class="test-card-input-wrap">
+                        <input type="number" name="squats" id="input-squats"
+                               min="0" max="999" step="1"
+                               placeholder="reps"
+                               oninput="updateRank('squats')" required>
+                        <div class="test-thresholds" data-test="squats">
+                            <div class="threshold-pip" data-r="SS">SS<br>100</div>
+                            <div class="threshold-pip" data-r="S">S<br>80</div>
+                            <div class="threshold-pip" data-r="A">A<br>60</div>
+                            <div class="threshold-pip" data-r="B">B<br>45</div>
+                            <div class="threshold-pip" data-r="C">C<br>30</div>
+                            <div class="threshold-pip" data-r="D">D<br>15</div>
+                            <div class="threshold-pip" data-r="E">E<br>0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sit-ups -->
+                <div class="test-card" data-color="amber" data-test="situps">
+                    <div class="test-card-top">
+                        <div class="test-card-label">
+                            <div class="test-card-icon">🔥</div>
+                            <div>
+                                <div class="test-card-name">Sit-ups</div>
+                                <div class="test-card-unit">repetitions</div>
+                            </div>
+                        </div>
+                        <div class="rank-badge-live" id="rank-situps">—</div>
+                    </div>
+                    <div class="test-card-input-wrap">
+                        <input type="number" name="situps" id="input-situps"
+                               min="0" max="999" step="1"
+                               placeholder="reps"
+                               oninput="updateRank('situps')" required>
+                        <div class="test-thresholds" data-test="situps">
+                            <div class="threshold-pip" data-r="SS">SS<br>80</div>
+                            <div class="threshold-pip" data-r="S">S<br>65</div>
+                            <div class="threshold-pip" data-r="A">A<br>50</div>
+                            <div class="threshold-pip" data-r="B">B<br>35</div>
+                            <div class="threshold-pip" data-r="C">C<br>25</div>
+                            <div class="threshold-pip" data-r="D">D<br>15</div>
+                            <div class="threshold-pip" data-r="E">E<br>0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- High Jump -->
+                <div class="test-card" data-color="purple" data-test="jump">
+                    <div class="test-card-top">
+                        <div class="test-card-label">
+                            <div class="test-card-icon">🚀</div>
+                            <div>
+                                <div class="test-card-name">High Jump</div>
+                                <div class="test-card-unit">centimetres</div>
+                            </div>
+                        </div>
+                        <div class="rank-badge-live" id="rank-jump">—</div>
+                    </div>
+                    <div class="test-card-input-wrap">
+                        <input type="number" name="jump" id="input-jump"
+                               min="0" step="0.1"
+                               placeholder="cm"
+                               oninput="updateRank('jump')" required>
+                        <div class="test-thresholds" data-test="jump">
+                            <div class="threshold-pip" data-r="SS">SS<br>70</div>
+                            <div class="threshold-pip" data-r="S">S<br>60</div>
+                            <div class="threshold-pip" data-r="A">A<br>50</div>
+                            <div class="threshold-pip" data-r="B">B<br>40</div>
+                            <div class="threshold-pip" data-r="C">C<br>30</div>
+                            <div class="threshold-pip" data-r="D">D<br>20</div>
+                            <div class="threshold-pip" data-r="E">E<br>0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sprint -->
+                <div class="test-card" data-color="red" data-test="sprint">
+                    <div class="test-card-top">
+                        <div class="test-card-label">
+                            <div class="test-card-icon">⚡</div>
+                            <div>
+                                <div class="test-card-name">Sprint 100m</div>
+                                <div class="test-card-unit">seconds — lower is better</div>
+                            </div>
+                        </div>
+                        <div class="rank-badge-live" id="rank-sprint">—</div>
+                    </div>
+                    <div class="test-card-input-wrap">
+                        <input type="number" name="sprint" id="input-sprint"
+                               min="0" step="0.1"
+                               placeholder="sec"
+                               oninput="updateRank('sprint')" required>
+                        <div class="test-thresholds" data-test="sprint">
+                            <div class="threshold-pip" data-r="SS">SS<br>≤12</div>
+                            <div class="threshold-pip" data-r="S">S<br>≤13.5</div>
+                            <div class="threshold-pip" data-r="A">A<br>≤15</div>
+                            <div class="threshold-pip" data-r="B">B<br>≤17</div>
+                            <div class="threshold-pip" data-r="C">C<br>≤19</div>
+                            <div class="threshold-pip" data-r="D">D<br>≤22</div>
+                            <div class="threshold-pip" data-r="E">E<br>&gt;22</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /test-cards-grid -->
+
+            <!-- ── Submit ── -->
+            <div class="submit-card">
+                <button type="submit" class="btn-submit-assessment" id="submit-btn" disabled>
+                    <i class="fa-solid fa-chart-line"></i>
+                    Submit Assessment
+                </button>
+                <p class="submit-hint" id="submit-hint">Select a client and fill in all 5 test scores to continue</p>
             </div>
-        </div>
-        
-        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #8b5cf6;">
-            <h3 style="color: #8b5cf6; margin-bottom: 10px;">🚀 High Jump (cm)</h3>
-            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <span><strong>SS:</strong> 70+</span>
-                <span><strong>S:</strong> 60+</span>
-                <span><strong>A:</strong> 50+</span>
-                <span><strong>B:</strong> 40+</span>
-                <span><strong>C:</strong> 30+</span>
-                <span><strong>D:</strong> 20+</span>
-                <span><strong>E:</strong> 0-19</span>
-            </div>
-        </div>
-        
-        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
-            <h3 style="color: #ef4444; margin-bottom: 10px;">⚡ Sprint 100m (seconds - lower is better)</h3>
-            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <span><strong>SS:</strong> ≤12.0</span>
-                <span><strong>S:</strong> ≤13.5</span>
-                <span><strong>A:</strong> ≤15.0</span>
-                <span><strong>B:</strong> ≤17.0</span>
-                <span><strong>C:</strong> ≤19.0</span>
-                <span><strong>D:</strong> ≤22.0</span>
-                <span><strong>E:</strong> >22.0</span>
-            </div>
-        </div>
-    </div>
-    
-    <div style="margin-top: 25px; padding: 20px; background: white; border-radius: 8px; border: 2px solid #667eea;">
-        <h3 style="color: #667eea; margin-bottom: 10px;">ℹ️ How Rankings Work</h3>
-        <ul style="color: #6b7280; line-height: 1.8;">
-            <li>Each test is scored individually based on performance</li>
-            <li>Overall rank is calculated from combined scores</li>
-            <li>Higher ranks award more EXP</li>
-            <li>Rankings: <strong>E</strong> (Beginner) → <strong>D</strong> → <strong>C</strong> → <strong>B</strong> → <strong>A</strong> → <strong>S</strong> → <strong>SS</strong> (Master)</li>
-        </ul>
-    </div>
-</div>
+
+        </div><!-- /left column -->
+
+        <!-- ════════════════════ RIGHT COLUMN — Reference ════════════════════ -->
+        <div>
+            <div class="ref-card">
+                <div class="ref-header">
+                    <i class="fa-solid fa-trophy" style="color:var(--amber); font-size:14px;"></i>
+                    <h3>Rank Reference</h3>
+                </div>
+
+                <div class="ref-body">
+
+                    <!-- Push-ups -->
+                    <div class="ref-section">
+                        <div class="ref-section-title">
+                            <span>💪</span> Push-ups
+                        </div>
+                        <div class="ref-ranks">
+                            {% for r, t, exp in [('SS','60+ reps',200),('S','50+ reps',150),('A','40+ reps',100),('B','30+ reps',70),('C','20+ reps',40),('D','10+ reps',20),('E','0–9 reps',0)] %}
+                            <div class="ref-rank-row">
+                                <div class="ref-rank-pill r{{ r }}">{{ r }}</div>
+                                <div class="ref-threshold">{{ t }}</div>
+                                {% if exp > 0 %}<div class="ref-exp-pill">+{{ exp }}</div>{% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Squats -->
+                    <div class="ref-section">
+                        <div class="ref-section-title">
+                            <span>🦵</span> Squats
+                        </div>
+                        <div class="ref-ranks">
+                            {% for r, t in [('SS','100+'),('S','80+'),('A','60+'),('B','45+'),('C','30+'),('D','15+'),('E','0–14')] %}
+                            <div class="ref-rank-row">
+                                <div class="ref-rank-pill r{{ r }}">{{ r }}</div>
+                                <div class="ref-threshold">{{ t }} reps</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Sit-ups -->
+                    <div class="ref-section">
+                        <div class="ref-section-title">
+                            <span>🔥</span> Sit-ups
+                        </div>
+                        <div class="ref-ranks">
+                            {% for r, t in [('SS','80+'),('S','65+'),('A','50+'),('B','35+'),('C','25+'),('D','15+'),('E','0–14')] %}
+                            <div class="ref-rank-row">
+                                <div class="ref-rank-pill r{{ r }}">{{ r }}</div>
+                                <div class="ref-threshold">{{ t }} reps</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- High Jump -->
+                    <div class="ref-section">
+                        <div class="ref-section-title">
+                            <span>🚀</span> High Jump
+                        </div>
+                        <div class="ref-ranks">
+                            {% for r, t in [('SS','70+ cm'),('S','60+ cm'),('A','50+ cm'),('B','40+ cm'),('C','30+ cm'),('D','20+ cm'),('E','0–19 cm')] %}
+                            <div class="ref-rank-row">
+                                <div class="ref-rank-pill r{{ r }}">{{ r }}</div>
+                                <div class="ref-threshold">{{ t }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Sprint -->
+                    <div class="ref-section">
+                        <div class="ref-section-title">
+                            <span>⚡</span> Sprint 100m
+                            <span style="font-size:10px; color:var(--red); font-weight:500;">(lower = better)</span>
+                        </div>
+                        <div class="ref-ranks">
+                            {% for r, t in [('SS','≤ 12.0s'),('S','≤ 13.5s'),('A','≤ 15.0s'),('B','≤ 17.0s'),('C','≤ 19.0s'),('D','≤ 22.0s'),('E','> 22.0s')] %}
+                            <div class="ref-rank-row">
+                                <div class="ref-rank-pill r{{ r }}">{{ r }}</div>
+                                <div class="ref-threshold">{{ t }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div><!-- /ref-body -->
+
+                <div class="how-it-works">
+                    <p>Each test awards <strong>rank points</strong>. The sum of all 5 determines the <strong>overall rank</strong>. Max points = 1000 (SS on every test).</p>
+                </div>
+
+            </div><!-- /ref-card -->
+        </div><!-- /right column -->
+
+    </div><!-- /assessment-layout -->
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ════════════════════════════════════════
+   RANK LOGIC (mirrors physical_test_controller.py)
+════════════════════════════════════════ */
+const RANKINGS = {
+    pushups: { SS:60, S:50, A:40, B:30, C:20, D:10, E:0 },
+    squats:  { SS:100, S:80, A:60, B:45, C:30, D:15, E:0 },
+    situps:  { SS:80, S:65, A:50, B:35, C:25, D:15, E:0 },
+    jump:    { SS:70, S:60, A:50, B:40, C:30, D:20, E:0 },
+    sprint:  { SS:12.0, S:13.5, A:15.0, B:17.0, C:19.0, D:22.0, E:999 }
+};
+
+const RANK_POINTS = { SS:200, S:150, A:100, B:70, C:40, D:20, E:0 };
+
+const OVERALL_THRESHOLDS = [
+    { rank:'SS', min:900 }, { rank:'S', min:650 },
+    { rank:'A',  min:450 }, { rank:'B', min:300 },
+    { rank:'C',  min:150 }, { rank:'D', min:50  },
+    { rank:'E',  min:0   }
+];
+
+const RANK_NAMES = {
+    SS:'Master', S:'Elite', A:'Expert',
+    B:'Advanced', C:'Intermediate', D:'Basic', E:'Beginner'
+};
+
+function calcRank(test, score) {
+    if (score === null || score === '') return null;
+    const t = RANKINGS[test];
+    if (test === 'sprint') {
+        for (const r of ['SS','S','A','B','C','D']) {
+            if (score <= t[r]) return r;
+        }
+        return 'E';
+    } else {
+        for (const r of ['SS','S','A','B','C','D']) {
+            if (score >= t[r]) return r;
+        }
+        return 'E';
+    }
+}
+
+function calcOverall(points) {
+    for (const { rank, min } of OVERALL_THRESHOLDS) {
+        if (points >= min) return rank;
+    }
+    return 'E';
+}
+
+/* ════════════════════════════════════════
+   UPDATE RANK BADGE + THRESHOLD PIPS
+════════════════════════════════════════ */
+const currentRanks = { pushups:null, squats:null, situps:null, jump:null, sprint:null };
+
+function updateRank(test) {
+    const input = document.getElementById('input-' + test);
+    const badge = document.getElementById('rank-' + test);
+    const val   = input.value === '' ? null : parseFloat(input.value);
+    const rank  = calcRank(test, val);
+
+    currentRanks[test] = rank;
+
+    // Update rank badge
+    badge.textContent = rank || '—';
+    badge.setAttribute('data-rank', rank || '');
+
+    // Update threshold pips
+    const pips = document.querySelectorAll(`.test-thresholds[data-test="${test}"] .threshold-pip`);
+    pips.forEach(pip => {
+        pip.classList.toggle('active-rank', pip.dataset.r === rank);
+    });
+
+    updateOverall();
+    updateSubmitBtn();
+}
+
+/* ════════════════════════════════════════
+   OVERALL RANK PREVIEW
+════════════════════════════════════════ */
+function updateOverall() {
+    const allFilled = Object.values(currentRanks).every(r => r !== null);
+    const totalPts  = Object.values(currentRanks).reduce((acc, r) => acc + (r ? RANK_POINTS[r] : 0), 0);
+    const overall   = calcOverall(totalPts);
+
+    const display = document.getElementById('overall-rank-display');
+    const name    = document.getElementById('overall-rank-name');
+    const pts     = document.getElementById('overall-points');
+    const fill    = document.getElementById('overall-points-fill');
+    const preview = document.getElementById('overall-preview');
+
+    if (allFilled) {
+        display.textContent = overall;
+        display.setAttribute('data-rank', overall);
+        name.textContent    = RANK_NAMES[overall] || overall;
+        pts.textContent     = totalPts;
+        fill.style.width    = Math.min((totalPts / 1000) * 100, 100) + '%';
+        preview.classList.add('has-rank');
+    } else {
+        const filledCount = Object.values(currentRanks).filter(r => r !== null).length;
+        display.textContent = filledCount > 0 ? '?' : '—';
+        display.setAttribute('data-rank', '');
+        name.textContent    = filledCount > 0
+            ? `${filledCount}/5 tests entered`
+            : 'Enter test scores';
+        pts.textContent     = totalPts;
+        fill.style.width    = Math.min((totalPts / 1000) * 100, 100) + '%';
+        preview.classList.remove('has-rank');
+    }
+}
+
+/* ════════════════════════════════════════
+   SUBMIT BUTTON STATE
+════════════════════════════════════════ */
+function updateSubmitBtn() {
+    const btn     = document.getElementById('submit-btn');
+    const hint    = document.getElementById('submit-hint');
+    const clientId = document.getElementById('selected-client-id').value;
+    const allScores = Object.values(currentRanks).every(r => r !== null);
+
+    if (!clientId && !allScores) {
+        btn.disabled = true;
+        hint.className = 'submit-hint';
+        hint.textContent = 'Select a client and fill in all 5 test scores to continue';
+    } else if (!clientId) {
+        btn.disabled = true;
+        hint.className = 'submit-hint error';
+        hint.textContent = '⚠️ No client selected — pick one above';
+    } else if (!allScores) {
+        const missing = Object.entries(currentRanks)
+            .filter(([,v]) => v === null)
+            .map(([k]) => k).length;
+        btn.disabled = true;
+        hint.className = 'submit-hint';
+        hint.textContent = `${missing} test score${missing > 1 ? 's' : ''} still missing`;
+    } else {
+        btn.disabled = false;
+        hint.className = 'submit-hint ready';
+        hint.textContent = '✓ Ready to submit — all scores entered';
+    }
+}
+
+/* ════════════════════════════════════════
+   CLIENT SEARCH & SELECTION
+════════════════════════════════════════ */
+const searchInput  = document.getElementById('client-search-input');
+const csClearBtn   = document.getElementById('cs-clear-btn');
+const csOptions    = document.querySelectorAll('.cs-option');
+const csNoResults  = document.getElementById('cs-no-results');
+
+searchInput.addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    csClearBtn.classList.toggle('visible', q.length > 0);
+
+    let visible = 0;
+    csOptions.forEach(opt => {
+        const match = !q || opt.dataset.name.includes(q) || opt.dataset.id.includes(q);
+        opt.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+
+    csNoResults.style.display = visible === 0 ? 'block' : 'none';
+});
+
+csClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    csClearBtn.classList.remove('visible');
+    csOptions.forEach(opt => opt.style.display = '');
+    csNoResults.style.display = 'none';
+    searchInput.focus();
+});
+
+function selectClient(el) {
+    // Deselect previous
+    document.querySelectorAll('.cs-option.selected').forEach(o => o.classList.remove('selected'));
+
+    // Select this one
+    el.classList.add('selected');
+
+    const id   = el.dataset.id;
+    const name = el.querySelector('.cs-name').textContent;
+
+    // Update hidden field
+    document.getElementById('selected-client-id').value = id;
+
+    // Update preview banner
+    const preview = document.getElementById('selected-preview');
+    preview.classList.add('visible');
+    document.getElementById('selected-preview-avatar').textContent = name[0].toUpperCase();
+    document.getElementById('selected-preview-name').textContent   = name;
+    document.getElementById('selected-preview-id').textContent     = 'Client #' + id + ' · Selected';
+
+    updateSubmitBtn();
+}
+
+function clearClientSelection() {
+    document.querySelectorAll('.cs-option.selected').forEach(o => o.classList.remove('selected'));
+    document.getElementById('selected-client-id').value = '';
+    document.getElementById('selected-preview').classList.remove('visible');
+    updateSubmitBtn();
+}
+
+// Init state
+updateOverall();
+updateSubmitBtn();
+</script>
 {% endblock %}
