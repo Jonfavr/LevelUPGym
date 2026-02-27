@@ -847,6 +847,28 @@
         margin-bottom: 16px;
         display: none;
     }
+
+    /* ADD this to the swap-option styles */
+#swap-options-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--brand) var(--surface-3);
+}
+
+#swap-options-list::-webkit-scrollbar {
+    width: 4px;
+}
+#swap-options-list::-webkit-scrollbar-track {
+    background: var(--surface-3);
+    border-radius: 99px;
+}
+#swap-options-list::-webkit-scrollbar-thumb {
+    background: var(--brand);
+    border-radius: 99px;
+}
 </style>
 {% endblock %}
 
@@ -926,11 +948,15 @@
                 {% endif %}
 
                 <div class="ex-meta">
+                    {% if exercise.primary_muscle %}
                     <span class="ex-tag muscle">{{ exercise.primary_muscle }}</span>
+                    {% endif %}
                     {% if exercise.complementary_muscle %}
                     <span class="ex-tag complementary">{{ exercise.complementary_muscle }}</span>
                     {% endif %}
+                    {% if exercise.exercise_type %}
                     <span class="ex-tag">{{ exercise.exercise_type.title() }}</span>
+                    {% endif %}
                     <span class="ex-tag exp">⚡ {{ exercise.base_exp }} EXP/set</span>
                 </div>
 
@@ -1107,7 +1133,7 @@
 
     const SESSION_STATUS = "{{ session_info.status }}";
     const CLIENT_ID = "{{ client_id }}";
-    const ROUTINE_ID = "{{ routine.rotuine_id }}";
+    const ROUTINE_ID = "{{ routine.routine_id }}";
     const TOTAL_SETS = {{ progress.total_sets }};
     const INITIAL_COMPLETED = {{ progress.completed_sets }};
 
@@ -1526,7 +1552,7 @@ function openSwapModal(exerciseId, primaryMuscle, exerciseType, routineId, clien
     list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;">Loading alternatives...</div>';
     document.getElementById('swapModal').classList.add('active');
 
-    fetch(`/get_swap_options?exercise_id=${exerciseId}&primary_muscle=${encodeURIComponent(primaryMuscle)}&exercise_type=${encodeURIComponent(exerciseType)}&routine_id=${routineId}&client_id=${clientId}`)
+    fetch(`/get_swap_options?exercise_id=${exerciseId}&primary_muscle=${encodeURIComponent(primaryMuscle)}&routine_id=${routineId}&client_id=${clientId}`)
         .then(r => r.json())
         .then(data => {
             if (data.options && data.options.length > 0) {
@@ -1569,28 +1595,6 @@ async function confirmSwap(oldExId, newExId) {
         }
     } catch (err) {
         alert('Error performing swap: ' + err.message);
-    }
-}
-
-function closeSwapModal() {
-    document.getElementById('swapModal').classList.remove('active');
-}
-
-async function confirmSwap(oldExId, newExId, routineId, clientId) {
-    try {
-        const response = await fetch('/swap_exercise', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ old_exercise_id: oldExId, new_exercise_id: newExId, routine_id: routineId, client_id: clientId })
-        });
-        const result = await response.json();
-        if (result.success) {
-            window.location.reload();
-        } else {
-            alert(result.message || 'Swap failed');
-        }
-    } catch (err) {
-        alert('Error performing swap');
     }
 }
 </script>

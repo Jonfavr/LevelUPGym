@@ -81,7 +81,8 @@ def apply_session_swaps(exercises, swaps):
                     'name': new_ex.name,
                     'description': new_ex.description,
                     'exercise_type': new_ex.exercise_type,
-                    'target_muscle': new_ex.target_muscle,
+                    'primary_muscle': new_ex.primary_muscle,
+                    'complementary_muscle': new_ex.complementary_muscle,
                     'base_exp': new_ex.base_exp,
                     'image_path': new_ex.image_path,
                     'sets': ex['sets'],
@@ -491,8 +492,7 @@ def profile():
 def get_swap_options():
     """Return exercise alternatives for the swap modal in workout.html"""
     exercise_id    = request.args.get('exercise_id', type=int)
-    primary_muscle = request.args.get('primary_muscle', '')   # param name kept for JS compatibility
-    exercise_type  = request.args.get('exercise_type', '')
+    primary_muscle = request.args.get('primary_muscle', '')
 
     db = DatabaseManager()
     query = """
@@ -500,24 +500,10 @@ def get_swap_options():
                exercise_type, difficulty_level, base_exp
         FROM   exercises
         WHERE  primary_muscle = ?
-          AND  exercise_type  = ?
           AND  exercise_id   != ?
         ORDER  BY name
     """
-    rows = db.execute_query(query, (primary_muscle, exercise_type, exercise_id))
-
-    # If exact primary_muscle match gives nothing, broaden to same type only
-    if not rows:
-        query_broad = """
-            SELECT exercise_id, name, primary_muscle, complementary_muscle,
-                   exercise_type, difficulty_level, base_exp
-            FROM   exercises
-            WHERE  exercise_type = ?
-              AND  exercise_id  != ?
-            ORDER  BY name
-            LIMIT  8
-        """
-        rows = db.execute_query(query_broad, (exercise_type, exercise_id))
+    rows = db.execute_query(query, (primary_muscle, exercise_id))
 
     return jsonify({
         'options': [dict(r) for r in rows]
