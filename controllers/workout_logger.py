@@ -189,7 +189,7 @@ class WorkoutLogger:
             workout_date = datetime.strptime(workout_date, '%Y-%m-%d').date()
         
         query = '''
-            SELECT wl.*, e.name as exercise_name, e.target_muscle, e.exercise_type
+            SELECT wl.*, e.name as exercise_name, e.primary_muscle, e.exercise_type
             FROM workout_logs wl
             JOIN exercises e ON wl.exercise_id = e.exercise_id
             WHERE wl.client_id=? AND wl.workout_date=?
@@ -204,7 +204,7 @@ class WorkoutLogger:
             if exercise_id not in exercises:
                 exercises[exercise_id] = {
                     'exercise_name': row['exercise_name'],
-                    'target_muscle': row['target_muscle'],
+                    'primary_muscle': row['primary_muscle'],
                     'exercise_type': row['exercise_type'],
                     'sets': []
                 }
@@ -275,7 +275,7 @@ class WorkoutLogger:
     def get_personal_records(self, client_id):
         """Get personal records (highest weight/reps) for each exercise"""
         query = '''
-            SELECT e.name as exercise_name, e.target_muscle,
+            SELECT e.name as exercise_name, e.primary_muscle,
                    MAX(wl.weight_used) as max_weight,
                    MAX(wl.reps_completed) as max_reps,
                    MAX(wl.workout_date) as last_performed
@@ -291,7 +291,7 @@ class WorkoutLogger:
         for row in results:
             records.append({
                 'exercise': row['exercise_name'],
-                'target_muscle': row['target_muscle'],
+                'primary_muscle': row['primary_muscle'],
                 'max_weight': row['max_weight'],
                 'max_reps': row['max_reps'],
                 'last_performed': row['last_performed']
@@ -500,7 +500,7 @@ if __name__ == "__main__":
     print(f"Total EXP: {todays_workout['total_exp']}")
     print("\nExercise Breakdown:")
     for exercise in todays_workout['exercises']:
-        print(f"  • {exercise['exercise_name']} ({exercise['target_muscle']})")
+        print(f"  • {exercise['exercise_name']} ({exercise['primary_muscle']})")
         print(f"    {len(exercise['sets'])} sets")
         for set_data in exercise['sets']:
             weight_str = f"{set_data['weight']}kg" if set_data['weight'] else "bodyweight"
@@ -556,7 +556,7 @@ if __name__ == "__main__":
     print("--- Personal Records ---")
     records = logger.get_personal_records(client_id)
     for record in records:
-        print(f"  {record['exercise']} ({record['target_muscle']})")
+        print(f"  {record['exercise']} ({record['primary_muscle']})")
         if record['max_weight']:
             print(f"    Max Weight: {record['max_weight']}kg")
         print(f"    Max Reps: {record['max_reps']}")

@@ -386,33 +386,74 @@ def schedule():
     """Weekly schedule page"""
     client_id = session['client_id']
     client = Client.get_by_id(client_id)
-    
-    # Get weekly schedule
-    weekly_schedule = client.get_weekly_schedule()
-    
-    # Get availability
-    availability = client.get_availability()
-    
-    all_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    
-    session_ctrl = WorkoutSessionController()
-    today = date.today().strftime('%Y-%m-%d')
 
+    # Get weekly schedule & availability
+    weekly_schedule = client.get_weekly_schedule()
+    availability = client.get_availability()
+
+    all_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+    # Resolve today's name  (e.g. "Monday")
+    today_name = date.today().strftime('%A')
+    today      = date.today().strftime('%Y-%m-%d')
+
+    # Attach session status to each day
+    session_ctrl = WorkoutSessionController()
     for day, routine_info in weekly_schedule.items():
-        routine_id = routine_info['routine_id']
+        routine_id  = routine_info['routine_id']
         session_data = session_ctrl._get_session(client_id, routine_id, today)
-        if session_data:
-            routine_info['status'] = session_data['status']
-        else:
-            routine_info['status'] = 'not_started'
+        routine_info['status'] = session_data['status'] if session_data else 'not_started'
+
+    # All active routines — used by the "change routine" dropdowns + extra workout picker
+    db = DatabaseManager()
+    all_routines = db.execute_query(
+        "SELECT routine_id, routine_name, description FROM routines WHERE is_active=1 ORDER BY routine_name"
+    )
 
     return render_template(
         'schedule.html',
-        schedule=weekly_schedule,  # renamed variable
+        schedule=weekly_schedule,
         all_days=all_days,
-        availability=availability
+        availability=availability,
+        today_name=today_name,
+        all_routines=all_routines,
     )
-    
+
+@app.route('/schedule/update_routine', methods=['POST'])
+@login_required
+def client_update_schedule():
+    """
+    Allows a client to reassign a routine to one of their own days.
+    Only days that are part of the client's availability can be changed.
+    """
+    client_id  = session['client_id']
+    client     = Client.get_by_id(client_id)
+    day        = request.form.get('day')
+    routine_id = request.form.get('routine_id')
+
+    valid_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+    if day not in valid_days:
+        flash('Invalid day selected.', 'danger')
+        return redirect(url_for('schedule'))
+
+    # Only allow changes to days that are in the client's availability
+    availability = client.get_availability()
+    if day not in availability:
+        flash(f'{day} is not one of your training days.', 'warning')
+        return redirect(url_for('schedule'))
+
+    if not routine_id:
+        flash('Please select a routine.', 'warning')
+        return redirect(url_for('schedule'))
+
+    try:
+        client.assign_routine_to_day(day, int(routine_id))
+        flash(f'✅ {day}\'s routine updated!', 'success')
+    except Exception as e:
+        flash(f'Could not update routine: {str(e)}', 'danger')
+
+    return redirect(url_for('schedule'))
 
 @app.route('/finish_workout', methods=['POST'])
 @login_required
