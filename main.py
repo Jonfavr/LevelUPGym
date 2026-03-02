@@ -9,6 +9,7 @@ from functools import wraps
 import sys
 import os
 from datetime import datetime, date, timedelta
+import hashlib
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -55,8 +56,20 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'admin_logged_in' not in session:
+        if not session.get('admin_logged_in'):
             return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def superadmin_required(f):
+    """Only superadmins can access this route. Staff get redirected with an error."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        if session.get('admin_role') != 'superadmin':
+            flash('Access denied — superadmin privileges required.', 'error')
+            return redirect(url_for('admin_dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -611,20 +624,34 @@ def api_swap_exercise():
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
-    """Admin login page"""
+    """Admin login — authenticates against the admin_users table."""
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin_dashboard'))
+
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        # Simple admin authentication (in production, use proper auth)
-        if username == 'admin' and password == 'admin123':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+
+        pw_hash = hashlib.sha256(password.encode()).hexdigest()
+        db_     = DatabaseManager()
+
+        rows = db_.execute_query(
+            'SELECT * FROM admin_users WHERE username = ? AND is_active = 1',
+            (username,)
+        )
+
+        if rows and dict(rows[0])['password_hash'] == pw_hash:
+            user = dict(rows[0])
             session['admin_logged_in'] = True
-            session['admin_username'] = username
-            flash('Welcome, Admin! 👋', 'success')
+            session['admin_user_id']   = user['user_id']
+            session['admin_username']  = user['username']
+            session['admin_full_name'] = user['full_name']
+            session['admin_role']      = user['role']
+            flash(f"Welcome back, {user['full_name']}! 👋", 'success')
             return redirect(url_for('admin_dashboard'))
         else:
-            flash('Invalid admin credentials', 'error')
-    
+            flash('Invalid username or password.', 'error')
+
     return render_template('admin/login.html')
 
 @app.route('/admin/logout')
@@ -633,6 +660,101 @@ def admin_logout():
     session.clear()
     flash('Admin logged out successfully', 'info')
     return redirect(url_for('admin_login'))
+
+@app.route('/admin/users')
+@superadmin_required
+def admin_users():
+    """Admin user management — superadmin only."""
+    db_ = DatabaseManager()
+    users = [dict(r) for r in db_.execute_query(
+        'SELECT * FROM admin_users ORDER BY created_at DESC'
+    )]
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/<int:user_id>/edit', methods=['POST'])
+@superadmin_required
+def admin_edit_user(user_id):
+    full_name = request.form.get('full_name', '').strip()
+    role      = request.form.get('role', 'staff')
+    password  = request.form.get('password', '').strip()
+
+    if role not in ('superadmin', 'staff'):
+        role = 'staff'
+
+    db_ = DatabaseManager()
+
+    if password:
+        pw_hash = hashlib.sha256(password.encode()).hexdigest()
+        db_.execute_update(
+            'UPDATE admin_users SET full_name=?, role=?, password_hash=? WHERE user_id=?',
+            (full_name, role, pw_hash, user_id)
+        )
+    else:
+        db_.execute_update(
+            'UPDATE admin_users SET full_name=?, role=? WHERE user_id=?',
+            (full_name, role, user_id)
+        )
+
+    flash('User updated successfully.', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:user_id>/toggle', methods=['POST'])
+@superadmin_required
+def admin_toggle_user(user_id):
+    if user_id == session.get('admin_user_id'):
+        flash('You cannot deactivate your own account.', 'error')
+        return redirect(url_for('admin_users'))
+
+    db_ = DatabaseManager()
+    db_.execute_update(
+        'UPDATE admin_users SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE user_id=?',
+        (user_id,)
+    )
+    flash('User status updated.', 'info')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@superadmin_required
+def admin_delete_user(user_id):
+    if user_id == session.get('admin_user_id'):
+        flash('You cannot delete your own account.', 'error')
+        return redirect(url_for('admin_users'))
+
+    db_ = DatabaseManager()
+    db_.execute_update('DELETE FROM admin_users WHERE user_id=?', (user_id,))
+    flash('User deleted.', 'info')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/create', methods=['POST'])
+@superadmin_required
+def admin_create_user():
+    username  = request.form.get('username', '').strip()
+    password  = request.form.get('password', '').strip()
+    full_name = request.form.get('full_name', '').strip()
+    role      = request.form.get('role', 'staff')
+
+    if not username or not password or not full_name:
+        flash('All fields are required.', 'error')
+        return redirect(url_for('admin_users'))
+
+    if role not in ('superadmin', 'staff'):
+        role = 'staff'
+
+    pw_hash = hashlib.sha256(password.encode()).hexdigest()
+    db_ = DatabaseManager()
+
+    try:
+        db_.execute_update(
+            '''INSERT INTO admin_users (username, password_hash, full_name, role, created_by)
+               VALUES (?, ?, ?, ?, ?)''',
+            (username, pw_hash, full_name, role, session.get('admin_username'))
+        )
+        flash(f'User "{username}" created successfully.', 'success')
+    except Exception as e:
+        flash(f'Username already exists or an error occurred.', 'error')
+
+    return redirect(url_for('admin_users'))
 
 @app.route('/admin')
 @admin_required
