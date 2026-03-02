@@ -4,137 +4,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - LevelUp Gym</title>
+    <title>Admin Login — LevelUp Gym</title>
+    <link rel="icon" type="image/x-icon" href="/static/image/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .login-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .login-header h1 {
-            font-size: 32px;
-            color: #1f2937;
-            margin-bottom: 10px;
+        /* ═══════════════════════════════
+           DESIGN TOKENS — matches admin/base.html
+        ═══════════════════════════════ */
+        :root {
+            --bg-base:       #0b0d14;
+            --bg-surface:    #12151f;
+            --bg-elevated:   #1a1e2e;
+            --bg-hover:      #212540;
+
+            --accent:        #667eea;
+            --accent-glow:   rgba(102,126,234,0.25);
+            --accent-2:      #764ba2;
+
+            --emerald:       #10b981;
+            --red:           #ef4444;
+            --red-glow:      rgba(239,68,68,0.15);
+            --amber:         #fbbf24;
+
+            --text-primary:  #f0f2ff;
+            --text-secondary:#8b8fa8;
+            --text-muted:    #555975;
+
+            --border:        rgba(255,255,255,0.06);
+            --border-accent: rgba(102,126,234,0.35);
+
+            --radius-sm:     8px;
+            --radius-md:     12px;
+            --radius-lg:     16px;
         }
 
-        .login-header img {
-            height: 25vh;
-            margin-bottom: 10px;
+        /* ═══════════════════════════════
+           BASE
+        ═══════════════════════════════ */
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        html, body {
+            min-height: 100vh;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-            
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+
+        /* Grid texture */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(102,126,234,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102,126,234,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
         }
-        
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #ef4444;
+
+        /* Ambient orb — top-left */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -20vh; left: -15vw;
+            width: 70vw; height: 70vh;
+            background: radial-gradient(ellipse, rgba(102,126,234,0.08) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
         }
-        
-        .form-group {
-            margin-bottom: 20px;
+
+        /* Second orb — bottom-right */
+        .orb-br {
+            position: fixed;
+            bottom: -20vh; right: -15vw;
+            width: 60vw; height: 60vh;
+            background: radial-gradient(ellipse, rgba(118,75,162,0.06) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
         }
-        
-        label {
+
+        /* ═══════════════════════════════
+           CARD
+        ═══════════════════════════════ */
+        .login-wrap {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 420px;
+            padding: 24px 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Top brand strip */
+        .brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 36px;
+        }
+        .brand img {
+            width: 50vw;
+            max-width: 200px;
+            height: auto;
+            filter: drop-shadow(0 0 12px rgba(124,92,252,0.4));
+            background: transparent;
+            margin-bottom: 12px;
             display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .brand-name {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 30px; font-weight: 900;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .brand-sub {
+            font-size: 11px; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--text-muted);
+            margin-top: -4px;
+        }
+
+        /* Card chrome */
+        .login-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 36px 32px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Accent top-edge line */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+        }
+
+        .card-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 20px; font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .card-sub {
+            font-size: 13px; color: var(--text-muted);
+            margin-bottom: 28px;
+        }
+
+        /* ═══════════════════════════════
+           ALERTS
+        ═══════════════════════════════ */
+        .alert {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13px; font-weight: 500;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+        }
+        .alert i { margin-top: 1px; flex-shrink: 0; }
+        .alert-error   { background: var(--red-glow);              color: #fca5a5; border-color: rgba(239,68,68,0.3); }
+        .alert-success { background: rgba(16,185,129,0.1);         color: #6ee7b7; border-color: rgba(16,185,129,0.3); }
+        .alert-info    { background: rgba(102,126,234,0.1);        color: #a5b4fc; border-color: var(--border-accent); }
+
+        /* ═══════════════════════════════
+           FORM
+        ═══════════════════════════════ */
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px; font-weight: 600;
+            letter-spacing: 1px; text-transform: uppercase;
+            color: var(--text-secondary);
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #374151;
         }
-        
-        input {
+        .input-wrap {
+            position: relative;
+        }
+        .input-icon {
+            position: absolute; left: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted); font-size: 14px;
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+        .form-input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-        
-        input:focus {
+            padding: 13px 14px 13px 40px;
+            background: var(--bg-elevated);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            color: var(--text-primary);
+            transition: border-color 0.2s, box-shadow 0.2s;
             outline: none;
-            border-color: #667eea;
         }
-        
-        .btn {
+        .form-input::placeholder { color: var(--text-muted); }
+        .form-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .form-input:focus + .input-icon,
+        .input-wrap:focus-within .input-icon { color: var(--accent); }
+
+        /* Toggle password visibility */
+        .pw-toggle {
+            position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted); font-size: 14px;
+            cursor: pointer; background: none; border: none;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+        .pw-toggle:hover { color: var(--text-secondary); }
+
+        /* ── Submit button ── */
+        .btn-login {
             width: 100%;
-            padding: 12px;
-            background: #667eea;
-            color: white;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 17px; font-weight: 700;
+            letter-spacing: 2px;
+            color: white;
             cursor: pointer;
-            transition: all 0.3s;
+            margin-top: 8px;
+            transition: filter 0.2s, transform 0.15s, box-shadow 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-        
-        .btn:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        .btn-login:hover {
+            filter: brightness(1.12);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+        .btn-login:active { transform: scale(0.98); }
+
+        /* ── Divider ── */
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 24px 0 18px;
+            color: var(--text-muted); font-size: 11px;
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1;
+            height: 1px; background: var(--border);
+        }
+
+        /* ── Default credentials hint ── */
+        .creds-hint {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 13px; color: var(--text-muted);
+        }
+        .creds-hint i { color: var(--accent); font-size: 13px; flex-shrink: 0; }
+        .creds-hint code {
+            font-family: 'Courier New', monospace;
+            font-size: 12px; color: var(--text-secondary);
+            background: var(--bg-hover);
+            padding: 2px 6px; border-radius: 4px;
+        }
+
+        /* ── Footer link ── */
+        .back-link {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            margin-top: 24px;
+            font-size: 13px; color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        /* ═══════════════════════════════
+           ANIMATIONS
+        ═══════════════════════════════ */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="login-header">
-            <img src="/static/image/Untitled design.png">
-            <p style="color: #6b7280;">Admin Portal</p>
-        </div>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        <form method="POST" action="{{ url_for('admin_login') }}">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter admin username" required autofocus>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter admin password" required>
-            </div>
-            
-            <button type="submit" class="btn">Login</button>
-        </form>
-        
-        <p style="text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px;">
-            Default: admin / admin123
-        </p>
+
+<div class="orb-br"></div>
+
+<div class="login-wrap">
+
+    <!-- Brand -->
+    <div class="brand">
+        <img src="/static/image/levelup_gym_logo.svg" alt="LevelUp Gym"
+             onerror="this.style.display='none'">
+        <div class="brand-sub">Admin Portal</div>
     </div>
+
+    <!-- Card -->
+    <div class="login-card">
+
+        <div class="card-title">Welcome back</div>
+        <div class="card-sub">Sign in to access the admin dashboard</div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                <i class="fa-solid {% if category == 'error' %}fa-circle-exclamation{% elif category == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('admin_login') }}">
+
+            <!-- Username -->
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <div class="input-wrap">
+                    <input class="form-input" type="text" id="username" name="username"
+                           placeholder="Enter admin username" required autofocus>
+                    <i class="fa-solid fa-user input-icon"></i>
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <div class="input-wrap">
+                    <input class="form-input" type="password" id="password" name="password"
+                           placeholder="Enter admin password" required>
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <button type="button" class="pw-toggle" id="pw-toggle" tabindex="-1"
+                            aria-label="Toggle password visibility">
+                        <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                SIGN IN
+            </button>
+
+        </form>
+
+        <div class="divider">default credentials</div>
+
+        <div class="creds-hint">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Username <code>admin</code> &nbsp;·&nbsp; Password <code>admin123</code></span>
+        </div>
+
+    </div><!-- /login-card -->
+
+    <a href="{{ url_for('index') }}" class="back-link">
+        <i class="fa-solid fa-arrow-left" style="font-size:11px;"></i>
+        Back to client portal
+    </a>
+
+</div><!-- /login-wrap -->
+
+<script>
+    // Toggle password visibility
+    const pwInput  = document.getElementById('password');
+    const pwToggle = document.getElementById('pw-toggle');
+    const pwIcon   = document.getElementById('pw-toggle-icon');
+
+    pwToggle.addEventListener('click', () => {
+        const isHidden = pwInput.type === 'password';
+        pwInput.type   = isHidden ? 'text' : 'password';
+        pwIcon.className = isHidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+    });
+</script>
+
 </body>
 </html>

@@ -1683,6 +1683,119 @@ def kiosk_leaderboard():
         top_streaks=top_streaks
     )
 
+@app.route('/kiosk/checkin')
+def kiosk_checkin():
+    """
+    Public check-in kiosk page.
+    Standalone full-screen page designed for the front-desk tablet/monitor.
+    No login required; authentication is handled via JS → /api/kiosk/checkin.
+    """
+    return render_template('kiosk/checkin_kiosk.html')
+
+
+@app.route('/api/kiosk/checkin', methods=['POST'])
+def api_kiosk_checkin():
+    """
+    Kiosk check-in API.
+    Accepts : { phone_number: "1234567890", pin: "1234" }
+    Returns : profile data on success, error message on failure.
+
+    Uses the same phone_number + PIN auth as the client portal login.
+    """
+    from database.db_manager import DatabaseManager
+    from datetime import datetime
+
+    data         = request.get_json(silent=True) or {}
+    phone_number = str(data.get('phone_number', '')).strip()
+    pin          = str(data.get('pin', '')).strip()
+
+    if not phone_number or not pin:
+        return jsonify({'success': False, 'message': 'Missing credentials'}), 400
+
+    db = DatabaseManager()
+
+    # ── 1. Look up client by phone number ────────────────────────────
+    rows = db.execute_query(
+        'SELECT * FROM clients WHERE phone_number = ? AND status = "active"',
+        (phone_number,)
+    )
+    if not rows:
+        return jsonify({'success': False, 'message': 'Phone number not found'}), 404
+
+    client_row = dict(rows[0])
+    client_id  = client_row['client_id']
+
+    # ── 2. Verify PIN (same hashing as Client.authenticate) ──────────
+    if client_row['pin_hash'] != db.hash_pin(pin):
+        return jsonify({'success': False, 'message': 'Incorrect PIN. Try again.'}), 401
+
+    # ── 3. Record attendance check-in ────────────────────────────────
+    try:
+        attendance_ctrl.check_in(client_id)
+    except Exception as e:
+        print(f'Kiosk check-in attendance error for client {client_id}: {e}')
+
+    # ── 4. Gamification data ─────────────────────────────────────────
+    gam_rows = db.execute_query(
+        'SELECT * FROM client_gamification WHERE client_id = ?', (client_id,)
+    )
+    gam = dict(gam_rows[0]) if gam_rows else {}
+
+    streak_rows = db.execute_query(
+        'SELECT current_streak FROM client_streaks WHERE client_id = ?', (client_id,)
+    )
+    current_streak = dict(streak_rows[0])['current_streak'] if streak_rows else 0
+
+    level        = gam.get('current_level', 1)
+    current_exp  = gam.get('current_exp', 0)
+    rank         = gam.get('rank', 'E')
+    client_class = gam.get('client_class')
+
+    # XP % toward next level (mirrors GamificationController.EXP_TABLE)
+    EXP_TABLE = {
+        2:150, 3:350, 4:650, 5:1000, 6:1500, 7:2200, 8:3100,
+        9:4200, 10:5500, 11:7000, 12:8700, 13:10600, 14:12700,
+        15:15000, 16:17500, 17:20200, 18:23100, 19:26200, 20:29500
+    }
+    next_level_exp = EXP_TABLE.get(level + 1, 0)
+    xp_pct = round((current_exp / next_level_exp * 100), 1) if next_level_exp else 100
+
+    # ── 5. Today's routine ───────────────────────────────────────────
+    today_name = datetime.now().strftime('%A')
+    routine_rows = db.execute_query(
+        '''SELECT r.routine_name
+           FROM routine_assignments ra
+           JOIN routines r ON ra.routine_id = r.routine_id
+           WHERE ra.client_id = ? AND ra.day_of_week = ? AND ra.is_active = 1
+           LIMIT 1''',
+        (client_id, today_name)
+    )
+    routine_name = dict(routine_rows[0])['routine_name'] if routine_rows else None
+
+    # ── 6. Registration date (friendly format for profile card) ──────
+    reg_date = client_row.get('registration_date', '')
+    try:
+        from datetime import datetime as dt
+        reg_date = dt.strptime(reg_date, '%Y-%m-%d').strftime('%b %Y')
+    except Exception:
+        pass
+
+    # ── 7. Return profile ────────────────────────────────────────────
+    return jsonify({
+        'success':           True,
+        'client_id':         client_id,
+        'full_name':         f"{client_row['first_name']} {client_row['last_name']}",
+        'first_name':        client_row['first_name'],
+        'registration_date': reg_date,
+        'level':             level,
+        'current_exp':       current_exp,
+        'rank':              rank,
+        'client_class':      client_class,
+        'streak':            current_streak,
+        'xp_pct':            xp_pct,
+        'routine_name':      routine_name,
+    })
+
 if __name__ == '__main__':
     local_ip = get_local_ip()
     print("\n" + "="*70)

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin — LevelUp Gym{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="/static/image/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -117,7 +118,7 @@
             width: 38px;
             height: 38px;
             object-fit: contain;
-            filter: drop-shadow(0 0 20px rgba(124,92,252,0.5));
+            filter: drop-shadow(0 0 12px rgba(124,92,252,0.4));
         }
 
         .sidebar-logo-text {
@@ -924,7 +925,7 @@
 <aside class="sidebar" id="sidebar">
 
     <div class="sidebar-logo">
-        <img src="/static/image/Untitled design - Copy.png" alt="LevelUp">
+        <img src="/static/image/levelup_gym_icon.svg" alt="LevelUp">
         <div class="sidebar-logo-text">
             <span class="brand">LEVELUP</span>
             <span class="sub">GYM ADMIN</span>
@@ -960,6 +961,10 @@
             <i class="fa-solid fa-id-card"></i>
             Memberships
         </a>
+        <a href="{{ url_for('admin_announcements') }}"
+        class=" nav-item {% if request.endpoint == 'admin_announcements' %}active{% endif %}">
+            <i class="fa-solid fa-bullhorn"></i> Announcements
+        </a>
 
         <div class="nav-section-label">Members</div>
         <a href="{{ url_for('admin_clients') }}" class="nav-item {% if request.endpoint == 'admin_clients' %}active{% endif %}">
@@ -987,10 +992,13 @@
     </nav>
 
     <div class="sidebar-footer">
-        <a href="{{ url_for('admin_announcements') }}"
-        class=" nav-item {% if request.endpoint == 'admin_announcements' %}active{% endif %}">
-            <i class="fa-solid fa-bullhorn"></i> Announcements
+        {% if session.admin_role == 'superadmin' %}
+        <a href="{{ url_for('admin_users') }}"
+        class="nav-item {% if request.endpoint == 'admin_users' %}active{% endif %}">
+            <i class="fa-solid fa-users-gear"></i>
+            Admin Users
         </a>
+        {% endif %}
         <a href="{{ url_for('admin_logout') }}" class="nav-item-logout">
             <i class="fa-solid fa-right-from-bracket"></i>
             Sign Out
@@ -1010,8 +1018,22 @@
             <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
-            <div>
-                <div class="page-title">{% block page_title %}Admin{% endblock %}</div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="text-align:right;">
+                    <div style="font-size:13px; font-weight:600; color:var(--text-primary); line-height:1.2;">
+                        {{ session.admin_full_name or session.admin_username }}
+                    </div>
+                    <div style="font-size:10px; letter-spacing:1px; text-transform:uppercase;
+                                color:{% if session.admin_role == 'superadmin' %}var(--accent){% else %}var(--emerald){% endif %};">
+                        {{ session.admin_role or 'staff' }}
+                    </div>
+                </div>
+                <div style="width:34px; height:34px; border-radius:50%;
+                            background:linear-gradient(135deg,var(--accent),var(--accent-2));
+                            display:flex; align-items:center; justify-content:center;
+                            font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; color:white;">
+                    {{ (session.admin_full_name or session.admin_username or 'A')[0]|upper }}
+                </div>
             </div>
         </div>
         <div class="topbar-right">
