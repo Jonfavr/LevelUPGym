@@ -106,6 +106,12 @@
     <a href="{{ url_for('admin_add_client') }}" class="btn btn-primary">
         <i class="fa-solid fa-user-plus"></i> Add Client
     </a>
+    <form method="POST" action="{{ url_for('admin_auto_assign_all') }}"
+    onsubmit="return confirm('Auto-assign routines for ALL active clients?\n\nThis uses each client\'s goal and preferred split. Clients without a goal set will use the Balanced (PPL) template.')">
+    <button type="submit" class="btn btn-secondary">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Assign All
+    </button>
+</form>
 </div>
 
 <!-- ── Search & Filters ── -->
@@ -224,6 +230,10 @@
                             <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}"
                                class="btn btn-primary btn-sm" title="Edit">
                                 <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <a href="{{ url_for('admin_auto_assign_panel', client_id=client.client_id) }}"
+                            class="btn btn-ghost btn-sm" title="Auto-assign routines">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
                             </a>
                             <form method="POST" action="{{ url_for('admin_delete_client', client_id=client.client_id) }}"
                                   style="display:inline;"

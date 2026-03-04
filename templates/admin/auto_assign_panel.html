@@ -1,0 +1,574 @@
+<!-- templates/admin/auto_assign_panel.html -->
+
+{% extends "admin/base.html" %}
+
+{% block title %}Auto Assign Panel{% endblock %}
+{% block page_title %}Auto Assign Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══════════════════════════════════════════════════════════════
+   AUTO-ASSIGN PANEL
+══════════════════════════════════════════════════════════════ */
+.aa-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.aa-panel-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-elevated);
+}
+
+.aa-panel-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.aa-panel-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.aa-panel-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+.aa-panel-body {
+    padding: 22px;
+}
+
+/* Step row */
+.aa-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.aa-step {
+    display: flex;
+    gap: 16px;
+}
+
+.aa-step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.aa-step-content { flex: 1; }
+
+.aa-step-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+/* Goal pills */
+.goal-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.goal-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-elevated);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.goal-pill:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.goal-pill.active {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* Template cards */
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.template-card {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--bg-elevated);
+    user-select: none;
+}
+
+.template-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+}
+
+.template-card.active {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.template-card.suggested::after {
+    content: 'Suggested';
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.template-card-icon {
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 6px;
+}
+
+.template-card-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+}
+
+.template-card-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Preview table */
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 12px;
+}
+
+.preview-table th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+}
+
+.preview-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.preview-table tr:last-child td { border-bottom: none; }
+
+.preview-type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.no-match {
+    color: #f59e0b;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* Divider */
+.aa-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+}
+
+/* Confirm bar */
+.aa-confirm-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.aa-overwrite-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+/* Loading spinner */
+.aa-loading {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.aa-loading.visible { display: flex; }
+
+.spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── Panel ── -->
+<div class="aa-panel">
+
+    <!-- Header -->
+    <div class="aa-panel-header">
+        <div class="aa-panel-icon">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+            <div class="aa-panel-title">Auto-Assign Routines</div>
+            <div class="aa-panel-sub">
+                Set a goal → system suggests a split → review → confirm
+            </div>
+        </div>
+    </div>
+
+    <div class="aa-panel-body">
+        <div class="aa-steps">
+
+            <!-- ── Step 1: Fitness Goal ── -->
+            <div class="aa-step">
+                <div class="aa-step-num">1</div>
+                <div class="aa-step-content">
+                    <div class="aa-step-label">Fitness Goal</div>
+                    <div class="goal-pills" id="goalPills">
+                        {% set goals = [
+                            ('General Fitness',   'fa-star'),
+                            ('Build Muscle',      'fa-dumbbell'),
+                            ('Lose Weight',       'fa-fire'),
+                            ('Improve Strength',  'fa-weight-hanging'),
+                            ('Athletic',          'fa-person-running'),
+                            ('Tone Up',           'fa-person'),
+                            ('Leg Development',   'fa-shoe-prints'),
+                            ('Upper Body',        'fa-hand-fist'),
+                        ] %}
+                        {% for goal_name, icon in goals %}
+                        <div class="goal-pill {% if suggestion.goal == goal_name %}active{% endif %}"
+                             data-goal="{{ goal_name }}"
+                             onclick="selectGoal(this)">
+                            <i class="fa-solid {{ icon }}" style="font-size:10px; margin-right:4px;"></i>
+                            {{ goal_name }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Step 2: Split Template ── -->
+            <div class="aa-step">
+                <div class="aa-step-num">2</div>
+                <div class="aa-step-content">
+                    <div class="aa-step-label">
+                        Split Template
+                        <span id="suggestionBadge"
+                              style="margin-left:8px; font-size:11px; font-weight:500;
+                                     color:var(--accent); display:none;">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            Suggested: <span id="suggestionName"></span>
+                        </span>
+                    </div>
+
+                    <div class="template-grid" id="templateGrid">
+                        {% for tpl in templates %}
+                        <div class="template-card
+                                    {% if suggestion.active_template == tpl.slug %}active{% endif %}
+                                    {% if suggestion.suggested_template == tpl.slug %}suggested{% endif %}"
+                             data-slug="{{ tpl.slug }}"
+                             onclick="selectTemplate(this)">
+                            <div class="template-card-icon">
+                                <i class="fa-solid {{ tpl.icon }}"></i>
+                            </div>
+                            <div class="template-card-name">{{ tpl.label }}</div>
+                            <div class="template-card-desc">{{ tpl.description }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Step 3: Preview ── -->
+            <div class="aa-step">
+                <div class="aa-step-num">3</div>
+                <div class="aa-step-content">
+                    <div class="aa-step-label">
+                        Preview
+                        <span class="aa-loading" id="previewLoader">
+                            <div class="spinner"></div> Loading preview…
+                        </span>
+                    </div>
+
+                    <div id="previewContainer">
+                        <!-- Injected by JS -->
+                        <p style="font-size:12.5px; color:var(--text-muted);">
+                            Select a goal or template to see the preview.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /aa-steps -->
+
+        <hr class="aa-divider">
+
+        <!-- ── Confirm bar ── -->
+        <form method="POST"
+              action="{{ url_for('admin_auto_assign_confirm', client_id=client.client_id) }}"
+              id="confirmForm">
+            <input type="hidden" name="template"  id="hiddenTemplate"
+                   value="{{ suggestion.active_template }}">
+            <input type="hidden" name="overwrite" id="hiddenOverwrite" value="0">
+
+            <div class="aa-confirm-bar">
+                <button type="submit" class="btn btn-primary" id="confirmBtn">
+                    <i class="fa-solid fa-bolt"></i> Assign Routines
+                </button>
+
+                <label class="aa-overwrite-label">
+                    <input type="checkbox" id="overwriteCheck"
+                           onchange="document.getElementById('hiddenOverwrite').value = this.checked ? '1' : '0'">
+                    Replace existing assignments
+                </label>
+
+                <span style="font-size:12px; color:var(--text-muted); margin-left:auto;">
+                    Difficulty level:
+                    <strong style="color:var(--text-primary);">
+                        {{ suggestion.difficulty | capitalize }}
+                    </strong>
+                    &nbsp;(Level {{ suggestion.days | length }} client)
+                </span>
+            </div>
+        </form>
+
+    </div><!-- /aa-panel-body -->
+</div><!-- /aa-panel -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const CLIENT_ID       = {{ client.client_id }};
+    const SUGGESTED_SLUG  = "{{ suggestion.suggested_template }}";
+    let   activeGoal      = "{{ suggestion.goal }}";
+    let   activeTemplate  = "{{ suggestion.active_template }}";
+
+    // ── Highlight helpers ────────────────────────────────────────────────────
+    function highlightGoal(goal) {
+        document.querySelectorAll('.goal-pill').forEach(p => {
+            p.classList.toggle('active', p.dataset.goal === goal);
+        });
+    }
+
+    function highlightTemplate(slug) {
+        document.querySelectorAll('.template-card').forEach(c => {
+            c.classList.toggle('active', c.dataset.slug === slug);
+        });
+        document.getElementById('hiddenTemplate').value = slug;
+    }
+
+    function showSuggestion(slug) {
+        const badge = document.getElementById('suggestionBadge');
+        const name  = document.getElementById('suggestionName');
+        const card  = document.querySelector(`.template-card[data-slug="${slug}"]`);
+        if (card) {
+            name.textContent = card.querySelector('.template-card-name').textContent;
+            badge.style.display = 'inline';
+        }
+        // Mark the suggested card
+        document.querySelectorAll('.template-card').forEach(c => {
+            c.classList.toggle('suggested', c.dataset.slug === slug);
+        });
+    }
+
+    // ── Goal selection ───────────────────────────────────────────────────────
+    window.selectGoal = function (el) {
+        activeGoal = el.dataset.goal;
+        highlightGoal(activeGoal);
+
+        // Persist goal + get suggested template back from server
+        const fd = new FormData();
+        fd.append('fitness_goal', activeGoal);
+        // Don't send preferred_split here — let the server derive suggestion
+        fetch(`/admin/client/${CLIENT_ID}/set_goal`, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const suggestedSlug = data.suggestion.suggested_template;
+                    // Auto-select the suggested template
+                    activeTemplate = suggestedSlug;
+                    highlightTemplate(suggestedSlug);
+                    showSuggestion(suggestedSlug);
+                    loadPreview(suggestedSlug);
+                }
+            });
+    };
+
+    // ── Template selection ───────────────────────────────────────────────────
+    window.selectTemplate = function (el) {
+        activeTemplate = el.dataset.slug;
+        highlightTemplate(activeTemplate);
+
+        // If user picks a different template than the suggestion, persist the override
+        if (activeGoal) {
+            const fd = new FormData();
+            fd.append('fitness_goal',    activeGoal);
+            fd.append('preferred_split', activeTemplate);
+            fetch(`/admin/client/${CLIENT_ID}/set_goal`, { method: 'POST', body: fd });
+        }
+
+        loadPreview(activeTemplate);
+    };
+
+    // ── Preview loading ──────────────────────────────────────────────────────
+    function loadPreview(templateSlug) {
+        const loader    = document.getElementById('previewLoader');
+        const container = document.getElementById('previewContainer');
+
+        loader.classList.add('visible');
+        container.innerHTML = '';
+
+        const fd = new FormData();
+        fd.append('template', templateSlug);
+
+        fetch(`/admin/client/${CLIENT_ID}/auto_assign/preview`, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                loader.classList.remove('visible');
+                if (!data.success) {
+                    container.innerHTML = `<p class="no-match">⚠️ ${data.message}</p>`;
+                    return;
+                }
+                renderPreview(data);
+            })
+            .catch(() => {
+                loader.classList.remove('visible');
+                container.innerHTML = `<p class="no-match">⚠️ Could not load preview.</p>`;
+            });
+    }
+
+    function renderPreview(data) {
+        const container = document.getElementById('previewContainer');
+
+        const badge = `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Template: <strong style="color:var(--text-primary);">${data.template_label}</strong>
+                </span>
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Difficulty: <strong style="color:var(--text-primary);">${cap(data.difficulty)}</strong>
+                </span>
+            </div>`;
+
+        const rows = data.preview.map(row => `
+            <tr>
+                <td><strong style="color:var(--text-primary);">${row.day}</strong></td>
+                <td><span class="preview-type-pill">${row.type}</span></td>
+                <td>${row.matched
+                    ? row.routine_name
+                    : `<span class="no-match"><i class="fa-solid fa-triangle-exclamation"></i>
+                       No "${row.type}" routine found</span>`}
+                </td>
+            </tr>`).join('');
+
+        container.innerHTML = badge + `
+            <table class="preview-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Type</th>
+                        <th>Routine</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+
+        // Warn if any gaps
+        const gaps = data.preview.filter(r => !r.matched).length;
+        if (gaps) {
+            container.innerHTML += `
+                <p style="margin-top:10px; font-size:12px; color:#f59e0b;">
+                    <i class="fa-solid fa-lightbulb"></i>
+                    ${gaps} day(s) have no matching routine.
+                    Create routines with the missing type and difficulty to fill them.
+                </p>`;
+        }
+    }
+
+    function cap(str) {
+        return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+    }
+
+    // ── Init: load preview if goal/template already set ─────────────────────
+    if (activeTemplate) {
+        highlightGoal(activeGoal);
+        highlightTemplate(activeTemplate);
+        showSuggestion("{{ suggestion.suggested_template }}");
+        loadPreview(activeTemplate);
+    }
+
+})();
+</script>
+{% endblock %}

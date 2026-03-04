@@ -11,25 +11,28 @@ class Routine:
     """Routine model - represents a workout routine"""
     
     def __init__(self, routine_id=None, routine_name=None, description=None,
-                 created_by=None, is_active=True):
+                difficulty_level='beginner', routine_type='Full Body',
+                created_by=None, is_active=True):
         self.routine_id = routine_id
         self.routine_name = routine_name
         self.description = description
         self.created_by = created_by
         self.is_active = is_active
+        self.difficulty_level = difficulty_level
+        self.routine_type     = routine_type
         self.created_date = None
         self.exercises = []  # List of routine exercises with sets/reps
     
     def save(self):
-        """Save new routine to database"""
         db = DatabaseManager()
-        query = '''
-            INSERT INTO routines (routine_name, description, created_by, is_active)
-            VALUES (?, ?, ?, ?)
-        '''
-        params = (self.routine_name, self.description, self.created_by, self.is_active)
-        self.routine_id = db.execute_update(query, params)
-        return self.routine_id
+        routine_id = db.execute_update('''
+            INSERT INTO routines 
+            (routine_name, description, difficulty_level, routine_type, created_by, is_active)
+            VALUES (?, ?, ?, ?, ?, 1)
+        ''', (self.routine_name, self.description,
+              self.difficulty_level, self.routine_type, self.created_by))
+        self.routine_id = routine_id
+        return routine_id
     
     def update(self):
         """Update existing routine"""

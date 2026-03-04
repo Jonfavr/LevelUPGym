@@ -1,66 +1,69 @@
 """
-migrate_admin_users.py
-─────────────────────
-Run ONCE from the project root to:
-  1. Create the admin_users table
-  2. Seed the default superadmin (admin / admin123)
+migrate_goals.py
+────────────────
+Run this ONCE to add the new columns needed for goal-based auto-assignment.
+Safe to re-run — each ALTER is wrapped in a try/except.
 
 Usage:
-    python migrate_admin_users.py
+    python migrate_goals.py
 """
 
 import sqlite3
-import hashlib
 import os
 
-DB_NAME = 'levelup_gym.db'
-
-
-def hash_pw(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+# ── Adjust this path to point at your actual database file ──────────────────
+DB_PATH = os.path.join(os.path.dirname(__file__), 'levelup_gym.db')
 
 
 def run():
-    if not os.path.exists(DB_NAME):
-        print(f"❌  Database '{DB_NAME}' not found. Run the app once first.")
-        return
+    conn = sqlite3.connect(DB_PATH)
+    c    = conn.cursor()
 
-    conn = sqlite3.connect(DB_NAME)
-    cur  = conn.cursor()
+    migrations = [
 
-    # ── 1. Create table ──────────────────────────────────────────────────
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS admin_users (
-            user_id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            username      TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            full_name     TEXT NOT NULL,
-            role          TEXT NOT NULL DEFAULT 'staff',
-            is_active     INTEGER NOT NULL DEFAULT 1,
-            created_by    TEXT,
-            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    print("✅  admin_users table ready.")
+        # ── clients table ────────────────────────────────────────────────────
+        ("clients", "fitness_goal",
+         "ALTER TABLE clients ADD COLUMN fitness_goal TEXT DEFAULT NULL"),
 
-    # ── 2. Seed default superadmin (only if no users exist) ──────────────
-    cur.execute('SELECT COUNT(*) FROM admin_users')
-    count = cur.fetchone()[0]
+        ("clients", "preferred_split",
+         "ALTER TABLE clients ADD COLUMN preferred_split TEXT DEFAULT NULL"),
 
-    if count == 0:
-        cur.execute(
-            '''INSERT INTO admin_users (username, password_hash, full_name, role, created_by)
-               VALUES (?, ?, ?, ?, ?)''',
-            ('admin', hash_pw('levelupadmin'), 'System Administrator', 'superadmin', 'migration')
-        )
-        print("✅  Default superadmin seeded  →  username: admin  |  password: levelupadmin")
-        print("⚠️   Change the default password after first login!")
-    else:
-        print(f"ℹ️   {count} admin user(s) already exist — seed skipped.")
+        # ── routines table ───────────────────────────────────────────────────
+        ("routines", "difficulty_level",
+         "ALTER TABLE routines ADD COLUMN difficulty_level TEXT "
+         "CHECK(difficulty_level IN ('beginner','intermediate','advanced')) "
+         "DEFAULT 'beginner'"),
+
+        ("routines", "routine_type",
+         "ALTER TABLE routines ADD COLUMN routine_type TEXT DEFAULT 'Full Body'"),
+    ]
+
+    for table, column, sql in migrations:
+        try:
+            c.execute(sql)
+            print(f"  ✅  Added '{column}' to '{table}'")
+        except sqlite3.OperationalError as e:
+            if 'duplicate column' in str(e).lower():
+                print(f"  ⏭   '{column}' on '{table}' already exists — skipped")
+            else:
+                print(f"  ❌  Error on '{table}.{column}': {e}")
+
+    # ── Seed any existing routines that still have NULL difficulty/type ───────
+    c.execute("""
+        UPDATE routines
+        SET difficulty_level = 'beginner',
+            routine_type     = 'Full Body'
+        WHERE difficulty_level IS NULL
+           OR routine_type     IS NULL
+    """)
+    seeded = c.rowcount
+    if seeded:
+        print(f"\n  📌  Seeded {seeded} existing routine(s) with beginner / Full Body defaults.")
+        print("      Remember to update them to their correct type and difficulty in the admin UI.\n")
 
     conn.commit()
     conn.close()
-    print("\n🎉  Migration complete. You can now start the app.")
+    print("\n  ✅  Migration complete.\n")
 
 
 if __name__ == '__main__':

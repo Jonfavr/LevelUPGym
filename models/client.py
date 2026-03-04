@@ -12,7 +12,7 @@ class Client:
     
     def __init__(self, client_id=None, phone_number=None, first_name=None, 
                  last_name=None, email=None, date_of_birth=None, gender=None,
-                 profile_photo_path=None, status='active'):
+                 profile_photo_path=None, status='active', fitness_goal=None, preferred_split=None):
         self.client_id = client_id
         self.phone_number = phone_number
         self.first_name = first_name
@@ -23,6 +23,8 @@ class Client:
         self.profile_photo_path = profile_photo_path
         self.status = status
         self.registration_date = None
+        self.fitness_goal = None
+        self.preferred_split = None
         
         # Related data
         self.physical_data = None
@@ -227,6 +229,20 @@ class Client:
         query = 'SELECT * FROM client_streaks WHERE client_id=?'
         result = db.execute_query(query, (self.client_id,))
         return dict(result[0]) if result else None
+    
+    def get_fitness_goal(self):
+        """Get client's fitness goal"""
+        db = DatabaseManager()
+        query = 'SELECT fitness_goal FROM clients WHERE client_id=?'
+        result = db.execute_query(query, (self.client_id,))
+        return result[0]['fitness_goal'] if result else None
+    
+    def get_preferred_split(self):
+        """Get client's preferred workout split"""
+        db = DatabaseManager()
+        query = 'SELECT preferred_split FROM clients WHERE client_id=?'
+        result = db.execute_query(query, (self.client_id,))
+        return result[0]['preferred_split'] if result else None
 
     # ----------------------------- #
     # 🔍 RETRIEVAL HELPERS          #
@@ -250,7 +266,9 @@ class Client:
                 date_of_birth=row['date_of_birth'],
                 gender=row['gender'],
                 profile_photo_path=row['profile_photo_path'],
-                status=row['status']
+                status=row['status'],
+                fitness_goal=row['fitness_goal'],
+                preferred_split=row['preferred_split']
             )
             client.registration_date = row['registration_date']
             return client
@@ -274,7 +292,9 @@ class Client:
                 date_of_birth=row['date_of_birth'],
                 gender=row['gender'],
                 profile_photo_path=row['profile_photo_path'],
-                status=row['status']
+                status=row['status'],
+                fitness_goal=row['fitness_goal'],
+                preferred_split=row['preferred_split']
             )
             client.registration_date = row['registration_date']
             return client
@@ -299,7 +319,9 @@ class Client:
                 date_of_birth=row['date_of_birth'],
                 gender=row['gender'],
                 profile_photo_path=row['profile_photo_path'],
-                status=row['status']
+                status=row['status'],
+                fitness_goal=row['fitness_goal'],
+                preferred_split=row['preferred_split']
             )
             client.registration_date = row['registration_date']
             return client
@@ -323,7 +345,9 @@ class Client:
                 date_of_birth=row['date_of_birth'],
                 gender=row['gender'],
                 profile_photo_path=row['profile_photo_path'],
-                status=row['status']
+                status=row['status'],
+                fitness_goal=row['fitness_goal'],
+                preferred_split=row['preferred_split']
             )
             client.registration_date = row['registration_date']
             clients.append(client)

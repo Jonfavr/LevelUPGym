@@ -27,6 +27,7 @@ from controllers.workout_session_controller import WorkoutSessionController
 from database.db_manager import DatabaseManager
 from controllers.membership_controller import MembershipController
 from controllers.salespoint_controller import SalesPointController
+from controllers.auto_assignment_controller import (AutoAssignmentController, SPLIT_TEMPLATES, ALL_GOALS)
 
 app = Flask(__name__)
 app.secret_key = 'levelup_gym_secret_key_change_in_production'  # Change this in production
@@ -39,6 +40,7 @@ achievement_ctrl = AchievementController()
 test_ctrl = PhysicalTestController()
 session_ctrl = WorkoutSessionController()
 sales_ctrl = SalesPointController()
+auto_assign_ctrl = AutoAssignmentController()
 
 # Initialize database
 db = DatabaseManager()
@@ -1202,9 +1204,11 @@ def admin_add_routine():
     if request.method == 'POST':
         try:
             routine = Routine(
-                routine_name = request.form.get('name'),
-                description  = request.form.get('description'),
-                created_by   = 'Admin',
+                routine_name     = request.form.get('name'),
+                description      = request.form.get('description'),
+                difficulty_level = request.form.get('difficulty_level'),
+                routine_type     = request.form.get('routine_type'),
+                created_by       = 'Admin',
             )
             routine.save()
             flash(f'"{routine.routine_name}" created! Now add exercises.', 'success')
@@ -1917,6 +1921,199 @@ def api_kiosk_checkin():
         'xp_pct':            xp_pct,
         'routine_name':      routine_name,
     })
+
+# ── 1. Show the auto-assign panel for a single client ────────────────────────
+@app.route('/admin/client/<int:client_id>/auto_assign', methods=['GET'])
+@admin_required
+def admin_auto_assign_panel(client_id):
+    """
+    Renders the goal + split selection panel for a single client.
+    Returns a full page (or you can render it as a partial and inject via JS).
+    """
+    from models.client import Client
+
+    client     = Client.get_by_id(client_id)
+    if not client:
+        flash('Client not found.', 'error')
+        return redirect(url_for('admin_clients'))
+
+    suggestion = auto_assign_ctrl.get_suggestion(client_id)
+    templates  = AutoAssignmentController.get_all_templates()
+    goals      = AutoAssignmentController.get_all_goals()
+
+    return render_template(
+        'admin/auto_assign_panel.html',
+        client     = client,
+        suggestion = suggestion,
+        templates  = templates,
+        goals      = goals,
+        all_goals  = ALL_GOALS,
+        split_templates = SPLIT_TEMPLATES,
+    )
+
+# ── 2. Save goal + optional split override (AJAX-friendly) ───────────────────
+@app.route('/admin/client/<int:client_id>/set_goal', methods=['POST'])
+@admin_required
+def admin_set_client_goal(client_id):
+    """
+    Saves fitness_goal and preferred_split.
+    Returns JSON so the panel can update the preview live without a page reload.
+    """
+    goal           = request.form.get('fitness_goal', '').strip()
+    override_split = request.form.get('preferred_split', '').strip() or None
+
+    if not goal:
+        return jsonify({'success': False, 'message': 'Goal is required.'}), 400
+
+    result     = auto_assign_ctrl.set_client_goal(client_id, goal, override_split)
+    suggestion = auto_assign_ctrl.get_suggestion(client_id)
+
+    return jsonify({
+        **result,
+        'suggestion': suggestion,
+    })
+
+# ── 3. Preview — what would be assigned without writing anything ──────────────
+@app.route('/admin/client/<int:client_id>/auto_assign/preview', methods=['POST'])
+@admin_required
+def admin_auto_assign_preview(client_id):
+    """
+    Returns a JSON preview of what the auto-assigner would do.
+    The admin reviews this before confirming.
+    """
+    force_template = request.form.get('template') or None
+    suggestion     = auto_assign_ctrl.get_suggestion(client_id)
+
+    # Run a dry-run by calling get_suggestion with the forced template
+    from controllers.auto_assignment_controller import (
+        SPLIT_TEMPLATES, get_difficulty_from_level, suggest_template_for_goal
+    )
+    db_ = DatabaseManager()
+
+    meta       = db_.execute_query(
+        'SELECT fitness_goal, preferred_split FROM clients WHERE client_id = ?',
+        (client_id,)
+    )
+    meta       = dict(meta[0]) if meta else {}
+    goal       = meta.get('fitness_goal') or ''
+    template_slug = force_template or meta.get('preferred_split') or suggest_template_for_goal(goal)
+    template   = SPLIT_TEMPLATES.get(template_slug, SPLIT_TEMPLATES['balanced'])
+
+    avail_rows = db_.execute_query(
+        'SELECT day_of_week FROM client_availability WHERE client_id = ? AND is_available = 1',
+        (client_id,)
+    )
+    days       = [dict(r)['day_of_week'] for r in avail_rows]
+
+    gam_rows   = db_.execute_query(
+        'SELECT current_level FROM client_gamification WHERE client_id = ?',
+        (client_id,)
+    )
+    level      = dict(gam_rows[0])['current_level'] if gam_rows else 1
+    difficulty = get_difficulty_from_level(level)
+
+    n     = min(len(days), 7)
+    split = template.get(n, template.get(3, ['Full Body'] * n))
+
+    preview_rows = []
+    for day, rtype in zip(days, split):
+        rows = db_.execute_query(
+            '''SELECT routine_name FROM routines
+               WHERE is_active = 1 AND difficulty_level = ? AND routine_type = ?
+               ORDER BY RANDOM() LIMIT 1''',
+            (difficulty, rtype)
+        )
+        if not rows:
+            rows = db_.execute_query(
+                '''SELECT routine_name FROM routines
+                   WHERE is_active = 1 AND routine_type = ?
+                   ORDER BY RANDOM() LIMIT 1''',
+                (rtype,)
+            )
+
+        preview_rows.append({
+            'day':          day,
+            'type':         rtype,
+            'routine_name': dict(rows[0])['routine_name'] if rows else '⚠️ No match found',
+            'matched':      bool(rows),
+        })
+
+    return jsonify({
+        'success':        True,
+        'template_slug':  template_slug,
+        'template_label': template.get('label', template_slug),
+        'difficulty':     difficulty,
+        'preview':        preview_rows,
+    })
+
+# ── 4. Confirm and write assignments ─────────────────────────────────────────
+@app.route('/admin/client/<int:client_id>/auto_assign/confirm', methods=['POST'])
+@admin_required
+def admin_auto_assign_confirm(client_id):
+    """
+    Runs the auto-assigner and writes to routine_assignments.
+    overwrite=1  → clears existing assignments first.
+    template     → optional one-time template override.
+    """
+    overwrite      = request.form.get('overwrite') == '1'
+    force_template = request.form.get('template') or None
+
+    result = auto_assign_ctrl.assign_for_client(
+        client_id,
+        overwrite      = overwrite,
+        force_template = force_template,
+    )
+
+    if result['success']:
+        n = len(result['assigned'])
+        flash(
+            f'✅ Auto-assigned {n} routine(s) using the '
+            f'"{result["template_label"]}" split at {result["difficulty"]} level.',
+            'success'
+        )
+        for w in result.get('warnings', []):
+            flash(f'⚠️ {w}', 'warning')
+    else:
+        flash(f'❌ {result["message"]}', 'error')
+
+    return redirect(url_for('admin_client_details', client_id=client_id))
+
+@app.route('/admin/auto_assign/<int:client_id>', methods=['POST'])
+@admin_required
+def admin_auto_assign_client(client_id):
+    overwrite = request.form.get('overwrite') == '1'
+    result = auto_assign_ctrl.assign_for_client(client_id, overwrite=overwrite)
+    if result['success']:
+        n = len(result['assigned'])
+        flash(f'✅ Auto-assigned {n} routine(s) at {result["difficulty"]} level.', 'success')
+        if result['warnings']:
+            for w in result['warnings']:
+                flash(f'⚠️ {w}', 'warning')
+    else:
+        flash(f'❌ {result["message"]}', 'error')
+    return redirect(url_for('admin_client_details', client_id=client_id))
+
+
+# ── 5. Bulk assign all active clients ────────────────────────────────────────
+@app.route('/admin/auto_assign_all', methods=['POST'])
+@admin_required
+def admin_auto_assign_all():
+    """
+    Bulk auto-assign for every active client.
+    Each client uses their own goal → preferred_split → difficulty.
+    """
+    overwrite = request.form.get('overwrite') == '1'
+    results   = auto_assign_ctrl.assign_for_all(overwrite=overwrite)
+
+    success  = sum(1 for r in results if r['success'])
+    warnings = sum(len(r.get('warnings', [])) for r in results)
+
+    flash(
+        f'✅ Auto-assigned routines for {success} of {len(results)} clients.'
+        + (f' ({warnings} warning(s) — some routine types may be missing.)' if warnings else ''),
+        'success'
+    )
+    return redirect(url_for('admin_clients'))
 
 if __name__ == '__main__':
     local_ip = get_local_ip()

@@ -38,10 +38,16 @@
 
     .profile-hero-inner {
         display: flex;
+        margin-bottom: 24px;
         align-items: flex-start;
         gap: 24px;
         position: relative;
         z-index: 1;
+    }
+
+    .auto-assign-form {
+        margin-top: 16px;
+        display: flex; gap: 12px; align-items: center;
     }
 
     /* Big avatar */
@@ -666,6 +672,9 @@
                 <i class="fa-solid fa-pen"></i> Edit Schedule
             </a>
         </div>
+
+        {% include 'admin/auto_assign_panel.html' %}
+        
         <div class="schedule-grid">
             {% set all_days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
             {% for day in all_days %}
@@ -684,7 +693,18 @@
             </div>
             {% endfor %}
         </div>
+        <div class="auto-assign-form">
+            <form method="POST" action="{{ url_for('admin_auto_assign_client', client_id=client.client_id) }}">
+            <label style="font-size:12px; color:var(--text-muted);">
+                <input type="checkbox" name="overwrite" value="1"> Replace existing assignments
+            </label>
+            <button type="submit" class="btn btn-ghost btn-sm"">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Assign Routines
+            </button>
+        </div>
+        
     </div>
+</form>
 </div>
 
 <!-- ═══════════════════════

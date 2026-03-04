@@ -236,6 +236,20 @@
 </div>
 {% endif %}
 
+{% if client.fitness_goal %}
+<div class="routine-meta-pill">
+    <i class="fa-solid fa-bullseye" style="color:var(--accent); font-size:10px;"></i>
+    {{ client.fitness_goal }}
+</div>
+{% endif %}
+
+{% if client.preferred_split %}
+<div class="routine-meta-pill">
+    <i class="fa-solid fa-table-cells" style="color:var(--accent); font-size:10px;"></i>
+    {{ client.preferred_split | replace('_', ' ') | title }}
+</div>
+{% endif %}
+
 <!-- MEMBERSHIP -->
 {% if membership %}
 {% set mem_class = 'active-membership' if days_left > 5 else ('expiring' if days_left > 0 else 'expired') %}
