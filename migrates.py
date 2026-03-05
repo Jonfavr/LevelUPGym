@@ -1,70 +1,60 @@
 """
-migrate_goals.py
-────────────────
-Run this ONCE to add the new columns needed for goal-based auto-assignment.
-Safe to re-run — each ALTER is wrapped in a try/except.
+db_patch.py  —  Run once to add the 6 new columns to your live database.
+Safe to run multiple times (uses ALTER TABLE only when the column is missing).
 
-Usage:
-    python migrate_goals.py
+Usage:  python db_patch.py
 """
 
-import sqlite3
-import os
+import sqlite3, os
 
-# ── Adjust this path to point at your actual database file ──────────────────
-DB_PATH = os.path.join(os.path.dirname(__file__), 'levelup_gym.db')
+DB_NAME = 'levelup_gym.db'
 
+ROUTINES_COLUMNS = [
+    ("difficulty_level", "TEXT", None),
+    ("routine_type",     "TEXT", None),
+    ("primary_muscle",   "TEXT", None),
+    ("main_class",       "TEXT", None),
+]
+
+CLIENTS_COLUMNS = [
+    ("fitness_goal",    "TEXT", None),
+    ("preferred_split", "TEXT", None),
+]
+
+def add_columns_if_missing(cursor, table, columns):
+    cursor.execute(f"PRAGMA table_info({table})")
+    existing = {row[1] for row in cursor.fetchall()}
+    for col_name, col_type, default in columns:
+        if col_name not in existing:
+            if default is not None:
+                cursor.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT {default}"
+                )
+            else:
+                cursor.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+                )
+            print(f"  ✅ Added '{col_name}' to '{table}'")
+        else:
+            print(f"  — '{col_name}' already exists in '{table}', skipping.")
 
 def run():
-    conn = sqlite3.connect(DB_PATH)
-    c    = conn.cursor()
+    if not os.path.exists(DB_NAME):
+        print(f"❌ Database '{DB_NAME}' not found. Make sure you run this from the project root.")
+        return
 
-    migrations = [
+    conn = sqlite3.connect(DB_NAME)
+    cur  = conn.cursor()
 
-        # ── clients table ────────────────────────────────────────────────────
-        ("clients", "fitness_goal",
-         "ALTER TABLE clients ADD COLUMN fitness_goal TEXT DEFAULT NULL"),
+    print("\n📦 Patching 'routines' table…")
+    add_columns_if_missing(cur, "routines", ROUTINES_COLUMNS)
 
-        ("clients", "preferred_split",
-         "ALTER TABLE clients ADD COLUMN preferred_split TEXT DEFAULT NULL"),
-
-        # ── routines table ───────────────────────────────────────────────────
-        ("routines", "difficulty_level",
-         "ALTER TABLE routines ADD COLUMN difficulty_level TEXT "
-         "CHECK(difficulty_level IN ('beginner','intermediate','advanced')) "
-         "DEFAULT 'beginner'"),
-
-        ("routines", "routine_type",
-         "ALTER TABLE routines ADD COLUMN routine_type TEXT DEFAULT 'Full Body'"),
-    ]
-
-    for table, column, sql in migrations:
-        try:
-            c.execute(sql)
-            print(f"  ✅  Added '{column}' to '{table}'")
-        except sqlite3.OperationalError as e:
-            if 'duplicate column' in str(e).lower():
-                print(f"  ⏭   '{column}' on '{table}' already exists — skipped")
-            else:
-                print(f"  ❌  Error on '{table}.{column}': {e}")
-
-    # ── Seed any existing routines that still have NULL difficulty/type ───────
-    c.execute("""
-        UPDATE routines
-        SET difficulty_level = 'beginner',
-            routine_type     = 'Full Body'
-        WHERE difficulty_level IS NULL
-           OR routine_type     IS NULL
-    """)
-    seeded = c.rowcount
-    if seeded:
-        print(f"\n  📌  Seeded {seeded} existing routine(s) with beginner / Full Body defaults.")
-        print("      Remember to update them to their correct type and difficulty in the admin UI.\n")
+    print("\n👤 Patching 'clients' table…")
+    add_columns_if_missing(cur, "clients", CLIENTS_COLUMNS)
 
     conn.commit()
     conn.close()
-    print("\n  ✅  Migration complete.\n")
+    print("\n✅ Database patch complete.\n")
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

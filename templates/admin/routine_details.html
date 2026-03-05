@@ -270,6 +270,50 @@
 
     .builder-empty i { font-size: 40px; color: var(--text-muted); margin-bottom: 12px; }
     .builder-empty p { color: var(--text-muted); font-size: 14px; }
+    .meta-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+    .meta-panel-head {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 10px;
+    }
+    .meta-panel-head .title-icon { width: 30px; height: 30px; font-size: 13px; }
+    .meta-panel-title {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 15px; font-weight: 700; color: var(--text-primary);
+    }
+    .meta-panel-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    /* read-only pills row */
+    .meta-pills-row {
+        padding: 14px 18px;
+        display: flex; gap: 8px; flex-wrap: wrap;
+        align-items: center;
+    }
+    .meta-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: var(--bg-elevated); border: 1px solid var(--border);
+        border-radius: 20px; padding: 3px 10px;
+        font-size: 12px; color: var(--text-secondary); font-weight: 500;
+    }
+    .meta-pill.pill-beginner     { color: #4ade80; border-color: rgba(74,222,128,.35);  background: rgba(74,222,128,.08); }
+    .meta-pill.pill-intermediate { color: #fbbf24; border-color: rgba(251,191,36,.35);  background: rgba(251,191,36,.08); }
+    .meta-pill.pill-advanced     { color: #f87171; border-color: rgba(248,113,113,.35); background: rgba(248,113,113,.08); }
+    .meta-pill.pill-missing      { color: var(--text-muted); opacity: .5; font-style: italic; }
+
+    /* edit form */
+    .meta-edit-form {
+        display: none;
+        padding: 16px 18px;
+        border-top: 1px solid var(--border);
+    }
+    .meta-edit-form.open { display: block; }
+    .meta-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 </style>
 {% endblock %}
 
@@ -384,11 +428,60 @@
                         </span>
                     </div>
                 </div>
+                <div class="meta-pills-row" id="meta-pills-view">
+
+                    <!-- Difficulty -->
+                    {% if routine.difficulty_level %}
+                    <span class="meta-pill pill-{{ routine.difficulty_level }}">
+                        <i class="fa-solid fa-signal" style="font-size:10px;"></i>
+                        {{ routine.difficulty_level | capitalize }}
+                    </span>
+                    {% else %}
+                    <span class="meta-pill pill-missing">
+                        <i class="fa-solid fa-signal" style="font-size:10px;"></i>
+                        No difficulty set
+                    </span>
+                    {% endif %}
+
+                    <!-- Routine Type -->
+                    {% if routine.routine_type %}
+                    <span class="meta-pill">
+                        <i class="fa-solid fa-layer-group" style="font-size:10px; color:var(--accent);"></i>
+                        {{ routine.routine_type | capitalize }}
+                    </span>
+                    {% else %}
+                    <span class="meta-pill pill-missing">
+                        <i class="fa-solid fa-layer-group" style="font-size:10px;"></i>
+                        No type set
+                    </span>
+                    {% endif %}
+
+                    <!-- Primary Muscle -->
+                    {% if routine.primary_muscle %}
+                    <span class="meta-pill">
+                        <i class="fa-solid fa-person-running" style="font-size:10px; color:var(--accent);"></i>
+                        {{ routine.primary_muscle }}
+                    </span>
+                    {% else %}
+                    <span class="meta-pill pill-missing">
+                        <i class="fa-solid fa-person-running" style="font-size:10px;"></i>
+                        No muscle set
+                    </span>
+                    {% endif %}
+
+                    {% if not routine.difficulty_level or not routine.routine_type or not routine.primary_muscle %}
+                    <span style="font-size:11px; color:#fbbf24; display:flex; align-items:center; gap:4px; margin-left:4px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        Incomplete — auto-assign may not match this routine
+                    </span>
+                    {% endif %}
+                </div>
                 <div class="exp-counter">
                     <div class="exp-counter-val" id="exp-total">{{ total_exp }}</div>
                     <div class="exp-counter-lbl">Base EXP</div>
                 </div>
             </div>
+            
         </div>
 
         <!-- Exercise cards -->
@@ -576,5 +669,29 @@ function recalcTotalExp() {
 
 document.querySelectorAll('.sets-input').forEach(i => i.addEventListener('input', recalcTotalExp));
 recalcTotalExp();
+(function () {
+    const toggleBtn = document.getElementById('meta-edit-toggle');
+    const cancelBtn = document.getElementById('meta-edit-cancel');
+    const pillsView = document.getElementById('meta-pills-view');
+    const editForm  = document.getElementById('meta-edit-form');
+
+    function openEdit() {
+        pillsView.style.display = 'none';
+        editForm.classList.add('open');
+        toggleBtn.style.display = 'none';
+    }
+    function closeEdit() {
+        editForm.classList.remove('open');
+        pillsView.style.display = 'flex';
+        toggleBtn.style.display = '';
+    }
+
+    toggleBtn?.addEventListener('click', openEdit);
+    cancelBtn?.addEventListener('click', closeEdit);
+
+    // Auto-open if any required field is missing (helps admin fill gaps)
+    const missing = {{ 'true' if not routine.difficulty_level or not routine.routine_type or not routine.primary_muscle else 'false' }};
+    if (missing) openEdit();
+})();
 </script>
 {% endblock %}

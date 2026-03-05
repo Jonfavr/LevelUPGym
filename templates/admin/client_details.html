@@ -673,7 +673,10 @@
             </a>
         </div>
 
-        {% include 'admin/auto_assign_panel.html' %}
+        <a href="{{ url_for('admin_auto_assign_panel', client_id=client.client_id) }}"
+        class="btn btn-primary">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Assign Routines
+        </a>
         
         <div class="schedule-grid">
             {% set all_days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}

@@ -1036,6 +1036,8 @@ def admin_edit_client(client_id):
         client.email = request.form.get('email')
         client.date_of_birth = request.form.get('dob')
         client.gender = request.form.get('gender')
+        client.fitness_goal    = request.form.get('fitness_goal')  or None
+        client.preferred_split = request.form.get('preferred_split') or None
         client.update()
 
         # 🧠 Update physical data
@@ -1318,6 +1320,34 @@ def admin_move_exercise(routine_id, routine_exercise_id, direction):
         (pos_a, id_b)
     )
 
+    return redirect(url_for('admin_routine_details', routine_id=routine_id))
+
+@app.route('/admin/routine/<int:routine_id>/update', methods=['POST'])
+@admin_required
+def admin_update_routine(routine_id):
+    """
+    Save routine metadata edits:
+    name, description, difficulty_level, routine_type, primary_muscle, main_class.
+    Called from the metadata panel inside routine_details.html.
+    """
+    routine = Routine.get_by_id(routine_id)
+    if not routine:
+        flash('Routine not found.', 'error')
+        return redirect(url_for('admin_routines'))
+
+    routine.routine_name     = request.form.get('routine_name', '').strip()
+    routine.description      = request.form.get('description', '').strip() or None
+    routine.difficulty_level = request.form.get('difficulty_level', 'beginner')
+    routine.routine_type     = request.form.get('routine_type', 'Full Body')
+    routine.primary_muscle   = request.form.get('primary_muscle') or None
+    routine.main_class       = request.form.get('main_class')     or None
+
+    if not routine.routine_name:
+        flash('Routine name is required.', 'error')
+        return redirect(url_for('admin_routine_details', routine_id=routine_id))
+
+    routine.update()
+    flash(f'✅ "{routine.routine_name}" saved successfully!', 'success')
     return redirect(url_for('admin_routine_details', routine_id=routine_id))
 
 @app.route('/admin/routine/<int:routine_id>/delete', methods=['POST'])
@@ -2016,24 +2046,25 @@ def admin_auto_assign_preview(client_id):
     split = template.get(n, template.get(3, ['Full Body'] * n))
 
     preview_rows = []
-    for day, rtype in zip(days, split):
+    for day, pmuscle in zip(days, split):
         rows = db_.execute_query(
-            '''SELECT routine_name FROM routines
-               WHERE is_active = 1 AND difficulty_level = ? AND routine_type = ?
+            '''SELECT routine_name, routine_type FROM routines
+               WHERE is_active = 1 AND difficulty_level = ? AND primary_muscle = ?
                ORDER BY RANDOM() LIMIT 1''',
-            (difficulty, rtype)
+            (difficulty, pmuscle)
         )
         if not rows:
             rows = db_.execute_query(
-                '''SELECT routine_name FROM routines
-                   WHERE is_active = 1 AND routine_type = ?
+                '''SELECT routine_name, routine_type FROM routines
+                   WHERE is_active = 1 AND primary_muscle = ?
                    ORDER BY RANDOM() LIMIT 1''',
-                (rtype,)
+                (pmuscle,)
             )
 
         preview_rows.append({
             'day':          day,
-            'type':         rtype,
+            'primary_muscle': pmuscle,
+            'type':          dict(rows[0])['routine_type'] if rows else 'undefined',
             'routine_name': dict(rows[0])['routine_name'] if rows else '⚠️ No match found',
             'matched':      bool(rows),
         })
@@ -2043,6 +2074,7 @@ def admin_auto_assign_preview(client_id):
         'template_slug':  template_slug,
         'template_label': template.get('label', template_slug),
         'difficulty':     difficulty,
+        'type':           template.get('type'),
         'preview':        preview_rows,
     })
 

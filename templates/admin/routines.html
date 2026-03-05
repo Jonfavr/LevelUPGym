@@ -11,7 +11,6 @@
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 18px;
     }
-
     /* ── Routine Card ── */
     .routine-card {
         background: var(--bg-surface);
@@ -23,7 +22,6 @@
         flex-direction: column;
         position: relative;
     }
-
     .routine-card::before {
         content: '';
         position: absolute;
@@ -33,191 +31,117 @@
         opacity: 0;
         transition: opacity 0.2s;
     }
-
-    .routine-card:hover {
-        border-color: var(--border-accent);
-        transform: translateY(-2px);
-    }
-
+    .routine-card:hover { border-color: var(--border-accent); transform: translateY(-2px); }
     .routine-card:hover::before { opacity: 1; }
 
-    .routine-card-body {
-        padding: 20px;
-        flex: 1;
-    }
+    .routine-card-body { padding: 20px; flex: 1; }
 
     .routine-card-name {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 18px;
-        font-weight: 700;
+        font-size: 18px; font-weight: 700;
         color: var(--text-primary);
-        margin-bottom: 6px;
-        line-height: 1.2;
+        margin-bottom: 6px; line-height: 1.2;
     }
-
     .routine-card-desc {
-        font-size: 12.5px;
-        color: var(--text-muted);
-        line-height: 1.5;
-        margin-bottom: 16px;
-        min-height: 38px;
+        font-size: 12.5px; color: var(--text-muted);
+        line-height: 1.5; margin-bottom: 14px; min-height: 36px;
     }
-
-    .routine-card-meta {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
+    .routine-card-meta { display: flex; gap: 8px; flex-wrap: wrap; }
     .routine-meta-pill {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 4px 10px;
-        font-size: 11.5px;
-        color: var(--text-secondary);
-        font-weight: 500;
+        display: flex; align-items: center; gap: 5px;
+        background: var(--bg-elevated); border: 1px solid var(--border);
+        border-radius: 20px; padding: 3px 10px;
+        font-size: 11.5px; color: var(--text-secondary); font-weight: 500;
     }
+    /* coloured difficulty pills */
+    .pill-beginner     { color: #4ade80; border-color: rgba(74,222,128,.3);  background: rgba(74,222,128,.08); }
+    .pill-intermediate { color: #fbbf24; border-color: rgba(251,191,36,.3);  background: rgba(251,191,36,.08); }
+    .pill-advanced     { color: #f87171; border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.08); }
 
     .routine-card-footer {
         padding: 12px 20px;
         border-top: 1px solid var(--border);
         background: var(--bg-elevated);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
-
-    /* EXP badge on card */
     .exp-badge {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--accent);
-        display: flex;
-        align-items: center;
-        gap: 5px;
+        font-size: 16px; font-weight: 700; color: var(--accent);
+        display: flex; align-items: center; gap: 5px;
     }
 
-    /* Create new card (dashed) */
+    /* Create new (dashed) card */
     .routine-card-new {
         border: 2px dashed var(--border);
-        background: transparent;
-        min-height: 180px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        cursor: pointer;
-        transition: all 0.2s;
-        border-radius: var(--radius-lg);
-        color: var(--text-muted);
+        background: transparent; min-height: 180px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 10px; cursor: pointer; transition: all 0.2s;
+        border-radius: var(--radius-lg); color: var(--text-muted);
     }
-
-    .routine-card-new:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--accent-glow);
-    }
-
-    .routine-card-new i {
-        font-size: 28px;
-        transition: transform 0.2s;
-    }
-
+    .routine-card-new:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .routine-card-new i { font-size: 28px; transition: transform 0.2s; }
     .routine-card-new:hover i { transform: scale(1.15); }
-
-    .routine-card-new span {
-        font-size: 13px;
-        font-weight: 600;
-    }
+    .routine-card-new span { font-size: 13px; font-weight: 600; }
 
     /* ── Create Modal ── */
     .modal-overlay {
         position: fixed; inset: 0;
         background: rgba(0,0,0,0.65);
         backdrop-filter: blur(4px);
-        z-index: 200;
-        display: none;
-        align-items: center;
-        justify-content: center;
+        z-index: 200; display: none;
+        align-items: center; justify-content: center;
     }
-
     .modal-overlay.open { display: flex; }
-
     .modal-box {
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        padding: 28px;
-        width: 100%;
-        max-width: 480px;
+        background: var(--bg-surface); border: 1px solid var(--border);
+        border-radius: var(--radius-xl); padding: 28px;
+        width: 100%; max-width: 520px;
         box-shadow: 0 24px 80px rgba(0,0,0,0.6);
         animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        max-height: 90vh; overflow-y: auto;
     }
-
     @keyframes modalIn {
         from { opacity: 0; transform: scale(0.92) translateY(20px); }
         to   { opacity: 1; transform: scale(1)    translateY(0);    }
     }
-
     .modal-title {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 4px;
+        font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;
     }
-
-    .modal-sub { font-size: 12.5px; color: var(--text-muted); margin-bottom: 20px; }
+    .modal-sub  { font-size: 12.5px; color: var(--text-muted); margin-bottom: 20px; }
     .modal-footer { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
 
-    /* ══════════════════════════════════════
-        ROUTINE SEARCH BAR
-    ══════════════════════════════════════ */
-    .routine-search-wrap {
-        position: relative;
-        flex: 1;
-        max-width: 420px;
-    }
-
+    /* ── Search bar ── */
+    .routine-search-wrap { position: relative; flex: 1; max-width: 420px; }
     .routine-search-wrap i {
-        position: absolute;
-        left: 13px; top: 50%;
+        position: absolute; left: 13px; top: 50%;
         transform: translateY(-50%);
-        color: var(--text-muted);
-        font-size: 13px;
-        pointer-events: none;
+        color: var(--text-muted); font-size: 13px; pointer-events: none;
     }
-
     .routine-search-wrap input {
-        width: 100%;
-        padding-left: 38px;
-        height: 40px;
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        color: var(--text-primary);
-        font-size: 13.5px;
-        font-family: 'DM Sans', sans-serif;
+        width: 100%; padding-left: 38px; height: 40px;
+        background: var(--bg-surface); border: 1px solid var(--border);
+        border-radius: var(--radius-md); color: var(--text-primary);
+        font-size: 13.5px; font-family: 'DM Sans', sans-serif;
         transition: border-color 0.2s, box-shadow 0.2s;
     }
-
     .routine-search-wrap input:focus {
-        outline: none;
-        border-color: var(--accent);
+        outline: none; border-color: var(--accent);
         box-shadow: 0 0 0 3px var(--accent-glow);
     }
-
     .routine-search-wrap input::placeholder { color: var(--text-muted); }
-
-    /* Cards hidden by search */
     .routine-card.hidden-by-search { display: none !important; }
+
+    /* ── Section divider inside modal ── */
+    .modal-section-label {
+        font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--text-muted);
+        margin: 16px 0 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .modal-section-label::after {
+        content: ''; flex: 1; height: 1px; background: var(--border);
+    }
 </style>
 {% endblock %}
 
@@ -230,44 +154,39 @@
             <div class="title-icon"><i class="fa-solid fa-list-check"></i></div>
             Routine Library
         </div>
-        <div class="section-subtitle">{{ routines | length }} active routine{{ 's' if routines | length != 1 }}</div>
+        <div class="section-subtitle">
+            {{ routines | length }} active routine{{ 's' if routines | length != 1 }}
+        </div>
     </div>
     <button class="btn btn-primary" id="open-create-modal">
         <i class="fa-solid fa-plus"></i> New Routine
     </button>
 </div>
 
-<!-- ── Search Bar ── -->
+<!-- Search bar -->
 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
-
     <div class="routine-search-wrap">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input
-            type="text"
-            id="routineSearch"
-            placeholder="Search routines by name or description…"
-            autocomplete="off">
+        <input type="text" id="routineSearch"
+               placeholder="Search routines by name or description…"
+               autocomplete="off">
     </div>
-
     <div style="margin-left:auto; font-size:12px; color:var(--text-muted);">
         Showing <strong id="routineVisibleCount">{{ routines | length }}</strong>
         of {{ routines | length }} routine{{ 's' if routines | length != 1 }}
     </div>
-
 </div>
 
-<!-- No-results message -->
+<!-- No-results -->
 <div id="routineNoResults" style="display:none; margin-bottom:20px;">
-    <div style="
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 40px 20px;
-        text-align: center;
-        color: var(--text-muted);">
-        <i class="fa-solid fa-magnifying-glass" style="font-size:28px; margin-bottom:12px; display:block; opacity:.4;"></i>
+    <div style="background:var(--bg-surface); border:1px solid var(--border);
+                border-radius:var(--radius-lg); padding:40px 20px;
+                text-align:center; color:var(--text-muted);">
+        <i class="fa-solid fa-magnifying-glass"
+           style="font-size:28px; margin-bottom:12px; display:block; opacity:.4;"></i>
         <p style="font-size:14px; margin-bottom:14px;">
-            No routines match <strong id="routineSearchTerm" style="color:var(--text-primary);"></strong>
+            No routines match
+            <strong id="routineSearchTerm" style="color:var(--text-primary);"></strong>
         </p>
         <button class="btn btn-ghost btn-sm" onclick="clearRoutineSearch()">
             <i class="fa-solid fa-xmark"></i> Clear search
@@ -279,23 +198,44 @@
 <div class="grid grid-3">
 
     {% for routine in routines %}
-    <div class="routine-card"  style="margin-bottom:24px;">
+    <div class="routine-card">
         <div class="routine-card-body">
             <div class="routine-card-name">{{ routine.routine_name }}</div>
-            <div class="routine-card-desc">{{ routine.description or 'No description provided.' }}</div>
+            <div class="routine-card-desc">
+                {{ routine.description or 'No description provided.' }}
+            </div>
             <div class="routine-card-meta">
+                <!-- Exercise count -->
                 <div class="routine-meta-pill">
-                    <i class="fa-solid fa-dumbbell" style="color:var(--accent); font-size:10px;"></i>
-                    {{ routine.exercise_count | default(0) }} exercise{{ 's' if routine.exercise_count != 1 else '' }}
+                    <i class="fa-solid fa-dumbbell"
+                       style="color:var(--accent); font-size:10px;"></i>
+                    {{ routine.exercise_count | default(0) }}
+                    exercise{{ 's' if routine.exercise_count != 1 else '' }}
                 </div>
-                {% if routine.created_date %}
+                <!-- Difficulty -->
+                {% if routine.difficulty_level %}
+                <div class="routine-meta-pill pill-{{ routine.difficulty_level }}">
+                    <i class="fa-solid fa-signal" style="font-size:10px;"></i>
+                    {{ routine.difficulty_level | capitalize }}
+                </div>
+                {% endif %}
+                <!-- Routine Type -->
+                {% if routine.routine_type %}
                 <div class="routine-meta-pill">
-                    <i class="fa-regular fa-calendar" style="font-size:10px;"></i>
-                    {{ routine.created_date }}
+                    <i class="fa-solid fa-layer-group" style="font-size:10px;"></i>
+                    {{ routine.routine_type | capitalize }}
+                </div>
+                {% endif %}
+                <!-- Primary Muscle -->
+                {% if routine.primary_muscle %}
+                <div class="routine-meta-pill">
+                    <i class="fa-solid fa-person-running" style="font-size:10px;"></i>
+                    {{ routine.primary_muscle }}
                 </div>
                 {% endif %}
             </div>
         </div>
+        
         <div class="routine-card-footer">
             <div class="exp-badge">
                 <i class="fa-solid fa-bolt" style="font-size:12px;"></i>
@@ -331,66 +271,116 @@
     <div class="empty-state">
         <i class="fa-solid fa-list-check"></i>
         <p>No routines yet. Create your first one to get started.</p>
-        <button class="btn btn-primary" id="open-create-modal-empty" style="margin-top:16px; display:inline-flex;">
+        <button class="btn btn-primary" id="open-create-modal-empty"
+                style="margin-top:16px; display:inline-flex;">
             <i class="fa-solid fa-plus"></i> Create Routine
         </button>
     </div>
 </div>
 {% endif %}
 
-<!-- ── Create Routine Modal ── -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     CREATE ROUTINE MODAL
+══════════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="create-modal">
     <div class="modal-box">
+
         <div class="modal-title">
             <i class="fa-solid fa-list-check" style="color:var(--accent); margin-right:8px;"></i>
             New Routine
         </div>
-        <div class="modal-sub">Give it a name and description — you'll add exercises on the next screen.</div>
+        <div class="modal-sub">
+            Fill in the details below — you'll add exercises on the next screen.
+        </div>
 
         <form method="POST" action="{{ url_for('admin_add_routine') }}">
+
+            <!-- Name -->
             <div class="form-group">
                 <label>Routine Name *</label>
-                <input type="text" name="name" placeholder="e.g. Push Day A, Leg Day, Full Body…" required autofocus>
+                <input type="text" name="name"
+                       placeholder="e.g. Push Day A, Leg Day, Full Body…"
+                       required autofocus>
             </div>
+
+            <!-- Description -->
             <div class="form-group">
                 <label>Description</label>
-                <textarea name="description" rows="3"
+                <textarea name="description" rows="2"
                           placeholder="Describe the focus and goals of this routine…"
                           style="resize:vertical;"></textarea>
             </div>
 
+            <!-- ── Row 1: Difficulty + Routine Type ── -->
+            <div class="modal-section-label">Classification</div>
+
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-            <label>Difficulty *</label>
-            <select name="difficulty_level" required>
-                <option value="" disabled selected>Select…</option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Routine Type *</label>
-            <select name="routine_type" required>
-                <option value="" disabled selected>Select…</option>
-                <option value="Push">Push</option>
-                <option value="Pull">Pull</option>
-                <option value="Legs">Legs</option>
-                <option value="Full Body">Full Body</option>
-                <option value="Upper">Upper</option>
-                <option value="Lower">Lower</option>
-                <option value="Cardio">Cardio</option>
-                <option value="Core">Core</option>
-            </select>
-        </div>
-    </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Difficulty *</label>
+                    <select name="difficulty_level" required>
+                        <option value="" disabled selected>Select…</option>
+                        <option value="beginner">🟢 Beginner</option>
+                        <option value="intermediate">🟡 Intermediate</option>
+                        <option value="advanced">🔴 Advanced</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Routine Type *</label>
+                    <select name="routine_type" required>
+                        <option value="" disabled selected>Select…</option>
+                        <option value="strength">💪 Strength</option>
+                        <option value="power">⚡ Power</option>
+                        <option value="cardio">🏃 Cardio</option>
+                        <option value="endurance">🔥 Endurance</option>
+                        <option value="core">🎯 Core</option>
+                        <option value="functional">⚙️ Functional</option>
+                        <option value="hiit">💥 HIIT</option>
+                        <option value="agility">🏅 Agility</option>
+                        <option value="balance">🧘 Balance</option>
+                        <option value="flexibility">🤸 Flexibility</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- ── Row 2: Primary Muscle ── -->
+            <div class="form-group" style="margin-top:12px;">
+                <label>Primary Muscle Group *</label>
+                <select name="primary_muscle" required>
+                    <option value="" disabled selected>Select muscle focus…</option>
+                    <optgroup label="Upper Body — Push">
+                        <option value="Chest">Chest</option>
+                        <option value="Shoulders">Shoulders</option>
+                        <option value="Triceps">Triceps</option>
+                    </optgroup>
+                    <optgroup label="Upper Body — Pull">
+                        <option value="Back">Back</option>
+                        <option value="Biceps">Biceps</option>
+                        <option value="Forearms">Forearms</option>
+                    </optgroup>
+                    <optgroup label="Lower Body">
+                        <option value="Quads">Quads</option>
+                        <option value="Hamstrings">Hamstrings</option>
+                        <option value="Glutes">Glutes</option>
+                        <option value="Calves">Calves</option>
+                    </optgroup>
+                    <optgroup label="Core & Full Body">
+                        <option value="Core">Core / Abs</option>
+                        <option value="Full Body">Full Body</option>
+                    </optgroup>
+                </select>
+            </div>
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" id="close-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">
-                    <i class="fa-solid fa-arrow-right"></i> Create & Build
+                    <i class="fa-solid fa-arrow-right"></i> Create &amp; Build
                 </button>
             </div>
+
         </form>
     </div>
 </div>
@@ -399,6 +389,7 @@
 
 {% block extra_js %}
 <script>
+/* ── Modal open/close ─────────────────────────────────────────── */
 const modal    = document.getElementById('create-modal');
 const openBtns = document.querySelectorAll('#open-create-modal, #new-card-btn, #open-create-modal-empty');
 const closeBtn = document.getElementById('close-modal');
@@ -407,19 +398,14 @@ openBtns.forEach(b => b?.addEventListener('click', () => modal.classList.add('op
 closeBtn?.addEventListener('click', () => modal.classList.remove('open'));
 modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
 
-/* ════════════════════════════
-    ROUTINE SEARCH
-════════════════════════════ */
+/* ── Routine search ───────────────────────────────────────────── */
 (function () {
     const searchInput  = document.getElementById('routineSearch');
     const visibleCount = document.getElementById('routineVisibleCount');
     const noResults    = document.getElementById('routineNoResults');
     const searchTermEl = document.getElementById('routineSearchTerm');
-
-    // Real cards only — exclude the dashed "Create New" card
-    const cards    = document.querySelectorAll('.routine-card:not(.routine-card-new)');
-    const newCard  = document.querySelector('.routine-card-new');
-    const total    = cards.length;
+    const cards   = document.querySelectorAll('.routine-card:not(.routine-card-new)');
+    const newCard = document.querySelector('.routine-card-new');
 
     function filter() {
         const q = searchInput.value.toLowerCase().trim();
@@ -429,24 +415,18 @@ modal.addEventListener('click', e => { if (e.target === modal) modal.classList.r
             const name = (card.querySelector('.routine-card-name')?.textContent || '').toLowerCase();
             const desc = (card.querySelector('.routine-card-desc')?.textContent || '').toLowerCase();
             const match = !q || name.includes(q) || desc.includes(q);
-
             card.classList.toggle('hidden-by-search', !match);
             if (match) visible++;
         });
 
         visibleCount.textContent = visible;
-
         const hasQuery = q.length > 0;
         noResults.style.display = (hasQuery && visible === 0) ? 'block' : 'none';
         if (searchTermEl) searchTermEl.textContent = `"${q}"`;
-
-        // Hide "Create New" dashed card while searching to keep results clean
         if (newCard) newCard.style.display = hasQuery ? 'none' : '';
     }
 
     searchInput.addEventListener('input', filter);
-
-    // Escape key clears search
     searchInput.addEventListener('keydown', e => {
         if (e.key === 'Escape') { searchInput.value = ''; filter(); searchInput.blur(); }
     });

@@ -1,574 +1,625 @@
 <!-- templates/admin/auto_assign_panel.html -->
-
 {% extends "admin/base.html" %}
 
-{% block title %}Auto Assign Panel{% endblock %}
-{% block page_title %}Auto Assign Panel{% endblock %}
+{% block title %}Auto-Assign — {{ client.full_name }} — LevelUp Gym{% endblock %}
+{% block page_title %}Auto-Assign Routines{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ══════════════════════════════════════════════════════════════
-   AUTO-ASSIGN PANEL
-══════════════════════════════════════════════════════════════ */
-.aa-panel {
+.aa-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 22px;
+    align-items: start;
+}
+@media (max-width: 960px) { .aa-layout { grid-template-columns: 1fr; } }
+
+.aa-banner {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: hidden;
+}
+.aa-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, var(--accent-glow) 0%, transparent 60%);
+    pointer-events: none;
+}
+.aa-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px; font-weight: 700; color: #000;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.3);
+}
+.aa-banner-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px; font-weight: 700; color: var(--text-primary);
+}
+.aa-banner-meta {
+    font-size: 12.5px; color: var(--text-muted);
+    margin-top: 3px; display: flex; gap: 14px; flex-wrap: wrap;
+}
+.aa-banner-meta span { display: flex; align-items: center; gap: 5px; }
+
+.diff-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .03em;
+}
+.diff-beginner     { background: rgba(74,222,128,.12);  color: #4ade80; border: 1px solid rgba(74,222,128,.3); }
+.diff-intermediate { background: rgba(251,191,36,.12);   color: #fbbf24; border: 1px solid rgba(251,191,36,.3); }
+.diff-advanced     { background: rgba(248,113,113,.12);  color: #f87171; border: 1px solid rgba(248,113,113,.3); }
+
+.step-card {
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+    transition: border-color .2s;
 }
-
-.aa-panel-header {
-    padding: 18px 22px;
+.step-head {
+    padding: 14px 20px;
     border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg-elevated);
+    display: flex; align-items: center; gap: 12px;
 }
-
-.aa-panel-icon {
-    width: 36px; height: 36px;
-    border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    display: flex; align-items: center; justify-content: center;
-    color: #fff;
-    font-size: 15px;
-    flex-shrink: 0;
-}
-
-.aa-panel-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.aa-panel-sub {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 1px;
-}
-
-.aa-panel-body {
-    padding: 22px;
-}
-
-/* Step row */
-.aa-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.aa-step {
-    display: flex;
-    gap: 16px;
-}
-
-.aa-step-num {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
+.step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); color: #000;
+    font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-    margin-top: 2px;
 }
+.step-title { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.step-sub   { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.step-body  { padding: 18px 20px; }
 
-.aa-step-content { flex: 1; }
-
-.aa-step-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-}
-
-/* Goal pills */
-.goal-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.goal-pill {
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1.5px solid var(--border);
+.goal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.goal-btn {
     background: var(--bg-elevated);
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-}
-
-.goal-pill:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.goal-pill.active {
-    border-color: var(--accent);
-    background: var(--accent-glow);
-    color: var(--accent);
-    font-weight: 600;
-}
-
-/* Template cards */
-.template-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
-}
-
-.template-card {
     border: 1.5px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 12px 14px;
-    cursor: pointer;
-    transition: all 0.15s;
-    background: var(--bg-elevated);
-    user-select: none;
-}
-
-.template-card:hover {
-    border-color: var(--accent);
-    background: var(--accent-glow);
-}
-
-.template-card.active {
-    border-color: var(--accent);
-    background: var(--accent-glow);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.template-card.suggested::after {
-    content: 'Suggested';
-    display: block;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--accent);
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.template-card-icon {
-    font-size: 18px;
-    color: var(--accent);
-    margin-bottom: 6px;
-}
-
-.template-card-name {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 3px;
-}
-
-.template-card-desc {
-    font-size: 11px;
-    color: var(--text-muted);
-    line-height: 1.4;
-}
-
-/* Preview table */
-.preview-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    margin-top: 12px;
-}
-
-.preview-table th {
-    padding: 8px 12px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid var(--border);
-}
-
-.preview-table td {
     padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: all .15s;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500;
     color: var(--text-secondary);
+    display: flex; align-items: center; gap: 8px;
 }
+.goal-btn i { font-size: 13px; width: 16px; flex-shrink: 0; transition: transform .15s; }
+.goal-btn:hover   { border-color: var(--border-accent); color: var(--accent); background: var(--accent-glow); }
+.goal-btn:hover i { transform: scale(1.15); }
+.goal-btn.active  { border-color: var(--accent); background: var(--accent-glow); color: var(--accent); font-weight: 600; }
 
-.preview-table tr:last-child td { border-bottom: none; }
-
-.preview-type-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+.tmpl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.tmpl-btn {
     background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    cursor: pointer; transition: all .15s;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    position: relative;
+}
+.tmpl-btn:hover  { border-color: var(--border-accent); background: var(--accent-glow); }
+.tmpl-btn.active { border-color: var(--accent); background: var(--accent-glow); }
+.tmpl-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+.tmpl-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+.tmpl-btn.active .tmpl-name { color: var(--accent); }
+.tmpl-star {
+    position: absolute; top: 7px; right: 8px;
+    font-size: 11px; color: var(--accent); opacity: 0; transition: opacity .15s;
+}
+.tmpl-btn.suggested .tmpl-star { opacity: 1; }
+
+.preview-empty {
+    padding: 30px 0; text-align: center;
+    color: var(--text-muted); font-size: 13px;
+}
+.preview-empty i { font-size: 26px; display: block; margin-bottom: 10px; opacity: .35; }
+
+.preview-table { width: 100%; border-collapse: collapse; }
+.preview-table th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-muted); font-weight: 600;
+    padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left;
+}
+.preview-table td {
+    padding: 9px 10px; border-bottom: 1px solid var(--border);
+    font-size: 12.5px; color: var(--text-primary); vertical-align: middle;
+}
+.preview-table tr:last-child td { border-bottom: none; }
+.type-pill {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 20px; padding: 2px 9px;
+    font-size: 11px; color: var(--text-secondary); display: inline-block;
+}
+.match-ok   { color: #4ade80; }
+.match-warn { color: #fb923c; }
+.warn-box {
+    margin-top: 12px; padding: 10px 14px;
+    background: rgba(251,146,60,.07); border: 1px solid rgba(251,146,60,.25);
+    border-radius: var(--radius-md);
+    font-size: 12px; color: #fb923c; line-height: 1.6;
 }
 
-.no-match {
-    color: #f59e0b;
-    font-weight: 600;
-    font-size: 12px;
+.confirm-strip {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 18px 22px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.overwrite-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text-secondary);
+    cursor: pointer; user-select: none; flex: 1;
+}
+.overwrite-label input { accent-color: var(--accent); cursor: pointer; }
+
+.day-chip {
+    display: inline-flex; align-items: center;
+    background: var(--accent-glow); border: 1px solid var(--border-accent);
+    border-radius: 6px; padding: 4px 12px;
+    font-size: 12.5px; color: var(--accent); font-weight: 600;
+}
+.day-off {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 12px;
+    font-size: 12.5px; color: var(--text-muted); font-weight: 500;
 }
 
-/* Divider */
-.aa-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 20px 0;
+.spin { animation: _spin .7s linear infinite; }
+@keyframes _spin { to { transform: rotate(360deg); } }
+
+.info-card {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px;
 }
-
-/* Confirm bar */
-.aa-confirm-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+.info-head {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
 }
-
-.aa-overwrite-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12.5px;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-/* Loading spinner */
-.aa-loading {
-    display: none;
-    align-items: center;
-    gap: 8px;
-    font-size: 12.5px;
-    color: var(--text-muted);
-}
-
-.aa-loading.visible { display: flex; }
-
-.spinner {
-    width: 16px; height: 16px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
+.info-body { padding: 16px 20px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- ── Panel ── -->
-<div class="aa-panel">
 
-    <!-- Header -->
-    <div class="aa-panel-header">
-        <div class="aa-panel-icon">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-        </div>
-        <div>
-            <div class="aa-panel-title">Auto-Assign Routines</div>
-            <div class="aa-panel-sub">
-                Set a goal → system suggests a split → review → confirm
-            </div>
+<div style="margin-bottom: 18px;">
+    <a href="{{ url_for('admin_client_details', client_id=client.client_id) }}"
+       class="btn btn-ghost btn-sm">
+        <i class="fa-solid fa-chevron-left" style="font-size:10px;"></i>
+        Back to {{ client.first_name }}'s Profile
+    </a>
+</div>
+
+<!-- Client banner -->
+<div class="aa-banner">
+    <div class="aa-avatar">{{ client.first_name[0] }}{{ client.last_name[0] }}</div>
+    <div>
+        <div class="aa-banner-name">{{ client.full_name }}</div>
+        <div class="aa-banner-meta">
+            <span>
+                <i class="fa-solid fa-signal"></i>
+                Difficulty:
+                <span class="diff-badge diff-{{ suggestion.difficulty or 'beginner' }}">
+                    {{ (suggestion.difficulty or 'beginner') | capitalize }}
+                </span>
+            </span>
+            <span>
+                <i class="fa-solid fa-calendar-check"></i>
+                {{ suggestion.days | length }} training day{{ 's' if suggestion.days | length != 1 }}
+            </span>
+            {% if suggestion.goal %}
+            <span>
+                <i class="fa-solid fa-bullseye"></i>
+                Goal: <strong style="color:var(--text-primary);">{{ suggestion.goal }}</strong>
+            </span>
+            {% endif %}
         </div>
     </div>
+    <div style="margin-left:auto; flex-shrink:0;">
+        <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}"
+           class="btn btn-ghost btn-sm">
+            <i class="fa-solid fa-pen"></i> Edit Client
+        </a>
+    </div>
+</div>
 
-    <div class="aa-panel-body">
-        <div class="aa-steps">
+<div class="aa-layout">
 
-            <!-- ── Step 1: Fitness Goal ── -->
-            <div class="aa-step">
-                <div class="aa-step-num">1</div>
-                <div class="aa-step-content">
-                    <div class="aa-step-label">Fitness Goal</div>
-                    <div class="goal-pills" id="goalPills">
-                        {% set goals = [
-                            ('General Fitness',   'fa-star'),
-                            ('Build Muscle',      'fa-dumbbell'),
-                            ('Lose Weight',       'fa-fire'),
-                            ('Improve Strength',  'fa-weight-hanging'),
-                            ('Athletic',          'fa-person-running'),
-                            ('Tone Up',           'fa-person'),
-                            ('Leg Development',   'fa-shoe-prints'),
-                            ('Upper Body',        'fa-hand-fist'),
-                        ] %}
-                        {% for goal_name, icon in goals %}
-                        <div class="goal-pill {% if suggestion.goal == goal_name %}active{% endif %}"
-                             data-goal="{{ goal_name }}"
-                             onclick="selectGoal(this)">
-                            <i class="fa-solid {{ icon }}" style="font-size:10px; margin-right:4px;"></i>
-                            {{ goal_name }}
-                        </div>
-                        {% endfor %}
-                    </div>
+    <!-- LEFT: Step controls -->
+    <div>
+
+        <!-- Step 1 — Goal -->
+        <div class="step-card">
+            <div class="step-head">
+                <div class="step-num">1</div>
+                <div>
+                    <div class="step-title">Fitness Goal</div>
+                    <div class="step-sub">Drives the recommended split template</div>
+                </div>
+                <div id="goal-status" style="margin-left:auto; font-size:11.5px; color:var(--text-muted); display:none; align-items:center;"></div>
+            </div>
+            <div class="step-body">
+                {% set goal_icons = {
+                    'Lose Weight':      'fa-fire',
+                    'Build Muscle':     'fa-dumbbell',
+                    'General Fitness':  'fa-heart',
+                    'Improve Strength': 'fa-weight-hanging',
+                    'Athletic':         'fa-person-running',
+                    'Tone Up':          'fa-bolt',
+                    'Leg Development':  'fa-angles-down',
+                    'Upper Body':       'fa-hand-fist'
+                } %}
+                <div class="goal-grid">
+                    {% for goal in all_goals %}
+                    <button type="button"
+                            class="goal-btn {{ 'active' if suggestion.goal == goal }}"
+                            data-goal="{{ goal }}">
+                        <i class="fa-solid {{ goal_icons.get(goal, 'fa-circle') }}"></i>
+                        {{ goal }}
+                    </button>
+                    {% endfor %}
                 </div>
             </div>
+        </div>
 
-            <!-- ── Step 2: Split Template ── -->
-            <div class="aa-step">
-                <div class="aa-step-num">2</div>
-                <div class="aa-step-content">
-                    <div class="aa-step-label">
-                        Split Template
-                        <span id="suggestionBadge"
-                              style="margin-left:8px; font-size:11px; font-weight:500;
-                                     color:var(--accent); display:none;">
-                            <i class="fa-solid fa-lightbulb"></i>
-                            Suggested: <span id="suggestionName"></span>
-                        </span>
-                    </div>
-
-                    <div class="template-grid" id="templateGrid">
-                        {% for tpl in templates %}
-                        <div class="template-card
-                                    {% if suggestion.active_template == tpl.slug %}active{% endif %}
-                                    {% if suggestion.suggested_template == tpl.slug %}suggested{% endif %}"
-                             data-slug="{{ tpl.slug }}"
-                             onclick="selectTemplate(this)">
-                            <div class="template-card-icon">
-                                <i class="fa-solid {{ tpl.icon }}"></i>
-                            </div>
-                            <div class="template-card-name">{{ tpl.label }}</div>
-                            <div class="template-card-desc">{{ tpl.description }}</div>
-                        </div>
-                        {% endfor %}
-                    </div>
+        <!-- Step 2 — Template -->
+        <div class="step-card">
+            <div class="step-head">
+                <div class="step-num">2</div>
+                <div>
+                    <div class="step-title">Split Template</div>
+                    <div class="step-sub">★ = recommended for chosen goal</div>
                 </div>
             </div>
-
-            <!-- ── Step 3: Preview ── -->
-            <div class="aa-step">
-                <div class="aa-step-num">3</div>
-                <div class="aa-step-content">
-                    <div class="aa-step-label">
-                        Preview
-                        <span class="aa-loading" id="previewLoader">
-                            <div class="spinner"></div> Loading preview…
-                        </span>
-                    </div>
-
-                    <div id="previewContainer">
-                        <!-- Injected by JS -->
-                        <p style="font-size:12.5px; color:var(--text-muted);">
-                            Select a goal or template to see the preview.
-                        </p>
-                    </div>
+            <div class="step-body">
+                <div class="tmpl-grid">
+                    {% for tmpl in templates %}
+                    <button type="button"
+                            class="tmpl-btn
+                                {{ 'active'     if tmpl.slug == suggestion.active_template }}
+                                {{ 'suggested'  if tmpl.slug == suggestion.suggested_template }}"
+                            data-slug="{{ tmpl.slug }}">
+                        <i class="fa-solid {{ tmpl.icon }}"
+                           style="font-size:11px; margin-right:5px; color:var(--accent);"></i>
+                        <div class="tmpl-name">{{ tmpl.label }}</div>
+                        <div class="tmpl-desc">{{ tmpl.description }}</div>
+                        <span class="tmpl-star">★</span>
+                    </button>
+                    {% endfor %}
                 </div>
             </div>
+        </div>
 
-        </div><!-- /aa-steps -->
-
-        <hr class="aa-divider">
-
-        <!-- ── Confirm bar ── -->
-        <form method="POST"
-              action="{{ url_for('admin_auto_assign_confirm', client_id=client.client_id) }}"
-              id="confirmForm">
-            <input type="hidden" name="template"  id="hiddenTemplate"
-                   value="{{ suggestion.active_template }}">
-            <input type="hidden" name="overwrite" id="hiddenOverwrite" value="0">
-
-            <div class="aa-confirm-bar">
-                <button type="submit" class="btn btn-primary" id="confirmBtn">
-                    <i class="fa-solid fa-bolt"></i> Assign Routines
+        <!-- Step 3 — Preview -->
+        <div class="step-card">
+            <div class="step-head">
+                <div class="step-num">3</div>
+                <div>
+                    <div class="step-title">Preview Assignment</div>
+                    <div class="step-sub">Dry-run — nothing saved until you confirm</div>
+                </div>
+            </div>
+            <div class="step-body">
+                <button class="btn btn-ghost" id="preview-btn"
+                        style="width:100%; margin-bottom:16px;">
+                    <i class="fa-solid fa-eye" style="margin-right:6px;"></i>
+                    Generate Preview
                 </button>
+                <div id="preview-area">
+                    <div class="preview-empty">
+                        <i class="fa-solid fa-table-list"></i>
+                        Click "Generate Preview" to see what will be assigned.
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                <label class="aa-overwrite-label">
-                    <input type="checkbox" id="overwriteCheck"
-                           onchange="document.getElementById('hiddenOverwrite').value = this.checked ? '1' : '0'">
-                    Replace existing assignments
-                </label>
+    </div><!-- /left -->
 
-                <span style="font-size:12px; color:var(--text-muted); margin-left:auto;">
-                    Difficulty level:
-                    <strong style="color:var(--text-primary);">
-                        {{ suggestion.difficulty | capitalize }}
-                    </strong>
-                    &nbsp;(Level {{ suggestion.days | length }} client)
+
+    <!-- RIGHT: Info + Confirm -->
+    <div>
+
+        <!-- How it works -->
+        <div class="info-card">
+            <div class="info-head">
+                <div class="title-icon" style="width:28px;height:28px;font-size:12px;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <span class="step-title" style="margin-left:4px;">How Auto-Assign Works</span>
+            </div>
+            <div class="info-body"
+                 style="font-size:13px; color:var(--text-secondary); line-height:1.75; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; gap:10px;">
+                    <span style="color:var(--accent); font-weight:800; flex-shrink:0;">①</span>
+                    <span><strong style="color:var(--text-primary);">Goal → Template</strong>
+                    — Each goal maps to a recommended split (e.g. Build Muscle → Bro Split).</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <span style="color:var(--accent); font-weight:800; flex-shrink:0;">②</span>
+                    <span><strong style="color:var(--text-primary);">Level → Difficulty</strong>
+                    — The client's gamification level sets the difficulty filter automatically.</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <span style="color:var(--accent); font-weight:800; flex-shrink:0;">③</span>
+                    <span><strong style="color:var(--text-primary);">Days → Routines</strong>
+                    — Each training day gets a routine matching the required type + difficulty.
+                    Randomised for variety.</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <span style="color:var(--accent); font-weight:800; flex-shrink:0;">④</span>
+                    <span><strong style="color:var(--text-primary);">Fallback</strong>
+                    — If no exact match, difficulty is relaxed. Gaps shown as warnings.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training days -->
+        <div class="info-card">
+            <div class="info-head">
+                <div class="title-icon" style="width:28px;height:28px;font-size:12px;">
+                    <i class="fa-solid fa-calendar-week"></i>
+                </div>
+                <span class="step-title" style="margin-left:4px;">
+                    Training Days
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:400;">
+                        ({{ suggestion.days | length }} / 7)
+                    </span>
                 </span>
             </div>
-        </form>
+            <div class="info-body">
+                {% if suggestion.days %}
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    {% for day in ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+                    <span class="{{ 'day-chip' if day in suggestion.days else 'day-off' }}">
+                        {{ day[:3] }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align:center; color:var(--text-muted); padding:20px 0; font-size:13px;">
+                    <i class="fa-solid fa-calendar-xmark"
+                       style="font-size:24px; display:block; margin-bottom:8px; opacity:.4;"></i>
+                    No training days set.<br>
+                    <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}"
+                       style="color:var(--accent); text-decoration:none;">
+                        Set availability first →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
 
-    </div><!-- /aa-panel-body -->
-</div><!-- /aa-panel -->
+        <!-- Current settings snapshot -->
+        {% if suggestion.goal or suggestion.active_template %}
+        <div class="info-card">
+            <div class="info-head">
+                <div class="title-icon" style="width:28px;height:28px;font-size:12px;">
+                    <i class="fa-solid fa-circle-info"></i>
+                </div>
+                <span class="step-title" style="margin-left:4px;">Current Settings</span>
+            </div>
+            <div class="info-body"
+                 style="display:flex; flex-direction:column; gap:9px; font-size:13px;">
+                {% if suggestion.goal %}
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="color:var(--text-muted);">Goal</span>
+                    <strong style="color:var(--text-primary);">{{ suggestion.goal }}</strong>
+                </div>
+                {% endif %}
+                {% if suggestion.active_template %}
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="color:var(--text-muted);">Template</span>
+                    <strong style="color:var(--text-primary);">{{ suggestion.template_label }}</strong>
+                </div>
+                {% endif %}
+                {% if suggestion.overridden %}
+                <div style="font-size:11.5px; color:#fbbf24; text-align:right;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Template manually overridden from suggestion
+                </div>
+                {% endif %}
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="color:var(--text-muted);">Auto-difficulty</span>
+                    <span class="diff-badge diff-{{ suggestion.difficulty or 'beginner' }}">
+                        {{ (suggestion.difficulty or 'beginner') | capitalize }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Confirm -->
+        <div class="confirm-strip">
+            <form method="POST"
+                  action="{{ url_for('admin_auto_assign_confirm', client_id=client.client_id) }}"
+                  style="display:contents;">
+                <input type="hidden" name="template" id="hidden-template"
+                       value="{{ suggestion.active_template or '' }}">
+                <label class="overwrite-label">
+                    <input type="checkbox" name="overwrite" value="1">
+                    Replace existing assignments
+                </label>
+                <button type="submit" class="btn btn-primary"
+                        {% if not suggestion.days %}disabled title="Set training days first"{% endif %}>
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    Confirm &amp; Assign
+                </button>
+            </form>
+        </div>
+
+        <p style="font-size:11.5px; color:var(--text-muted); margin-top:8px; line-height:1.55; padding:0 2px;">
+            <i class="fa-solid fa-circle-info" style="color:var(--accent);"></i>
+            "Replace existing" deactivates all current routine assignments before writing the new ones.
+            Leave unchecked to only fill empty days.
+        </p>
+
+        <!-- Bulk assign shortcut -->
+        <div style="margin-top:16px; padding:12px 16px;
+                    background:var(--bg-elevated); border:1px solid var(--border);
+                    border-radius:var(--radius-md); font-size:12.5px; color:var(--text-secondary);">
+            <i class="fa-solid fa-users" style="color:var(--accent); margin-right:5px;"></i>
+            Need to assign routines for <strong style="color:var(--text-primary);">all active clients</strong>?
+            <form method="POST" action="{{ url_for('admin_auto_assign_all') }}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Bulk-assign routines for ALL active clients?')">
+                <input type="hidden" name="overwrite" value="0">
+                <button type="submit" class="btn btn-ghost btn-sm"
+                        style="margin-left:8px; font-size:11.5px;">
+                    Bulk Assign All
+                </button>
+            </form>
+        </div>
+
+    </div><!-- /right -->
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-(function () {
-    const CLIENT_ID       = {{ client.client_id }};
-    const SUGGESTED_SLUG  = "{{ suggestion.suggested_template }}";
-    let   activeGoal      = "{{ suggestion.goal }}";
-    let   activeTemplate  = "{{ suggestion.active_template }}";
+const SET_GOAL_URL = "{{ url_for('admin_set_client_goal',     client_id=client.client_id) }}";
+const PREVIEW_URL  = "{{ url_for('admin_auto_assign_preview', client_id=client.client_id) }}";
 
-    // ── Highlight helpers ────────────────────────────────────────────────────
-    function highlightGoal(goal) {
-        document.querySelectorAll('.goal-pill').forEach(p => {
-            p.classList.toggle('active', p.dataset.goal === goal);
-        });
-    }
+let activeGoal     = "{{ suggestion.goal            or '' }}";
+let activeTemplate = "{{ suggestion.active_template or '' }}";
 
-    function highlightTemplate(slug) {
-        document.querySelectorAll('.template-card').forEach(c => {
-            c.classList.toggle('active', c.dataset.slug === slug);
-        });
-        document.getElementById('hiddenTemplate').value = slug;
-    }
+// ── Goal selection ────────────────────────────────────────────────────────────
+document.querySelectorAll('.goal-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        activeGoal = btn.dataset.goal;
+        document.querySelectorAll('.goal-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-    function showSuggestion(slug) {
-        const badge = document.getElementById('suggestionBadge');
-        const name  = document.getElementById('suggestionName');
-        const card  = document.querySelector(`.template-card[data-slug="${slug}"]`);
-        if (card) {
-            name.textContent = card.querySelector('.template-card-name').textContent;
-            badge.style.display = 'inline';
-        }
-        // Mark the suggested card
-        document.querySelectorAll('.template-card').forEach(c => {
-            c.classList.toggle('suggested', c.dataset.slug === slug);
-        });
-    }
-
-    // ── Goal selection ───────────────────────────────────────────────────────
-    window.selectGoal = function (el) {
-        activeGoal = el.dataset.goal;
-        highlightGoal(activeGoal);
-
-        // Persist goal + get suggested template back from server
-        const fd = new FormData();
-        fd.append('fitness_goal', activeGoal);
-        // Don't send preferred_split here — let the server derive suggestion
-        fetch(`/admin/client/${CLIENT_ID}/set_goal`, { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    const suggestedSlug = data.suggestion.suggested_template;
-                    // Auto-select the suggested template
-                    activeTemplate = suggestedSlug;
-                    highlightTemplate(suggestedSlug);
-                    showSuggestion(suggestedSlug);
-                    loadPreview(suggestedSlug);
-                }
-            });
-    };
-
-    // ── Template selection ───────────────────────────────────────────────────
-    window.selectTemplate = function (el) {
-        activeTemplate = el.dataset.slug;
-        highlightTemplate(activeTemplate);
-
-        // If user picks a different template than the suggestion, persist the override
-        if (activeGoal) {
-            const fd = new FormData();
-            fd.append('fitness_goal',    activeGoal);
-            fd.append('preferred_split', activeTemplate);
-            fetch(`/admin/client/${CLIENT_ID}/set_goal`, { method: 'POST', body: fd });
-        }
-
-        loadPreview(activeTemplate);
-    };
-
-    // ── Preview loading ──────────────────────────────────────────────────────
-    function loadPreview(templateSlug) {
-        const loader    = document.getElementById('previewLoader');
-        const container = document.getElementById('previewContainer');
-
-        loader.classList.add('visible');
-        container.innerHTML = '';
+        const status = document.getElementById('goal-status');
+        status.style.display = 'flex';
+        status.innerHTML = '<i class="fa-solid fa-spinner spin" style="margin-right:4px;"></i> Saving…';
 
         const fd = new FormData();
-        fd.append('template', templateSlug);
+        fd.append('fitness_goal',    activeGoal);
+        fd.append('preferred_split', activeTemplate);
 
-        fetch(`/admin/client/${CLIENT_ID}/auto_assign/preview`, { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(data => {
-                loader.classList.remove('visible');
-                if (!data.success) {
-                    container.innerHTML = `<p class="no-match">⚠️ ${data.message}</p>`;
-                    return;
-                }
-                renderPreview(data);
-            })
-            .catch(() => {
-                loader.classList.remove('visible');
-                container.innerHTML = `<p class="no-match">⚠️ Could not load preview.</p>`;
-            });
-    }
+        try {
+            const res  = await fetch(SET_GOAL_URL, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.success) {
+                const suggested = data.suggestion?.suggested_template;
+                document.querySelectorAll('.tmpl-btn').forEach(b => {
+                    b.classList.remove('suggested');
+                    if (b.dataset.slug === suggested) b.classList.add('suggested');
+                });
+                status.innerHTML = '<i class="fa-solid fa-check" style="color:#4ade80;margin-right:4px;"></i> Saved';
+                setTimeout(() => { status.style.display = 'none'; }, 2200);
+            }
+        } catch (e) {
+            status.innerHTML = '<span style="color:#f87171;">Error saving</span>';
+            console.error(e);
+        }
+        clearPreview();
+    });
+});
 
-    function renderPreview(data) {
-        const container = document.getElementById('previewContainer');
+// ── Template selection ────────────────────────────────────────────────────────
+document.querySelectorAll('.tmpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        activeTemplate = btn.dataset.slug;
+        document.querySelectorAll('.tmpl-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('hidden-template').value = activeTemplate;
+        clearPreview();
+    });
+});
 
-        const badge = `
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-                <span style="font-size:12px; color:var(--text-muted);">
-                    Template: <strong style="color:var(--text-primary);">${data.template_label}</strong>
-                </span>
-                <span style="font-size:12px; color:var(--text-muted);">
-                    Difficulty: <strong style="color:var(--text-primary);">${cap(data.difficulty)}</strong>
-                </span>
-            </div>`;
+// ── Preview ───────────────────────────────────────────────────────────────────
+document.getElementById('preview-btn').addEventListener('click', async () => {
+    const area = document.getElementById('preview-area');
+    area.innerHTML = `
+        <div style="text-align:center;padding:30px 0;color:var(--text-muted);font-size:13px;">
+            <i class="fa-solid fa-spinner spin" style="font-size:22px;display:block;margin-bottom:10px;"></i>
+            Generating preview…
+        </div>`;
 
-        const rows = data.preview.map(row => `
-            <tr>
-                <td><strong style="color:var(--text-primary);">${row.day}</strong></td>
-                <td><span class="preview-type-pill">${row.type}</span></td>
-                <td>${row.matched
-                    ? row.routine_name
-                    : `<span class="no-match"><i class="fa-solid fa-triangle-exclamation"></i>
-                       No "${row.type}" routine found</span>`}
-                </td>
-            </tr>`).join('');
+    const fd = new FormData();
+    fd.append('template', activeTemplate);
 
-        container.innerHTML = badge + `
-            <table class="preview-table">
-                <thead>
-                    <tr>
-                        <th>Day</th>
-                        <th>Type</th>
-                        <th>Routine</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>`;
+    try {
+        const res  = await fetch(PREVIEW_URL, { method: 'POST', body: fd });
+        const data = await res.json();
 
-        // Warn if any gaps
+        if (!data.success) {
+            area.innerHTML = `<p style="color:#f87171;font-size:13px;text-align:center;">${data.message || 'Error'}</p>`;
+            return;
+        }
+
+        const diffClass = 'diff-' + (data.difficulty || 'beginner');
+        let html = `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <span style="font-size:12px;color:var(--text-muted);">Template:</span>
+            <strong style="font-size:13px;color:var(--text-primary);">${data.template_label}</strong>
+            <span style="font-size:12px;color:var(--text-muted);">· Difficulty:</span>
+            <span class="diff-badge ${diffClass}">${data.difficulty}</span>
+          </div>
+          <table class="preview-table">
+            <thead><tr>
+              <th>Day</th><th>Type</th><th>Routine</th>
+              <th style="text-align:right;">Match</th>
+            </tr></thead><tbody>`;
+
+        data.preview.forEach(row => {
+            const icon = row.matched
+                ? `<i class="fa-solid fa-circle-check match-ok"></i>`
+                : `<i class="fa-solid fa-triangle-exclamation match-warn"></i>`;
+            html += `
+              <tr>
+                <td><strong>${row.day}</strong></td>
+                <td><span class="type-pill">${row.type}</span></td>
+                <td style="color:${row.matched ? 'var(--text-primary)' : '#fb923c'}">${row.routine_name}</td>
+                <td style="text-align:right;">${icon}</td>
+              </tr>`;
+        });
+
+        html += `</tbody></table>`;
+
         const gaps = data.preview.filter(r => !r.matched).length;
-        if (gaps) {
-            container.innerHTML += `
-                <p style="margin-top:10px; font-size:12px; color:#f59e0b;">
-                    <i class="fa-solid fa-lightbulb"></i>
-                    ${gaps} day(s) have no matching routine.
-                    Create routines with the missing type and difficulty to fill them.
-                </p>`;
+        if (gaps > 0) {
+            html += `
+              <div class="warn-box">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <strong>${gaps} day(s)</strong> have no matching routine.
+                Create routines with the correct <em>Type</em> and <em>Difficulty</em>
+                to fill those gaps.
+              </div>`;
         }
-    }
 
-    function cap(str) {
-        return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
-    }
+        area.innerHTML = html;
 
-    // ── Init: load preview if goal/template already set ─────────────────────
-    if (activeTemplate) {
-        highlightGoal(activeGoal);
-        highlightTemplate(activeTemplate);
-        showSuggestion("{{ suggestion.suggested_template }}");
-        loadPreview(activeTemplate);
+    } catch (e) {
+        area.innerHTML = `<p style="color:#f87171;font-size:13px;text-align:center;">Network error — please try again.</p>`;
+        console.error(e);
     }
+});
 
-})();
+function clearPreview() {
+    document.getElementById('preview-area').innerHTML = `
+        <div class="preview-empty">
+            <i class="fa-solid fa-rotate"></i>
+            Settings changed — click "Generate Preview" to refresh.
+        </div>`;
+}
 </script>
 {% endblock %}
