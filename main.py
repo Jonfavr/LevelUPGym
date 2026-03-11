@@ -1553,17 +1553,16 @@ def admin_leaderboard():
     from controllers.leaderboard_controller import LeaderboardController
     leaderboard = LeaderboardController()
 
-    top_exp = leaderboard.get_top_exp()
-    top_reps = leaderboard.get_top_reps()
+    top_exp     = leaderboard.get_top_exp()
+    top_reps    = leaderboard.get_top_reps()
+    top_cardio  = leaderboard.get_top_cardio()
     top_streaks = leaderboard.get_top_streaks()
-    
-    print("Top EXP",top_exp)
-    print("Top Streaks",top_streaks)
 
     return render_template(
         'admin/leaderboard.html',
         top_exp=top_exp,
         top_reps=top_reps,
+        top_cardio=top_cardio,
         top_streaks=top_streaks
     )
 
@@ -1849,12 +1848,14 @@ def kiosk_leaderboard():
 
     top_exp     = leaderboard.get_top_exp(limit=10)
     top_reps    = leaderboard.get_top_reps(limit=10)
+    top_cardio  = leaderboard.get_top_cardio(limit=10)
     top_streaks = leaderboard.get_top_streaks(limit=10)
 
     return render_template(
         'kiosk/leaderboard_kiosk.html',
         top_exp=top_exp,
         top_reps=top_reps,
+        top_cardio=top_cardio,
         top_streaks=top_streaks
     )
 

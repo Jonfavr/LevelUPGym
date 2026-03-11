@@ -28,6 +28,7 @@
     .lb-tab-btn.active { font-weight: 700; border-bottom-color: currentColor; }
     .lb-tab-btn.exp     { color: var(--amber); }
     .lb-tab-btn.reps    { color: var(--emerald); }
+    .lb-tab-btn.cardio  { color: #06b6d4; }
     .lb-tab-btn.streaks { color: var(--accent); }
 
     .lb-panel { display: none; }
@@ -220,6 +221,9 @@
     <button class="lb-tab-btn reps" data-lb-tab="reps">
         <i class="fa-solid fa-dumbbell"></i> Reps
     </button>
+    <button class="lb-tab-btn cardio" data-lb-tab="cardio">
+        <i class="fa-solid fa-person-running"></i> Cardio
+    </button>
     <button class="lb-tab-btn streaks" data-lb-tab="streaks">
         <i class="fa-solid fa-fire"></i> Streaks
     </button>
@@ -228,6 +232,7 @@
 {% for category, rows, score_key, unit, color in [
     ('exp',     top_exp,     'total_exp',       'EXP',  '#f59e0b'),
     ('reps',    top_reps,    'total_reps',       'reps', '#10b981'),
+    ('cardio',  top_cardio,  'total_minutes',   'min',  '#06b6d4'),
     ('streaks', top_streaks, 'current_streak',   'days', '#7c3aed')
 ] %}
 
