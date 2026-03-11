@@ -390,7 +390,7 @@
     <span class="milestone-icon">⚡</span>
     <div class="milestone-title">Choose Your Class</div>
     <div class="milestone-sub">You've reached a milestone. Your specialization defines<br>your path and multiplies your gains.</div>
-    <div class="milestone-level">Level {{ progress.level }} Unlocked</div>
+    <div class="milestone-level">Level {{ progress.level if progress else 1 }} Unlocked</div>
 </div>
 
 <!-- PERMANENT WARNING -->

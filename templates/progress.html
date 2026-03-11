@@ -203,6 +203,7 @@
 {% block content %}
 
 <!-- LEVEL HERO -->
+{% if progress %}
 <div class="level-hero">
     <span class="level-number">{{ progress.level }}</span>
     <span class="level-label">Current Level</span>
@@ -221,9 +222,10 @@
         <span class="tag">{{ progress.total_exp }} Total EXP</span>
     </div>
 </div>
+{% endif %}
 
 <!-- STREAK -->
-{% if progress.streak is defined %}
+{% if progress and progress.streak %}
 <div class="streak-card">
     <div class="streak-flame">🔥</div>
     <div>
