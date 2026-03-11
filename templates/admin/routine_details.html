@@ -256,6 +256,10 @@
 
     .ctrl-select:focus { outline: none; border-color: var(--accent); }
 
+    .ctrl-time-row { display: flex; align-items: center; gap: 3px; }
+    .ctrl-colon { font-size: 14px; font-weight: 700; color: var(--text-muted); padding: 0 1px; }
+    .ctrl-input-sm { width: 38px !important; padding: 0 4px !important; text-align: center; }
+
     .ctrl-exp {
         font-family: 'Rajdhani', sans-serif; font-size: 13px;
         font-weight: 700; color: var(--accent); white-space: nowrap;
@@ -625,9 +629,22 @@
                     </div>
 
                     <div class="ctrl-group">
-                        <div class="ctrl-label">Reps</div>
-                        <input type="number" name="reps" class="ctrl-input"
-                               value="{{ ex.reps }}" min="1" max="999">
+                        <div class="ctrl-label ctrl-reps-label">
+                            {% if ex.measurement == 'seconds' %}Duration{% else %}Reps{% endif %}
+                        </div>
+                        <input type="number" name="reps" class="ctrl-input ctrl-reps-val"
+                               value="{{ ex.reps }}" min="1" max="9999"
+                               {% if ex.measurement == 'seconds' %}style="display:none"{% endif %}>
+                        <div class="ctrl-time-row"
+                             {% if ex.measurement != 'seconds' %}style="display:none"{% endif %}>
+                            <input type="number" class="ctrl-input ctrl-input-sm ctrl-min-val"
+                                   value="{{ (ex.reps // 60) if ex.measurement == 'seconds' else '' }}"
+                                   placeholder="m" min="0" max="99">
+                            <span class="ctrl-colon">:</span>
+                            <input type="number" class="ctrl-input ctrl-input-sm ctrl-sec-val"
+                                   value="{{ (ex.reps % 60) if ex.measurement == 'seconds' else '' }}"
+                                   placeholder="ss" min="0" max="59">
+                        </div>
                     </div>
 
                     <div class="ctrl-group">
@@ -785,5 +802,35 @@ recalcTotalExp();
     const missing = {{ 'true' if not routine.difficulty_level or not routine.routine_type or not routine.primary_muscle else 'false' }};
     if (missing) openEdit();
 })();
+
+/* ════════════════════════════
+   MEASUREMENT TYPE TOGGLE  (Reps ↔ Time)
+════════════════════════════ */
+document.querySelectorAll('.builder-ex-controls').forEach(form => {
+    const measureSel = form.querySelector('[name="measurement"]');
+    const repsVal    = form.querySelector('.ctrl-reps-val');
+    const timeRow    = form.querySelector('.ctrl-time-row');
+    const repsLabel  = form.querySelector('.ctrl-reps-label');
+    if (!measureSel || !repsVal || !timeRow) return;
+
+    function applyMode(mode) {
+        const isTime = mode === 'seconds';
+        repsLabel.textContent = isTime ? 'Duration' : 'Reps';
+        repsVal.style.display  = isTime ? 'none' : '';
+        timeRow.style.display  = isTime ? 'flex' : 'none';
+    }
+
+    measureSel.addEventListener('change', () => applyMode(measureSel.value));
+
+    // On submit: write combined seconds into the reps field
+    form.addEventListener('submit', () => {
+        if (measureSel.value === 'seconds') {
+            const mins = parseInt(form.querySelector('.ctrl-min-val')?.value) || 0;
+            const secs = parseInt(form.querySelector('.ctrl-sec-val')?.value) || 0;
+            repsVal.value = mins * 60 + secs;
+            repsVal.style.display = '';  // ensure it's submitted
+        }
+    });
+});
 </script>
 {% endblock %}

@@ -486,8 +486,30 @@
     }
 
     .time-input-row input {
-        width: 64px;
+        width: 72px;
         flex-shrink: 0;
+        background: var(--surface-3);
+        border: 1.5px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 12px 8px;
+        font-size: 20px;
+        font-weight: 600;
+        font-family: var(--font-display);
+        text-align: center;
+        transition: all 0.2s;
+        -webkit-appearance: none;
+    }
+
+    .time-input-row input:focus {
+        outline: none;
+        border-color: var(--brand);
+        background: rgba(124,92,252,0.1);
+    }
+
+    .time-input-row input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     .time-colon {
