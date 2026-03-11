@@ -41,10 +41,14 @@ test_ctrl = PhysicalTestController()
 session_ctrl = WorkoutSessionController()
 sales_ctrl = SalesPointController()
 auto_assign_ctrl = AutoAssignmentController()
+membership_ctrl = MembershipController()
 
 # Initialize database
 db = DatabaseManager()
 db.initialize_database()
+
+# Seed achievements if not already loaded
+achievement_ctrl.initialize_achievements()
 
 # Decorators
 def login_required(f):
@@ -72,6 +76,21 @@ def superadmin_required(f):
         if session.get('admin_role') != 'superadmin':
             flash('Access denied — superadmin privileges required.', 'error')
             return redirect(url_for('admin_dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def membership_active_required(f):
+    """Block workout access for clients with expired or missing membership."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        client_id = session.get('client_id')
+        if client_id:
+            membership = membership_ctrl.get_client_membership(client_id)
+            if not membership or membership['status'] != 'active':
+                if request.is_json or request.method == 'POST':
+                    return jsonify({'success': False, 'message': 'Tu membresía está vencida. Renuévala para continuar entrenando.'}), 403
+                flash('Tu membresía está vencida. Renuévala para continuar entrenando.', 'error')
+                return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -132,10 +151,7 @@ def login():
         if client:
             session['client_id'] = client.client_id
             session['client_name'] = client.full_name
-            
-            # Check in automatically
-            attendance_ctrl.check_in(client.client_id)
-            
+
             flash(f'Welcome back, {client.first_name}! 💪', 'success')
             return redirect(url_for('dashboard'))
         else:
@@ -240,6 +256,7 @@ def dashboard():
 
 @app.route('/workout/<int:routine_id>')
 @login_required
+@membership_active_required
 def workout(routine_id):
     """Start workout session"""
     client_id = session['client_id']
@@ -278,6 +295,7 @@ def workout(routine_id):
 
 @app.route('/log_set', methods=['POST'])
 @login_required
+@membership_active_required
 def log_set():
     """Log a completed set"""
     client_id = session['client_id']
@@ -472,6 +490,7 @@ def client_update_schedule():
 
 @app.route('/finish_workout', methods=['POST'])
 @login_required
+@membership_active_required
 def finish_workout():
     """Finish the current workout session"""
     workout_session_id = session.get('workout_session_id')

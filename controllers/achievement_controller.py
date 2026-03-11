@@ -364,12 +364,12 @@ class AchievementController:
         
         # Workout stats (handle None values for new users)
         workout_query = '''
-            SELECT 
+            SELECT
                 COUNT(DISTINCT workout_date) as total_workouts,
                 COUNT(*) as total_sets,
                 SUM(reps_completed) as total_reps
             FROM workout_logs
-            WHERE client_id=15 AND measurement='reps'
+            WHERE client_id=? AND measurement='reps'
         '''
         workout_result = self.db.execute_query(workout_query, (client_id,))
         workout_data = dict(workout_result[0]) if workout_result else {}

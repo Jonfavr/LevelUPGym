@@ -106,7 +106,7 @@ class GamificationController:
         leveled_up = False
         new_level = current_level
         
-        while new_level < 20 and new_current_exp >= self.EXP_TABLE.get(new_level + 1, float('inf')):
+        while new_level < 100 and new_current_exp >= self.EXP_TABLE.get(new_level + 1, float('inf')):
             new_level += 1
             leveled_up = True
         
