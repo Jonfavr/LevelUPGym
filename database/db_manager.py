@@ -1,6 +1,7 @@
 # database/db_manager.py
 import sqlite3
 import hashlib
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 import os
 
@@ -407,14 +408,39 @@ class DatabaseManager:
 
     def execute_update(self, query, params=None):
         self.connect()
-        if params:
-            self.cursor.execute(query, params)
-        else:
-            self.cursor.execute(query)
-        self.conn.commit()
-        last_id = self.cursor.lastrowid
-        self.disconnect()
-        return last_id
+        try:
+            if params:
+                self.cursor.execute(query, params)
+            else:
+                self.cursor.execute(query)
+            self.conn.commit()
+            last_id = self.cursor.lastrowid
+            return last_id
+        except Exception:
+            self.conn.rollback()
+            raise
+        finally:
+            self.disconnect()
+
+    @contextmanager
+    def transaction(self):
+        """Context manager for atomic multi-step operations.
+
+        Usage:
+            with self.db.transaction() as cursor:
+                cursor.execute(query1, params1)
+                cursor.execute(query2, params2)
+        All statements commit together or rollback together on error.
+        """
+        self.connect()
+        try:
+            yield self.cursor
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            raise
+        finally:
+            self.disconnect()
 
     def update_streak(self, client_id):
         """Update client streaks based on attendance and availability.
@@ -489,6 +515,7 @@ class DatabaseManager:
                 'multiplier': multiplier,
             }
         except Exception as e:
+            self.conn.rollback()
             print(f"update_streak error: {e}")
             self.disconnect()
             return {'current_streak': 0, 'longest_streak': 0, 'multiplier': 1.0}

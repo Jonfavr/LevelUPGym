@@ -58,18 +58,10 @@ class PhysicalTestController:
         rank = self._calculate_rank(test_name, score)
         
         # Save result
-        self.db.connect()
-        query = '''
-            INSERT INTO test_results (client_id, test_id, test_date, score, rank_achieved, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
-        '''
-        self.db.cursor.execute(query, (
-            client_id, test['test_id'], test_date.strftime('%Y-%m-%d'), 
-            score, rank, notes
-        ))
-        self.db.conn.commit()
-        result_id = self.db.cursor.lastrowid
-        self.db.disconnect()
+        result_id = self.db.execute_update(
+            'INSERT INTO test_results (client_id, test_id, test_date, score, rank_achieved, notes) VALUES (?, ?, ?, ?, ?, ?)',
+            (client_id, test['test_id'], test_date.strftime('%Y-%m-%d'), score, rank, notes)
+        )
         
         # Award EXP based on rank
         points = self.RANK_POINTS[rank]

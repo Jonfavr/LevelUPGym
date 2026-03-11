@@ -93,31 +93,25 @@ class AchievementController:
         self.gamification = GamificationController()
     
     def initialize_achievements(self):
-        """Populate database with default achievements"""
-        for ach in self.DEFAULT_ACHIEVEMENTS:
-            try:
-                self.db.connect()
-                query = '''
-                    INSERT OR IGNORE INTO achievements 
-                    (achievement_name, description, achievement_type, requirement_value, exp_reward)
-                    VALUES (?, ?, ?, ?, ?)
-                '''
-                # For rank achievements, store rank as text in notes, use order number as requirement
-                req_value = ach['requirement']
-                if ach['type'] == 'rank':
-                    rank_order = {'E': 0, 'D': 1, 'C': 2, 'B': 3, 'A': 4, 'S': 5, 'SS': 6}
-                    req_value = rank_order.get(req_value, 0)
-                
-                self.db.cursor.execute(query, (
-                    ach['name'], ach['description'], ach['type'], 
-                    req_value, ach['exp_reward']
-                ))
-                self.db.conn.commit()
-                self.db.disconnect()
-            except Exception as e:
-                print(f"Error adding achievement {ach['name']}: {e}")
-        
-        print("✅ Achievements initialized!")
+        """Populate database with default achievements (single atomic transaction)."""
+        rank_order = {'E': 0, 'D': 1, 'C': 2, 'B': 3, 'A': 4, 'S': 5, 'SS': 6}
+        query = '''
+            INSERT OR IGNORE INTO achievements
+            (achievement_name, description, achievement_type, requirement_value, exp_reward)
+            VALUES (?, ?, ?, ?, ?)
+        '''
+        try:
+            with self.db.transaction() as cursor:
+                for ach in self.DEFAULT_ACHIEVEMENTS:
+                    req_value = ach['requirement']
+                    if ach['type'] == 'rank':
+                        req_value = rank_order.get(req_value, 0)
+                    cursor.execute(query, (
+                        ach['name'], ach['description'], ach['type'],
+                        req_value, ach['exp_reward']
+                    ))
+        except Exception as e:
+            print(f"Error initializing achievements: {e}")
     
     def check_and_unlock_achievements(self, client_id):
         """
@@ -162,14 +156,10 @@ class AchievementController:
             return {'success': False, 'message': 'Achievement not found'}
         
         # Unlock achievement
-        self.db.connect()
-        query = '''
-            INSERT INTO client_achievements (client_id, achievement_id)
-            VALUES (?, ?)
-        '''
-        self.db.cursor.execute(query, (client_id, achievement_id))
-        self.db.conn.commit()
-        self.db.disconnect()
+        self.db.execute_update(
+            'INSERT INTO client_achievements (client_id, achievement_id) VALUES (?, ?)',
+            (client_id, achievement_id)
+        )
         
         # Award EXP
         exp_result = self.gamification.add_experience(client_id, achievement['exp_reward'])

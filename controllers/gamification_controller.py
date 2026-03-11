@@ -115,15 +115,10 @@ class GamificationController:
             new_current_exp = new_current_exp - self.EXP_TABLE[new_level]
         
         # Update database
-        self.db.connect()
-        query = '''
-            UPDATE client_gamification 
-            SET current_exp=?, total_exp=?, current_level=?
-            WHERE client_id=?
-        '''
-        self.db.cursor.execute(query, (new_current_exp, new_total_exp, new_level, client_id))
-        self.db.conn.commit()
-        self.db.disconnect()
+        self.db.execute_update(
+            'UPDATE client_gamification SET current_exp=?, total_exp=?, current_level=? WHERE client_id=?',
+            (new_current_exp, new_total_exp, new_level, client_id)
+        )
         
         return {
             'exp_gained': exp_gained,
@@ -179,15 +174,10 @@ class GamificationController:
             return {'success': False, 'message': 'Class already selected'}
         
         # Update database
-        self.db.connect()
-        query = '''
-            UPDATE client_gamification 
-            SET client_class=?, class_unlocked_at_level=?
-            WHERE client_id=?
-        '''
-        self.db.cursor.execute(query, (class_name, gam_data['current_level'], client_id))
-        self.db.conn.commit()
-        self.db.disconnect()
+        self.db.execute_update(
+            'UPDATE client_gamification SET client_class=?, class_unlocked_at_level=? WHERE client_id=?',
+            (class_name, gam_data['current_level'], client_id)
+        )
         
         return {
             'success': True, 
