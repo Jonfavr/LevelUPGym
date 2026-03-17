@@ -1014,7 +1014,6 @@ def admin_add_client():
 @app.route('/admin/client/<int:client_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_client(client_id):
-    db = DatabaseManager()
     client = Client.get_by_id(client_id)
 
     if not client:
@@ -1023,9 +1022,6 @@ def admin_edit_client(client_id):
 
     # Load related info for GET
     physical_data = client.get_latest_physical_data()
-    availability = client.get_availability()
-    weekly_schedule = client.get_weekly_schedule()
-    all_routines = db.execute_query("SELECT routine_id, routine_name FROM routines WHERE is_active=1")
     physical_data_calculated = {}
 
     # --- POST: Save updates ---
@@ -1055,17 +1051,6 @@ def admin_edit_client(client_id):
         if any([height, weight, bodyfat, activity, chest, arms, forearms, waist, hips, thighs, claf]):
             client.add_or_update_physical_data(height, weight, bodyfat, activity, chest, arms, forearms, waist, hips, thighs, claf)
 
-        # 🗓️ Update availability
-        selected_days = request.form.getlist('days')
-        client.set_availability(selected_days)
-        client.clear_unassigned_days(selected_days)
-
-        # 🏋️ Assign routines per selected day
-        for day in selected_days:
-            routine_id = request.form.get(f"routine_{day.lower()}")
-            if routine_id:
-                client.assign_routine_to_day(day, routine_id)
-
         flash("✅ Client information updated successfully!", "success")
         return redirect(url_for('admin_client_details', client_id=client.client_id))
 
@@ -1075,9 +1060,6 @@ def admin_edit_client(client_id):
         client=client,
         physical_data=physical_data,
         physical_data_calculated=physical_data_calculated,
-        availability=availability,
-        weekly_schedule=weekly_schedule,
-        all_routines=all_routines
     )
 
 @app.route('/admin/client/<int:client_id>/delete', methods=['POST'])
