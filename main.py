@@ -187,11 +187,18 @@ def dashboard():
             # No session record yet → definitely not started
             routine_status = 'not_started'
 
-    # --- Recent achievements ---
-    recent_achievements = achievement_ctrl.get_recent_unlocks(client_id, limit=3)
+    # --- Weekly schedule (for mini strip + tomorrow's workout) ---
+    weekly_schedule = Routine.get_client_weekly_schedule(client_id)
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime('%A')
+    tomorrow_routine = weekly_schedule.get(tomorrow)
 
     # --- Streak info ---
     streak_data = client.get_streak_data()
+
+    # --- Streak next milestone ---
+    _streak_milestones = [3, 7, 10, 14, 21, 30, 60, 90, 100]
+    _current_streak = streak_data['current_streak'] if streak_data else 0
+    streak_milestone = next((m for m in _streak_milestones if m > _current_streak), None)
 
     # --- Membership notification ---
     mc = MembershipController()
@@ -230,8 +237,10 @@ def dashboard():
         progress=progress,
         today_routine=today_routine,
         today=today,
-        recent_achievements=recent_achievements,
+        weekly_schedule=weekly_schedule,
+        tomorrow_routine=tomorrow_routine,
         streak_data=streak_data,
+        streak_milestone=streak_milestone,
         newly_unlocked=newly_unlocked,
         notification=notification,
         status=routine_status,
@@ -2156,7 +2165,11 @@ if __name__ == '__main__':
     print(f"   http://{local_ip}:5000")
     print(f"\n👨‍💼 Admin Portal:")
     print(f"   http://{local_ip}:5000/admin")
-    print(f"   Username: admin | Password: admin123")
+    print(f"   Username: admin | Password: levelupgym")
+    print(f"\n Leaderboard Kiosk:")
+    print(f"   http://{local_ip}:5000/kiosk/leaderboard")
+    print(f"\n Check-in Kiosk:")
+    print(f"   http://{local_ip}:5000/kiosk/checkin")
     print(f"\n   (Use these URLs on devices connected to the same WiFi)")
     print("\n" + "="*70 + "\n")
     

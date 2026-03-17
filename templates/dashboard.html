@@ -200,32 +200,58 @@
     }
     .rest-day-icon { font-size: 36px; display: block; margin-bottom: 6px; }
 
-    /* Recent achievements strip */
-    .ach-strip {
+    /* Weekly strip */
+    .week-strip {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 10px;
-        margin-top: 4px;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
     }
-    .ach-strip-item {
+    .week-day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 10px 4px;
+        border-radius: var(--radius-sm);
         background: var(--surface-2);
         border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 12px;
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
+        min-width: 0;
     }
-    .ach-strip-icon { font-size: 22px; flex-shrink: 0; }
-    .ach-strip-name {
-        font-family: var(--font-display);
-        font-size: 14px;
+    .week-day-today {
+        border-color: var(--brand);
+        background: rgba(102,126,234,0.08);
+    }
+    .week-day-active .week-day-name { color: var(--text); }
+    .week-day-name {
+        font-size: 10px;
         font-weight: 700;
-        color: var(--text);
         text-transform: uppercase;
-        line-height: 1.1;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
     }
-    .ach-strip-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .week-day-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: var(--brand);
+        flex-shrink: 0;
+    }
+    .week-day-today .week-day-dot { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+    .week-day-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-align: center;
+        line-height: 1.2;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    .week-day-rest {
+        font-size: 8px;
+        color: var(--text-dim);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
 
     /* Membership warning */
     .membership-warning {
@@ -341,10 +367,15 @@
         </div>
         {% endif %}
     </div>
+    {% if streak_milestone %}
+    <div style="margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+        🎯 {{ streak_milestone - (streak_data.current_streak if streak_data else 0) }} more day{{ 's' if (streak_milestone - (streak_data.current_streak if streak_data else 0)) != 1 else '' }} to a <span style="color: var(--brand); font-weight: 700;">{{ streak_milestone }}-day streak</span>
+    </div>
+    {% endif %}
     <div class="exp-bar-wrap">
         <div class="exp-bar-labels">
             <span>{{ progress.current_exp }} EXP</span>
-            <span>{{ progress.next_level_exp }} EXP to lvl {{ progress.level + 1 }}</span>
+            <span>{{ progress.exp_to_next_level }} EXP to lvl {{ progress.level + 1 }}</span>
         </div>
         <div class="progress-track">
             <div class="progress-fill" style="width: {{ progress.progress_percentage }}%"></div>
@@ -387,30 +418,37 @@
     <div class="workout-section-label">Today · {{ today }}</div>
     <div class="rest-day-text">
         <span class="rest-day-icon">😴</span>
-        Rest day — no routine scheduled.<br>Recovery is part of the grind.
+        Rest day — recovery is part of the grind.
     </div>
+    {% if tomorrow_routine %}
+    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 4px;">Up next · Tomorrow</div>
+        <div style="font-size: 17px; font-weight: 700; color: var(--text); font-family: var(--font-display); text-transform: uppercase;">{{ tomorrow_routine.routine_name }}</div>
+    </div>
+    {% endif %}
     {% endif %}
 </div>
 
-<!-- RECENT ACHIEVEMENTS -->
-{% if recent_achievements %}
+<!-- WEEKLY STRIP -->
 <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <h2 style="margin:0;">Recent Unlocks</h2>
-        <a href="{{ url_for('achievements') }}" class="btn btn-ghost btn-sm">View All →</a>
+        <h2 style="margin:0;">This Week</h2>
+        <a href="{{ url_for('schedule') }}" class="btn btn-ghost btn-sm">Full Schedule →</a>
     </div>
-    <div class="ach-strip">
-        {% for ach in recent_achievements %}
-        <div class="ach-strip-item">
-            <div class="ach-strip-icon">🏆</div>
-            <div>
-                <div class="ach-strip-name">{{ ach.name }}</div>
-                <div class="ach-strip-desc">{{ ach.description }}</div>
-            </div>
+    <div class="week-strip">
+        {% for day in ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+        {% set has_routine = day in weekly_schedule %}
+        <div class="week-day{% if day == today %} week-day-today{% endif %}{% if has_routine %} week-day-active{% endif %}">
+            <span class="week-day-name">{{ day[:3] }}</span>
+            {% if has_routine %}
+            <span class="week-day-dot"></span>
+            <span class="week-day-label">{{ weekly_schedule[day].routine_name | truncate(14, true, '') }}</span>
+            {% else %}
+            <span class="week-day-rest">REST</span>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
 </div>
-{% endif %}
 
 {% endblock %}

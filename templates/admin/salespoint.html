@@ -214,6 +214,42 @@
     }
 
     /* ══════════════════════════════════════
+       REPORT PERIOD DROPDOWN
+    ══════════════════════════════════════ */
+    .report-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .report-dropdown-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        min-width: 160px;
+        z-index: 100;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+
+    .report-dropdown.open .report-dropdown-menu { display: block; }
+
+    .report-dropdown-menu a {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px; font-size: 13px; font-weight: 500;
+        color: var(--text-secondary); text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .report-dropdown-menu a:last-child { border-bottom: none; }
+    .report-dropdown-menu a:hover { background: var(--bg-hover); color: var(--accent); }
+    .report-dropdown-menu a i { width: 14px; color: var(--accent); }
+
+    /* ══════════════════════════════════════
        TODAY'S SALES LOG (below main grid)
     ══════════════════════════════════════ */
     .sales-log {
@@ -417,46 +453,6 @@
         display: flex; gap: 10px; padding: 14px 20px;
         border-top: 1px solid var(--border);
     }
-
-    /* ══════════════════════════════════════
-    PRINT STYLES — isolate receipt only
-    When window.print() is called, only
-    the .receipt-modal is rendered.
-    ══════════════════════════════════════ */
-    @media print {
-        /* 1. Hide every direct child of body (sidebar, topbar, page content) */
-        body > *                  { display: none !important; }
-
-        /* 2. Un-hide the modal overlay and its children */
-        #receipt-modal            { display: block !important;
-                                    position: static !important;
-                                    background: transparent !important;
-                                    inset: auto !important;
-                                    backdrop-filter: none !important; }
-
-        /* 3. Strip decorative chrome from the modal box */
-        .receipt-modal            { box-shadow: none !important;
-                                    border: none !important;
-                                    border-radius: 0 !important;
-                                    max-width: 100% !important;
-                                    width: 100% !important;
-                                    animation: none !important;
-                                    page-break-inside: avoid; }
-
-        /* 4. Keep accent colour on most printers */
-        .receipt-top              { -webkit-print-color-adjust: exact;
-                                    print-color-adjust: exact; }
-
-        /* 5. Readable text on white paper */
-        .receipt-body             { background: white !important; }
-        .receipt-line-name        { color: #333 !important; }
-        .receipt-line-qty         { color: #666 !important; }
-        .receipt-total-label      { color: #555 !important; }
-        .receipt-total-val        { color: #111 !important; }
-        .receipt-divider          { border-top-color: #ccc !important; }
-
-        /* 6. Don't print the Close / Print buttons */
-        .receipt-actions          { display: none !important; }
 </style>
 {% endblock %}
 
@@ -471,10 +467,26 @@
         </div>
         <div class="section-subtitle">Today: {{ sales_today | length }} sale{{ 's' if sales_today | length != 1 }}</div>
     </div>
+
+    <!-- ══ FIX 1: Report period dropdown (daily / weekly / monthly) ══ -->
     <div style="display:flex; gap:8px;">
-        <a href="{{ url_for('admin_sales_report', period='daily') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-solid fa-chart-bar"></i> Reports
-        </a>
+        <div class="report-dropdown" id="report-dropdown">
+            <button class="btn btn-ghost btn-sm" onclick="toggleReportDropdown(event)">
+                <i class="fa-solid fa-chart-bar"></i> Reports
+                <i class="fa-solid fa-chevron-down" style="font-size:10px; margin-left:4px;"></i>
+            </button>
+            <div class="report-dropdown-menu">
+                <a href="{{ url_for('admin_sales_report', period='daily') }}">
+                    <i class="fa-solid fa-calendar-day"></i> Daily Report
+                </a>
+                <a href="{{ url_for('admin_sales_report', period='weekly') }}">
+                    <i class="fa-solid fa-calendar-week"></i> Weekly Report
+                </a>
+                <a href="{{ url_for('admin_sales_report', period='monthly') }}">
+                    <i class="fa-solid fa-calendar"></i> Monthly Report
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -490,7 +502,7 @@
             </div>
         </div>
 
-        <div class="item-grid" id="item-grid"  style="margin-bottom:24px;">
+        <div class="item-grid" id="item-grid" style="margin-bottom:24px;">
             {% for it in items %}
             {% set stock = it.stock %}
             <div class="item-card {% if stock == 0 %}out-of-stock{% endif %}"
@@ -768,7 +780,7 @@ function addToCart(card) {
     renderCart();
 }
 
-function increaseQty(i)  { const s = parseInt(document.querySelectorAll('[data-item-id]')[0]?.dataset.stock||999); cart[i].qty++; renderCart(); }
+function increaseQty(i)  { cart[i].qty++; renderCart(); }
 function decreaseQty(i)  { cart[i].qty = Math.max(1, cart[i].qty - 1); renderCart(); }
 function removeItem(i)   { cart.splice(i, 1); renderCart(); }
 function clearCart()     { cart = []; renderCart(); }
@@ -827,17 +839,17 @@ function selectPayment(btn) {
     document.querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     paymentMethod = btn.dataset.method;
-    document.getElementById('paid-wrap').style.display    = paymentMethod === 'cash' ? 'block' : 'none';
-    document.getElementById('change-display').style.display = paymentMethod === 'cash' ? 'block' : 'none';
+    document.getElementById('paid-wrap').style.display       = paymentMethod === 'cash' ? 'block' : 'none';
+    document.getElementById('change-display').style.display  = paymentMethod === 'cash' ? 'block' : 'none';
 }
 
 function updateChange() {
     if (paymentMethod !== 'cash') return;
-    const paid  = parseFloat(document.getElementById('paid-amount').value) || 0;
-    const total = parseFloat(document.getElementById('cart-total').textContent) || 0;
+    const paid   = parseFloat(document.getElementById('paid-amount').value) || 0;
+    const total  = parseFloat(document.getElementById('cart-total').textContent) || 0;
     const change = Math.max(0, paid - total);
     document.getElementById('change-amount').textContent = fmt(change);
-    document.getElementById('change-display').style.display = 'block';
+    document.getElementById('change-display').style.display  = 'block';
 }
 
 /* ── Complete Sale ── */
@@ -906,6 +918,19 @@ async function addNewItem() {
     else           { showToast('Failed to add item', 'error'); }
 }
 
+/* ═══════════════════════════════════════
+   REPORT DROPDOWN TOGGLE
+═══════════════════════════════════════ */
+function toggleReportDropdown(e) {
+    e.stopPropagation();
+    document.getElementById('report-dropdown').classList.toggle('open');
+}
+
+/* Close dropdown when clicking anywhere else */
+document.addEventListener('click', function() {
+    document.getElementById('report-dropdown').classList.remove('open');
+});
+
 /* ════════════════════════════
    RECEIPT MODAL
 ════════════════════════════ */
@@ -919,7 +944,7 @@ function showReceiptFromCart(saleResult) {
     lines.innerHTML = '';
 
     let subtotal = 0;
-    // Capture cart snapshot before clearing
+    /* Capture the cart snapshot BEFORE clearCart() is called */
     const snapshot = [...cart];
     snapshot.forEach(it => {
         subtotal += it.price * it.qty;
@@ -983,10 +1008,203 @@ function closeReceipt() {
     location.reload();   // refresh stock counts after a new sale
 }
 
-/* ── close modal on backdrop click ── */
+/* close modal on backdrop click */
 document.getElementById('receipt-modal').addEventListener('click', function(e) {
     if (e.target === this) closeReceipt();
 });
+
+/* ════════════════════════════════════════════════════════
+   FIX 2: PRINT RECEIPT
+   ─────────────────────────────────────────────────────
+   The old approach used @media print with body > * hidden,
+   but the modal is NESTED inside the base template's wrapper
+   div — not a direct child of <body> — so its parent div
+   stayed hidden, producing a blank page.
+
+   Fix: open a brand-new popup window, write just the
+   receipt HTML with self-contained styles, then print it.
+════════════════════════════════════════════════════════ */
+function printReceipt() {
+    const modal = document.getElementById('receipt-modal');
+    if (!modal.classList.contains('open')) return;
+
+    /* Grab the current receipt content */
+    const saleId   = document.getElementById('receipt-sale-id').textContent;
+    const date     = document.getElementById('receipt-date').textContent;
+    const linesHTML = document.getElementById('receipt-lines').innerHTML;
+    const subtotal = document.getElementById('receipt-subtotal').textContent;
+    const total    = document.getElementById('receipt-total').textContent;
+    const payment  = document.getElementById('receipt-payment').textContent;
+    const paid     = document.getElementById('receipt-paid').textContent;
+    const change   = document.getElementById('receipt-change').textContent;
+    const showChange = document.getElementById('receipt-change-row').style.display !== 'none';
+
+    const printWindow = window.open('', '_blank', 'width=420,height=680,menubar=no,toolbar=no');
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Receipt ${saleId} — LevelUp Gym</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            color: #111;
+            width: 360px;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* Header gradient */
+        .receipt-top {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            padding: 24px 20px 20px;
+            text-align: center;
+            color: white;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .receipt-top .icon { font-size: 28px; margin-bottom: 6px; }
+        .gym-name {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 22px; font-weight: 900;
+            letter-spacing: 2px; text-transform: uppercase;
+        }
+        .subtitle { font-size: 11px; opacity: .85; margin-top: 2px; }
+
+        /* Body */
+        .receipt-body { padding: 18px 20px; }
+
+        .meta {
+            display: flex; justify-content: space-between;
+            font-size: 11px; color: #666; margin-bottom: 14px;
+        }
+
+        hr { border: none; border-top: 2px dashed #ccc; margin: 12px 0; }
+
+        /* Line items */
+        .line {
+            display: flex; justify-content: space-between;
+            align-items: center; font-size: 13px; margin-bottom: 8px;
+        }
+        .line-name { flex: 1; color: #333; }
+        .line-qty  { color: #888; font-size: 11px; margin: 0 10px; }
+        .line-price {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700; color: #111;
+        }
+
+        /* Totals */
+        .total-row {
+            display: flex; justify-content: space-between;
+            font-size: 13px; margin-bottom: 6px;
+        }
+        .total-label { color: #666; }
+        .total-val {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700; color: #111;
+        }
+        .grand { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
+        .grand .total-val { font-size: 22px; color: #6366f1; }
+
+        /* Change box */
+        .change-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            text-align: center;
+            margin-top: 14px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .change-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #10b981; }
+        .change-val {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 30px; font-weight: 900; color: #10b981;
+        }
+
+        /* Footer */
+        .receipt-footer {
+            text-align: center;
+            padding: 14px 20px;
+            border-top: 1px solid #eee;
+            font-size: 11px; color: #888;
+            background: #f9f9f9;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        @media print {
+            body { width: 100%; }
+            .receipt-top { background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="receipt-top">
+        <div class="icon">🏋️</div>
+        <div class="gym-name">LevelUp Gym</div>
+        <div class="subtitle">Thank you for your purchase!</div>
+    </div>
+
+    <div class="receipt-body">
+        <div class="meta">
+            <span>${date}</span>
+            <span>Sale <strong>${saleId}</strong></span>
+        </div>
+
+        <hr>
+
+        ${linesHTML}
+
+        <hr>
+
+        <div class="total-row">
+            <span class="total-label">Subtotal</span>
+            <span class="total-val">$${subtotal}</span>
+        </div>
+        <div class="total-row grand">
+            <span class="total-label">Total</span>
+            <span class="total-val">$${total}</span>
+        </div>
+        <div class="total-row" style="margin-top:8px;">
+            <span class="total-label">Payment</span>
+            <span class="total-val">${payment}</span>
+        </div>
+        <div class="total-row">
+            <span class="total-label">Paid</span>
+            <span class="total-val">$${paid}</span>
+        </div>
+
+        ${showChange ? `
+        <div class="change-box">
+            <div class="change-lbl">Change</div>
+            <div class="change-val">$${change}</div>
+        </div>` : ''}
+    </div>
+
+    <div class="receipt-footer">
+        📍 LevelUp Gym · Come back stronger! 💪
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+            /* Close the popup after the print dialog is dismissed */
+            window.onafterprint = function() { window.close(); };
+        };
+    <\/script>
+</body>
+</html>`);
+
+    printWindow.document.close();
+}
 
 /* ════════════════════════════
    TOAST HELPER
@@ -1003,15 +1221,6 @@ function showToast(msg, type='info') {
     });
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
-}
-
-/* ── Print Receipt ──
-    Wraps window.print() so we can do any pre-print
-    work (e.g. ensuring modal is open) in one place. */
-function printReceipt() {
-    const modal = document.getElementById('receipt-modal');
-    if (!modal.classList.contains('open')) return; // safety check
-    window.print();
 }
 </script>
 {% endblock %}

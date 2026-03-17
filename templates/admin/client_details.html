@@ -661,22 +661,25 @@
 </div>
 
 <!-- ═══════════════════════
-     TAB: TRAINING
+    TAB: TRAINING
 ═══════════════════════ -->
 <div class="tab-panel" id="tab-training">
     <!-- Weekly schedule -->
     <div class="card" style="margin-bottom:20px;">
         <div class="card-header">
             <div class="card-title"><span class="card-title-icon">🗓️</span> Weekly Schedule</div>
+            <div>
+            <a href="{{ url_for('admin_auto_assign_panel', client_id=client.client_id) }}"
+            class="btn btn-ghost btn-sm">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Assign Routines
+            </a>
             <a href="{{ url_for('admin_edit_client', client_id=client.client_id) }}" class="btn btn-ghost btn-sm">
                 <i class="fa-solid fa-pen"></i> Edit Schedule
             </a>
+            </div>
         </div>
 
-        <a href="{{ url_for('admin_auto_assign_panel', client_id=client.client_id) }}"
-        class="btn btn-primary">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Assign Routines
-        </a>
+        
         
         <div class="schedule-grid">
             {% set all_days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
@@ -696,16 +699,6 @@
             </div>
             {% endfor %}
         </div>
-        <div class="auto-assign-form">
-            <form method="POST" action="{{ url_for('admin_auto_assign_client', client_id=client.client_id) }}">
-            <label style="font-size:12px; color:var(--text-muted);">
-                <input type="checkbox" name="overwrite" value="1"> Replace existing assignments
-            </label>
-            <button type="submit" class="btn btn-ghost btn-sm"">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Assign Routines
-            </button>
-        </div>
-        
     </div>
 </form>
 </div>
