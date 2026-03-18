@@ -161,6 +161,7 @@
 
         .kiosk-tab.active-exp    { background: rgba(102,126,234,0.15); border-color: rgba(102,126,234,0.4); color: var(--accent); }
         .kiosk-tab.active-reps   { background: rgba(16,185,129,0.15);  border-color: rgba(16,185,129,0.4);  color: var(--emerald); }
+        .kiosk-tab.active-cardio { background: rgba(6,182,212,0.15);   border-color: rgba(6,182,212,0.4);   color: #06b6d4; }
         .kiosk-tab.active-streaks{ background: rgba(251,191,36,0.15);  border-color: rgba(251,191,36,0.4);  color: var(--amber); }
 
         /* Clock in header */
@@ -506,6 +507,9 @@
             <div class="kiosk-tab" id="tab-btn-reps">
                 <i class="fa-solid fa-dumbbell"></i> Reps
             </div>
+            <div class="kiosk-tab" id="tab-btn-cardio">
+                <i class="fa-solid fa-person-running"></i> Cardio
+            </div>
             <div class="kiosk-tab" id="tab-btn-streaks">
                 <i class="fa-solid fa-fire"></i> Streaks
             </div>
@@ -528,9 +532,10 @@
 
         <!-- ─ EXP Panel ─ -->
         {% set panels = [
-            ('exp',     top_exp,     'total_exp',     'EXP',  '#667eea', 'fa-bolt',     'Top Earners by Experience', 'Total experience points earned'),
-            ('reps',    top_reps,    'total_reps',    'reps', '#10b981', 'fa-dumbbell', 'Top Performers by Reps',    'Total repetitions logged'),
-            ('streaks', top_streaks, 'current_streak','days', '#fbbf24', 'fa-fire',     'Longest Active Streaks',    'Consecutive days training')
+            ('exp',     top_exp,     'total_exp',     'EXP',  '#667eea', 'fa-bolt',          'Top Earners by Experience', 'Total experience points earned'),
+            ('reps',    top_reps,    'total_reps',    'reps', '#10b981', 'fa-dumbbell',      'Top Performers by Reps',    'Total repetitions logged'),
+            ('cardio',  top_cardio,  'total_minutes', 'min',  '#06b6d4', 'fa-person-running','Cardio Champions',          'Total minutes of cardio logged'),
+            ('streaks', top_streaks, 'current_streak','days', '#fbbf24', 'fa-fire',          'Longest Active Streaks',    'Consecutive days training')
         ] %}
 
         {% for category, rows, score_key, unit, color, icon, title, desc in panels %}
@@ -633,7 +638,7 @@ setInterval(updateClock, 1000);
    Each tab shows for ROTATION_MS milliseconds
 ════════════════════════════════════════ */
 const ROTATION_MS = 12000;   // 12 seconds per tab — adjust freely
-const categories  = ['exp', 'reps', 'streaks'];
+const categories  = ['exp', 'reps', 'cardio', 'streaks'];
 let   current     = 0;
 let   progressStart = null;
 let   progressRaf   = null;

@@ -346,12 +346,16 @@
 
 <!-- HERO -->
 <div class="hero">
+    {% if progress %}
     <div class="rank-badge">{{ progress.rank }}</div>
+    {% else %}
+    <div class="rank-badge">E</div>
+    {% endif %}
     <div class="hero-greeting">Welcome back</div>
     <div class="hero-name">{{ client.first_name }}<span>.</span></div>
     <div class="hero-stats">
         <div class="hero-stat">
-            <span class="hero-stat-val">{{ progress.level }}</span>
+            <span class="hero-stat-val">{{ progress.level if progress else 1 }}</span>
             <span class="hero-stat-lbl">Level</span>
         </div>
         <div class="hero-divider"></div>
@@ -359,7 +363,7 @@
             <span class="hero-stat-val">{{ streak_data.current_streak if streak_data else 0 }}🔥</span>
             <span class="hero-stat-lbl">Streak</span>
         </div>
-        {% if progress.class %}
+        {% if progress and progress.class %}
         <div class="hero-divider"></div>
         <div class="hero-stat">
             <span class="hero-stat-val" style="font-size:18px; padding-top:4px;">{{ progress.class }}</span>
@@ -375,13 +379,13 @@
     <div class="exp-bar-wrap">
         <div class="exp-bar-labels">
             <span>{{ progress.current_exp }} EXP</span>
-            <span>{{ progress.exp_to_next_level }} EXP to lvl {{ progress.level + 1 }}</span>
+            <span>{{ progress.next_level_exp }} EXP to lvl {{ progress.level + 1 }}</span>
         </div>
         <div class="progress-track">
-            <div class="progress-fill" style="width: {{ progress.progress_percentage }}%"></div>
+            <div class="progress-fill" style="width: {{ progress.progress_percentage if progress else 0 }}%"></div>
         </div>
     </div>
-    {% if progress.can_choose_class %}
+    {% if progress and progress.can_choose_class %}
     <a href="{{ url_for('classes') }}" class="btn btn-primary btn-block" style="margin-top:16px;">
         ⚡ Choose Your Class!
     </a>

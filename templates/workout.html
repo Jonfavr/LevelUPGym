@@ -471,6 +471,158 @@
         cursor: not-allowed;
     }
 
+    /* ── Time-based exercise inputs (min:sec) ── */
+    .time-duration-wrap {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .time-input-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .time-input-row input {
+        width: 72px;
+        flex-shrink: 0;
+        background: var(--surface-3);
+        border: 1.5px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 12px 8px;
+        font-size: 20px;
+        font-weight: 600;
+        font-family: var(--font-display);
+        text-align: center;
+        transition: all 0.2s;
+        -webkit-appearance: none;
+    }
+
+    .time-input-row input:focus {
+        outline: none;
+        border-color: var(--brand);
+        background: rgba(124,92,252,0.1);
+    }
+
+    .time-input-row input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .time-colon {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-muted);
+        line-height: 1;
+        flex-shrink: 0;
+        user-select: none;
+    }
+
+    .time-sub-row {
+        display: flex;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding-left: 2px;
+    }
+
+    .time-sub-row .sub-min { width: 64px; text-align: center; }
+    .time-sub-row .sub-sep { width: 22px; }
+    .time-sub-row .sub-sec { width: 64px; text-align: center; }
+
+    /* Timer trigger button (next to Duration label) */
+    .timer-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        padding: 0 0 0 6px;
+        font-size: 13px;
+        transition: color 0.2s;
+        vertical-align: middle;
+        line-height: 1;
+    }
+
+    .timer-btn:hover { color: var(--brand); }
+    .timer-btn.running { color: #10b981; animation: pulse-green 1s ease-in-out infinite; }
+
+    @keyframes pulse-green {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.5; }
+    }
+
+    /* Timer panel */
+    .timer-panel {
+        display: none;
+        background: rgba(124,92,252,0.06);
+        border: 1px solid rgba(124,92,252,0.2);
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-top: 2px;
+    }
+
+    .timer-panel.open { display: block; }
+
+    .timer-bar {
+        height: 4px;
+        background: var(--surface-3);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .timer-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--brand), #10b981);
+        border-radius: 2px;
+        width: 0%;
+        transition: width 0.25s linear;
+    }
+
+    .timer-panel.target-reached .timer-bar-fill { background: #10b981; }
+
+    .timer-content-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .timer-elapsed {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        min-width: 48px;
+    }
+
+    .timer-panel.target-reached .timer-elapsed { color: #10b981; }
+
+    .timer-target-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        flex: 1;
+    }
+
+    .timer-stop-btn {
+        background: rgba(255,71,87,0.12);
+        border: 1px solid rgba(255,71,87,0.3);
+        color: #ff4757;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .timer-stop-btn:hover { background: rgba(255,71,87,0.22); }
+
     /* ============================================
        BOTTOM ACTION BAR
     ============================================ */
@@ -967,8 +1119,13 @@
                         <div class="target-pill-label">Sets</div>
                     </div>
                     <div class="target-pill">
+                        {% if exercise.measurement == 'seconds' %}
+                        <div class="target-pill-value">{% if exercise.reps >= 60 %}{{ exercise.reps // 60 }}:{{ '%02d' | format(exercise.reps % 60) }}{% else %}{{ exercise.reps }}{% endif %}</div>
+                        <div class="target-pill-label">{% if exercise.reps >= 60 %}min{% else %}sec{% endif %}</div>
+                        {% else %}
                         <div class="target-pill-value">{{ exercise.reps }}</div>
-                        <div class="target-pill-label">{{ 'Seconds' if exercise.measurement == 'seconds' else 'Reps' }}</div>
+                        <div class="target-pill-label">Reps</div>
+                        {% endif %}
                     </div>
                     <div class="target-pill">
                         <div class="target-pill-value">{{ exercise.rest_seconds }}s</div>
@@ -1007,19 +1164,74 @@
                         </div>
 
                         <div class="set-inputs">
+                            {% if exercise.measurement == 'seconds' %}
+                            {# ── Time-based: min:sec dual inputs ── #}
+                            <div class="time-duration-wrap">
+                                <label class="set-input-wrap" style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:0;">
+                                    Duration
+                                    {% if not is_completed %}
+                                    <button type="button" class="timer-btn"
+                                            id="timer-btn-{{ exercise.exercise_id }}-{{ set_num }}"
+                                            onclick="toggleTimer('{{ exercise.exercise_id }}', {{ set_num }}, {{ exercise.reps }})"
+                                            title="Start stopwatch">
+                                        <i class="fa-solid fa-stopwatch"></i>
+                                    </button>
+                                    {% endif %}
+                                </label>
+                                <div class="time-input-row">
+                                    {% if is_completed %}
+                                    {% set stored = progress.completion_map[set_key].reps | int %}
+                                    <input type="number" class="min-input"
+                                           min="0" max="99" inputmode="numeric"
+                                           value="{{ stored // 60 }}" disabled>
+                                    <span class="time-colon">:</span>
+                                    <input type="number" class="sec-input"
+                                           min="0" max="59" inputmode="numeric"
+                                           value="{{ stored % 60 }}" disabled>
+                                    {% else %}
+                                    <input type="number" class="min-input"
+                                           placeholder="{{ exercise.reps // 60 }}"
+                                           min="0" max="99" inputmode="numeric">
+                                    <span class="time-colon">:</span>
+                                    <input type="number" class="sec-input"
+                                           placeholder="{{ '%02d' | format(exercise.reps % 60) }}"
+                                           min="0" max="59" inputmode="numeric">
+                                    {% endif %}
+                                </div>
+                                <div class="time-sub-row">
+                                    <span class="sub-min">min</span>
+                                    <span class="sub-sep"></span>
+                                    <span class="sub-sec">sec</span>
+                                </div>
+                                {% if not is_completed %}
+                                <div class="timer-panel" id="timer-panel-{{ exercise.exercise_id }}-{{ set_num }}">
+                                    <div class="timer-bar"><div class="timer-bar-fill"></div></div>
+                                    <div class="timer-content-row">
+                                        <span class="timer-elapsed">0s</span>
+                                        <span class="timer-target-label">/ {% if exercise.reps >= 60 %}{{ exercise.reps // 60 }}:{{ '%02d' | format(exercise.reps % 60) }}{% else %}{{ exercise.reps }}s{% endif %}</span>
+                                        <button type="button" class="timer-stop-btn"
+                                                onclick="stopTimer(true, '{{ exercise.exercise_id }}', {{ set_num }})">
+                                            ■ Stop &amp; Fill
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <input type="hidden" class="weight-input" value="0">
+                            {% else %}
+                            {# ── Rep-based: reps + weight ── #}
                             <div class="set-input-wrap">
-                                <label>{{ 'Seconds' if exercise.measurement == 'seconds' else 'Reps' }}</label>
-                                <input type="number" 
+                                <label>Reps</label>
+                                <input type="number"
                                        class="reps-input"
                                        placeholder="{{ exercise.reps }}"
                                        value="{% if is_completed %}{{ progress.completion_map[set_key].reps }}{% endif %}"
                                        {% if is_completed %}disabled{% endif %}
                                        inputmode="numeric">
                             </div>
-                            {% if exercise.measurement != 'seconds' %}
                             <div class="set-input-wrap">
                                 <label>Weight (kg)</label>
-                                <input type="number" 
+                                <input type="number"
                                        class="weight-input"
                                        placeholder="0"
                                        step="0.5"
@@ -1027,8 +1239,6 @@
                                        {% if is_completed %}disabled{% endif %}
                                        inputmode="decimal">
                             </div>
-                            {% else %}
-                            <input type="hidden" class="weight-input" value="0">
                             {% endif %}
                         </div>
                     </div>
@@ -1237,24 +1447,46 @@ async function logCurrentSet() {
     const card = document.getElementById(`setcard-${ex.exerciseId}-${activeSet}`);
     if (!card) return;
 
-    const repsInput = card.querySelector('.reps-input');
     const weightInput = card.querySelector('.weight-input');
-    const reps = parseFloat(repsInput.value);
-    const weight = parseFloat(weightInput.value) || 0;
     const measurement = card.dataset.measurement;
+    const weight = parseFloat(weightInput.value) || 0;
+    let reps;
 
-    // Validate reps
-    if (!repsInput.value.trim() || isNaN(reps) || reps <= 0) {
-        repsInput.style.borderColor = 'var(--red)';
-        repsInput.style.background = 'rgba(255,71,87,0.1)';
-        repsInput.placeholder = '⚠ Enter a value';
-        repsInput.focus();
-        setTimeout(() => {
-            repsInput.style.borderColor = '';
-            repsInput.style.background = '';
-            repsInput.placeholder = ex.reps;
-        }, 2000);
-        return;
+    if (measurement === 'seconds') {
+        const minInput = card.querySelector('.min-input');
+        const secInput = card.querySelector('.sec-input');
+        const mins = parseInt(minInput?.value) || 0;
+        const secs = parseInt(secInput?.value) || 0;
+        reps = mins * 60 + secs;
+        if (reps <= 0) {
+            [minInput, secInput].filter(Boolean).forEach(inp => {
+                inp.style.borderColor = 'var(--red)';
+                inp.style.background = 'rgba(255,71,87,0.1)';
+            });
+            minInput?.focus();
+            setTimeout(() => {
+                [minInput, secInput].filter(Boolean).forEach(inp => {
+                    inp.style.borderColor = '';
+                    inp.style.background = '';
+                });
+            }, 2000);
+            return;
+        }
+    } else {
+        const repsInput = card.querySelector('.reps-input');
+        reps = parseFloat(repsInput.value);
+        if (!repsInput.value.trim() || isNaN(reps) || reps <= 0) {
+            repsInput.style.borderColor = 'var(--red)';
+            repsInput.style.background = 'rgba(255,71,87,0.1)';
+            repsInput.placeholder = '⚠ Enter a value';
+            repsInput.focus();
+            setTimeout(() => {
+                repsInput.style.borderColor = '';
+                repsInput.style.background = '';
+                repsInput.placeholder = ex.reps;
+            }, 2000);
+            return;
+        }
     }
 
     // Disable log button while logging
@@ -1346,6 +1578,91 @@ function advanceSet(exerciseId, justLogged, totalSets) {
         activeSetMap[exerciseId] = null; // all done
     }
     updateActionBarButtons();
+}
+
+// ============================================================
+//  TIMER (for time-based exercises)
+// ============================================================
+let _timerExId     = null;
+let _timerSetNum   = null;
+let _timerInterval = null;
+let _timerStart    = null;
+let _timerTarget   = 0;
+
+function formatDuration(secs) {
+    secs = Math.max(0, Math.floor(secs));
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
+}
+
+function toggleTimer(exId, setNum, targetSecs) {
+    if (_timerExId == exId && _timerSetNum == setNum) {
+        stopTimer(true, exId, setNum);   // same card — stop
+    } else {
+        if (_timerExId !== null) stopTimer(false, _timerExId, _timerSetNum); // stop other
+        startTimer(exId, setNum, targetSecs);
+    }
+}
+
+function startTimer(exId, setNum, targetSecs) {
+    _timerExId   = exId;
+    _timerSetNum = setNum;
+    _timerTarget = targetSecs;
+    _timerStart  = Date.now();
+
+    const panel = document.getElementById(`timer-panel-${exId}-${setNum}`);
+    const btn   = document.getElementById(`timer-btn-${exId}-${setNum}`);
+    if (!panel) return;
+
+    panel.classList.remove('target-reached');
+    panel.classList.add('open');
+    if (btn) btn.classList.add('running');
+
+    const elapsedEl = panel.querySelector('.timer-elapsed');
+    const barFill   = panel.querySelector('.timer-bar-fill');
+
+    _timerInterval = setInterval(() => {
+        const elapsed = (Date.now() - _timerStart) / 1000;
+        if (elapsedEl) elapsedEl.textContent = formatDuration(elapsed);
+        if (barFill && targetSecs > 0) {
+            barFill.style.width = Math.min(100, (elapsed / targetSecs) * 100) + '%';
+        }
+        if (targetSecs > 0 && elapsed >= targetSecs) {
+            panel.classList.add('target-reached');
+        }
+    }, 250);
+}
+
+function stopTimer(fill, exId, setNum) {
+    if (!_timerInterval) return;
+    clearInterval(_timerInterval);
+    _timerInterval = null;
+
+    const elapsed = _timerStart ? Math.floor((Date.now() - _timerStart) / 1000) : 0;
+
+    if (fill) {
+        const cardExId   = exId   ?? _timerExId;
+        const cardSetNum = setNum ?? _timerSetNum;
+        const card = document.getElementById(`setcard-${cardExId}-${cardSetNum}`);
+        if (card) {
+            const minIn = card.querySelector('.min-input');
+            const secIn = card.querySelector('.sec-input');
+            if (minIn) minIn.value = Math.floor(elapsed / 60);
+            if (secIn) secIn.value = elapsed % 60;
+        }
+    }
+
+    const pExId   = exId   ?? _timerExId;
+    const pSetNum = setNum ?? _timerSetNum;
+    const panel = document.getElementById(`timer-panel-${pExId}-${pSetNum}`);
+    const btn   = document.getElementById(`timer-btn-${pExId}-${pSetNum}`);
+    panel?.classList.remove('open', 'target-reached');
+    if (btn) btn.classList.remove('running');
+
+    _timerExId   = null;
+    _timerSetNum = null;
+    _timerStart  = null;
 }
 
 // ============================================================
