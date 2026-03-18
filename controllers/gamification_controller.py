@@ -240,8 +240,14 @@ class GamificationController:
         if current_streak > longest_streak:
             longest_streak = current_streak
         
-        # Calculate multiplier (10% per consecutive day, max 2x)
-        multiplier = min(1.0 + (current_streak - 1) * 0.1, 2.0)
+        # Calculate multiplier using the same tier table as db_manager.update_streak.
+        if current_streak >= 60:   multiplier = 3.0
+        elif current_streak >= 30: multiplier = 2.5
+        elif current_streak >= 14: multiplier = 2.0
+        elif current_streak >= 7:  multiplier = 1.7
+        elif current_streak >= 3:  multiplier = 1.3
+        elif current_streak >= 1:  multiplier = 1.1
+        else:                      multiplier = 1.0
         
         # Update database
         query = '''

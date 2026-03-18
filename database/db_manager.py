@@ -417,7 +417,13 @@ class DatabaseManager:
         return last_id
 
     def update_streak(self, client_id):
-        """Update client streaks based on attendance and availability."""
+        """Update client streaks based on attendance and availability.
+
+        Rules:
+        - Attending any day (scheduled or not) adds +1 to the streak.
+        - Missing a scheduled (available) day in the past breaks the streak.
+        - Missing an unscheduled/unavailable day has no effect on the streak.
+        """
         self.connect()
         cursor = self.cursor
         try:
@@ -425,53 +431,63 @@ class DatabaseManager:
                 SELECT day_of_week FROM client_availability
                 WHERE client_id = ? AND is_available = 1
             ''', (client_id,))
-            available_days = [row['day_of_week'] for row in cursor.fetchall()]
-
-            if not available_days:
-                self.disconnect()
-                return {'current_streak': 0, 'longest_streak': 0, 'multiplier': 1.0}
+            scheduled_days = {row['day_of_week'] for row in cursor.fetchall()}
 
             cursor.execute('''
                 SELECT check_in_date FROM attendance
                 WHERE client_id = ?
                 ORDER BY check_in_date DESC
-                LIMIT 60
             ''', (client_id,))
             attendance_dates = {row['check_in_date'] for row in cursor.fetchall()}
 
-            today         = datetime.now().date()
-            current_date  = today
-            streak        = 0
-            longest       = 0
-            temp_streak   = 0
+            today        = datetime.now().date()
+            current_date = today
+            streak       = 0
 
-            for _ in range(60):
+            # Walk backwards day by day, accumulating streak until a break is found.
+            for _ in range(365):
+                date_str = current_date.strftime('%Y-%m-%d')
                 day_name = current_date.strftime('%A')
-                if day_name in available_days:
-                    date_str = current_date.strftime('%Y-%m-%d')
-                    if date_str in attendance_dates:
-                        temp_streak += 1
-                        longest = max(longest, temp_streak)
-                    else:
-                        if current_date < today:
-                            temp_streak = 0
+
+                if date_str in attendance_dates:
+                    # Attended – always counts, scheduled or not.
+                    streak += 1
+                elif day_name in scheduled_days and current_date < today:
+                    # Missed a mandatory scheduled day in the past → streak broken.
+                    break
+                # Unscheduled day not attended → skip silently (no effect).
+
                 current_date -= timedelta(days=1)
 
-            streak = temp_streak
+            # Fetch stored longest to keep the all-time high.
+            cursor.execute('SELECT longest_streak FROM client_streaks WHERE client_id=?', (client_id,))
+            row = cursor.fetchone()
+            longest = max(streak, row['longest_streak'] if row else 0)
 
-            if streak >= 30:  multiplier = 2.0
-            elif streak >= 14: multiplier = 1.8
-            elif streak >= 7:  multiplier = 1.5
-            elif streak >= 3:  multiplier = 1.2
+            # Multiplier tiers – more generous scaling.
+            if streak >= 60:   multiplier = 3.0
+            elif streak >= 30: multiplier = 2.5
+            elif streak >= 14: multiplier = 2.0
+            elif streak >= 7:  multiplier = 1.7
+            elif streak >= 3:  multiplier = 1.3
+            elif streak >= 1:  multiplier = 1.1
             else:              multiplier = 1.0
 
-            check_in_date = today.strftime('%Y-%m-%d')
+            last_date = today.strftime('%Y-%m-%d')
             cursor.execute('''
                 UPDATE client_streaks
                 SET current_streak=?, longest_streak=?,
                     last_attendance_date=?, streak_multiplier=?
                 WHERE client_id=?
-            ''', (streak, longest, check_in_date, multiplier, client_id))
+            ''', (streak, longest, last_date, multiplier, client_id))
+
+            # Mirror streak into client_gamification so leaderboard/stats stay in sync.
+            cursor.execute('''
+                UPDATE client_gamification
+                SET current_streak=?, longest_streak=?
+                WHERE client_id=?
+            ''', (streak, longest, client_id))
+
             self.conn.commit()
             self.disconnect()
 
@@ -479,7 +495,7 @@ class DatabaseManager:
                 'current_streak': streak,
                 'longest_streak': longest,
                 'multiplier': multiplier,
-                'days_to_next_bonus': 1 if multiplier < 2.0 else 0,
+                'days_to_next_bonus': 1 if multiplier < 3.0 else 0,
             }
         except Exception as e:
             print(f"update_streak error: {e}")
