@@ -187,11 +187,17 @@ def dashboard():
             # No session record yet → definitely not started
             routine_status = 'not_started'
 
-    # --- Recent achievements ---
-    recent_achievements = achievement_ctrl.get_recent_unlocks(client_id, limit=3)
+    # --- Weekly schedule (single DB call; also used for tomorrow preview) ---
+    weekly_schedule = Routine.get_client_weekly_schedule(client_id)
+    days_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    tomorrow_name = days_order[(days_order.index(today) + 1) % 7]
+    tomorrow_routine = weekly_schedule.get(tomorrow_name)
 
-    # --- Streak info ---
+    # --- Streak info & milestone hint ---
     streak_data = client.get_streak_data()
+    _milestones = [3, 7, 10, 14, 21, 30, 60, 90, 100]
+    _current_streak = streak_data.get('current_streak', 0) if streak_data else 0
+    streak_milestone = next((m for m in _milestones if m > _current_streak), None)
 
     # --- Membership notification ---
     mc = MembershipController()
@@ -230,8 +236,10 @@ def dashboard():
         progress=progress,
         today_routine=today_routine,
         today=today,
-        recent_achievements=recent_achievements,
         streak_data=streak_data,
+        streak_milestone=streak_milestone,
+        weekly_schedule=weekly_schedule,
+        tomorrow_routine=tomorrow_routine,
         newly_unlocked=newly_unlocked,
         notification=notification,
         status=routine_status,

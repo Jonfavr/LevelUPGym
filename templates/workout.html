@@ -1175,6 +1175,30 @@ EXERCISES.forEach(ex => {
 //  INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Restore active set cards when resuming a session.
+    // The Jinja template marks set 1 as active by default; if sets were already
+    // logged before the page reload the wrong card would be shown.
+    EXERCISES.forEach(ex => {
+        const activeSet = activeSetMap[ex.exerciseId];
+        if (activeSet !== null) {
+            // Ensure only the correct next set gets the active class
+            for (let s = 1; s <= ex.sets; s++) {
+                const card = document.getElementById(`setcard-${ex.exerciseId}-${s}`);
+                const pip  = document.getElementById(`pip-${ex.exerciseId}-${s}`);
+                if (!card) continue;
+                if (s === activeSet) {
+                    card.classList.add('active');
+                    card.classList.remove('done');
+                    if (pip) pip.className = 'set-pip active';
+                } else if (!card.classList.contains('done')) {
+                    // upcoming — strip any stale active class the template may have added
+                    card.classList.remove('active');
+                    if (pip && !pip.classList.contains('done')) pip.className = 'set-pip upcoming';
+                }
+            }
+        }
+    });
+
     // Jump to first incomplete exercise
     let firstIncomplete = 0;
     for (let i = 0; i < EXERCISES.length; i++) {
@@ -1185,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (i === EXERCISES.length - 1) firstIncomplete = i; // all done
     }
     goToExercise(firstIncomplete);
-    
+
     if (SESSION_STATUS === 'completed') {
         updateActionBarButtons(true);
     }

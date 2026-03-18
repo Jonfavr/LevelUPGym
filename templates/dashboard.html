@@ -200,33 +200,6 @@
     }
     .rest-day-icon { font-size: 36px; display: block; margin-bottom: 6px; }
 
-    /* Recent achievements strip */
-    .ach-strip {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 10px;
-        margin-top: 4px;
-    }
-    .ach-strip-item {
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 12px;
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-    }
-    .ach-strip-icon { font-size: 22px; flex-shrink: 0; }
-    .ach-strip-name {
-        font-family: var(--font-display);
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--text);
-        text-transform: uppercase;
-        line-height: 1.1;
-    }
-    .ach-strip-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-
     /* Membership warning */
     .membership-warning {
         background: rgba(255,71,87,0.1);
@@ -344,12 +317,17 @@
     <div class="exp-bar-wrap">
         <div class="exp-bar-labels">
             <span>{{ progress.current_exp }} EXP</span>
-            <span>{{ progress.next_level_exp }} EXP to lvl {{ progress.level + 1 }}</span>
+            <span>{{ progress.exp_to_next_level }} EXP to lvl {{ progress.level + 1 }}</span>
         </div>
         <div class="progress-track">
             <div class="progress-fill" style="width: {{ progress.progress_percentage }}%"></div>
         </div>
     </div>
+    {% if streak_milestone %}
+    <div style="margin-top:10px; font-size:12px; color:var(--text-muted); font-weight:500;">
+        🎯 {{ streak_milestone - (streak_data.current_streak if streak_data else 0) }} more day{{ 's' if (streak_milestone - (streak_data.current_streak if streak_data else 0)) != 1 else '' }} to a {{ streak_milestone }}-day streak
+    </div>
+    {% endif %}
     {% if progress.can_choose_class %}
     <a href="{{ url_for('classes') }}" class="btn btn-primary btn-block" style="margin-top:16px;">
         ⚡ Choose Your Class!
@@ -389,28 +367,44 @@
         <span class="rest-day-icon">😴</span>
         Rest day — no routine scheduled.<br>Recovery is part of the grind.
     </div>
+    {% if tomorrow_routine %}
+    <div style="margin-top:12px; text-align:center; font-size:12px; color:var(--text-muted);">
+        Up next · Tomorrow: <strong style="color:var(--text);">{{ tomorrow_routine.routine_name }}</strong>
+    </div>
+    {% endif %}
     {% endif %}
 </div>
 
-<!-- RECENT ACHIEVEMENTS -->
-{% if recent_achievements %}
+<!-- THIS WEEK -->
 <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <h2 style="margin:0;">Recent Unlocks</h2>
-        <a href="{{ url_for('achievements') }}" class="btn btn-ghost btn-sm">View All →</a>
-    </div>
-    <div class="ach-strip">
-        {% for ach in recent_achievements %}
-        <div class="ach-strip-item">
-            <div class="ach-strip-icon">🏆</div>
-            <div>
-                <div class="ach-strip-name">{{ ach.name }}</div>
-                <div class="ach-strip-desc">{{ ach.description }}</div>
+    <h2 style="margin:0 0 14px;">This Week</h2>
+    <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center;">
+        {% set days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+        {% set short = ['MON','TUE','WED','THU','FRI','SAT','SUN'] %}
+        {% for i in range(7) %}
+        {% set day = days[i] %}
+        {% set is_today = (day == today) %}
+        {% set routine_info = weekly_schedule.get(day) %}
+        <div style="
+            background: {% if is_today %}var(--brand){% elif routine_info %}var(--surface-3){% else %}var(--surface-2){% endif %};
+            border-radius: 10px;
+            padding: 8px 4px;
+            border: 1px solid {% if is_today %}var(--brand){% else %}var(--border){% endif %};
+        ">
+            <div style="font-size:9px; font-weight:700; letter-spacing:0.8px; color:{% if is_today %}rgba(255,255,255,0.8){% else %}var(--text-muted){% endif %}; margin-bottom:4px;">
+                {{ short[i] }}
             </div>
+            {% if routine_info %}
+            <div style="width:6px; height:6px; border-radius:50%; background:{% if is_today %}#fff{% else %}var(--brand){% endif %}; margin:0 auto 4px;"></div>
+            <div style="font-size:9px; color:{% if is_today %}#fff{% else %}var(--text-muted){% endif %}; line-height:1.2; word-break:break-word;">
+                {{ routine_info.routine_name | truncate(10, true, '') }}
+            </div>
+            {% else %}
+            <div style="font-size:9px; color:{% if is_today %}rgba(255,255,255,0.5){% else %}var(--text-dim){% endif %};">REST</div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
 </div>
-{% endif %}
 
 {% endblock %}
