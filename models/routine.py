@@ -86,10 +86,13 @@ class Routine:
     def remove_exercise(self, routine_exercise_id):
         """Remove an exercise from this routine."""
         db = DatabaseManager()
-        db.execute_update(
+        db.connect()
+        db.cursor.execute(
             'DELETE FROM routine_exercises WHERE routine_exercise_id = ?',
             (routine_exercise_id,)
         )
+        db.conn.commit()
+        db.disconnect()
         return {'success': True, 'message': 'Exercise removed successfully.'}
 
     def delete_routine_exercise(self, routine_exercise_id):
@@ -100,11 +103,14 @@ class Routine:
                         rest_seconds=None, measurement=None):
         """Update sets/reps/rest for an exercise slot in this routine."""
         db = DatabaseManager()
-        db.execute_update('''
+        db.connect()
+        db.cursor.execute('''
             UPDATE routine_exercises
             SET sets=?, reps=?, rest_seconds=?, measurement=?
             WHERE routine_exercise_id=?
         ''', (sets, reps, rest_seconds, measurement, routine_exercise_id))
+        db.conn.commit()
+        db.disconnect()
         return {'success': True, 'message': 'Exercise updated successfully.'}
 
     def get_exercises(self):

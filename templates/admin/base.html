@@ -365,33 +365,6 @@
             background: var(--border);
         }
 
-        /* Notification bell */
-        .topbar-icon-btn {
-            width: 36px; height: 36px;
-            border-radius: var(--radius-sm);
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: center;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            font-size: 14px;
-        }
-
-        .topbar-icon-btn:hover {
-            border-color: var(--border-accent);
-            color: var(--accent);
-        }
-
-        .topbar-icon-btn .notif-dot {
-            position: absolute;
-            top: 6px; right: 6px;
-            width: 7px; height: 7px;
-            background: var(--red);
-            border-radius: 50%;
-            border: 1.5px solid var(--bg-surface);
-        }
 
         /* Hamburger for mobile */
         .hamburger {
@@ -1038,11 +1011,6 @@
         </div>
         <div class="topbar-right">
             <span class="topbar-date" id="topbar-date"></span>
-            <div class="topbar-divider"></div>
-            <div class="topbar-icon-btn" title="Notifications">
-                <i class="fa-regular fa-bell"></i>
-                <span class="notif-dot"></span>
-            </div>
         </div>
     </header>
 

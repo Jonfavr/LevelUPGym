@@ -1,7 +1,6 @@
 # database/db_manager.py
 import sqlite3
 import hashlib
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 import os
 
@@ -408,131 +407,81 @@ class DatabaseManager:
 
     def execute_update(self, query, params=None):
         self.connect()
-        try:
-            if params:
-                self.cursor.execute(query, params)
-            else:
-                self.cursor.execute(query)
-            self.conn.commit()
-            last_id = self.cursor.lastrowid
-            return last_id
-        except Exception:
-            self.conn.rollback()
-            raise
-        finally:
-            self.disconnect()
-
-    @contextmanager
-    def transaction(self):
-        """Context manager for atomic multi-step operations.
-
-        Usage:
-            with self.db.transaction() as cursor:
-                cursor.execute(query1, params1)
-                cursor.execute(query2, params2)
-        All statements commit together or rollback together on error.
-        """
-        self.connect()
-        try:
-            yield self.cursor
-            self.conn.commit()
-        except Exception:
-            self.conn.rollback()
-            raise
-        finally:
-            self.disconnect()
+        if params:
+            self.cursor.execute(query, params)
+        else:
+            self.cursor.execute(query)
+        self.conn.commit()
+        last_id = self.cursor.lastrowid
+        self.disconnect()
+        return last_id
 
     def update_streak(self, client_id):
-        """Update client streaks based on attendance and availability.
-
-        Rules:
-        - Attending any day (scheduled or bonus) increases the streak.
-        - Missing a scheduled (available) day resets the streak.
-        - Missing a non-scheduled day has no effect on the streak.
-        """
+        """Update client streaks based on attendance and availability."""
         self.connect()
         cursor = self.cursor
         try:
-            # Available weekdays for this client
             cursor.execute('''
                 SELECT day_of_week FROM client_availability
                 WHERE client_id = ? AND is_available = 1
             ''', (client_id,))
-            available_days = {row['day_of_week'] for row in cursor.fetchall()}
+            available_days = [row['day_of_week'] for row in cursor.fetchall()]
 
-            # Last 90 days of check-ins
+            if not available_days:
+                self.disconnect()
+                return {'current_streak': 0, 'longest_streak': 0, 'multiplier': 1.0}
+
             cursor.execute('''
                 SELECT check_in_date FROM attendance
                 WHERE client_id = ?
                 ORDER BY check_in_date DESC
-                LIMIT 90
+                LIMIT 60
             ''', (client_id,))
             attendance_dates = {row['check_in_date'] for row in cursor.fetchall()}
 
-            # Preserve longest streak beyond the 90-day window
-            cursor.execute(
-                'SELECT longest_streak FROM client_streaks WHERE client_id = ?',
-                (client_id,)
-            )
-            row = cursor.fetchone()
-            stored_longest = row['longest_streak'] if row else 0
+            today         = datetime.now().date()
+            current_date  = today
+            streak        = 0
+            longest       = 0
+            temp_streak   = 0
 
-            today      = datetime.now().date()
-            temp_streak = 0
-            longest     = stored_longest
+            for _ in range(60):
+                day_name = current_date.strftime('%A')
+                if day_name in available_days:
+                    date_str = current_date.strftime('%Y-%m-%d')
+                    if date_str in attendance_dates:
+                        temp_streak += 1
+                        longest = max(longest, temp_streak)
+                    else:
+                        if current_date < today:
+                            temp_streak = 0
+                current_date -= timedelta(days=1)
 
-            for i in range(90):
-                current_date = today - timedelta(days=i)
-                day_name     = current_date.strftime('%A')
-                date_str     = current_date.strftime('%Y-%m-%d')
-                is_available = day_name in available_days
-                attended     = date_str in attendance_dates
+            streak = temp_streak
 
-                if attended:
-                    # Attended (scheduled or bonus day) → streak grows
-                    temp_streak += 1
-                    longest = max(longest, temp_streak)
-                elif is_available and i > 0:
-                    # Past scheduled day was missed → streak broken
-                    break
-                # Non-available and not attended → skip (no effect)
+            if streak >= 30:  multiplier = 2.0
+            elif streak >= 14: multiplier = 1.8
+            elif streak >= 7:  multiplier = 1.5
+            elif streak >= 3:  multiplier = 1.2
+            else:              multiplier = 1.0
 
-            current_streak = temp_streak
-            multiplier     = self._calculate_streak_multiplier(current_streak)
-
+            check_in_date = today.strftime('%Y-%m-%d')
             cursor.execute('''
                 UPDATE client_streaks
-                SET current_streak = ?, longest_streak = ?,
-                    last_attendance_date = ?, streak_multiplier = ?
-                WHERE client_id = ?
-            ''', (current_streak, longest, today.strftime('%Y-%m-%d'), multiplier, client_id))
+                SET current_streak=?, longest_streak=?,
+                    last_attendance_date=?, streak_multiplier=?
+                WHERE client_id=?
+            ''', (streak, longest, check_in_date, multiplier, client_id))
             self.conn.commit()
             self.disconnect()
 
             return {
-                'current_streak': current_streak,
+                'current_streak': streak,
                 'longest_streak': longest,
                 'multiplier': multiplier,
+                'days_to_next_bonus': 1 if multiplier < 2.0 else 0,
             }
         except Exception as e:
-            self.conn.rollback()
             print(f"update_streak error: {e}")
             self.disconnect()
             return {'current_streak': 0, 'longest_streak': 0, 'multiplier': 1.0}
-
-    @staticmethod
-    def _calculate_streak_multiplier(streak):
-        """Progressive EXP multiplier based on streak length.
-
-        Days  1–7 : 1.0x → 2.0x  (linear, +1/6 per day)
-        Days 8–30 : 2.0x → 4.0x  (linear, +2/23 per day)
-        Day  31+  : 4.0x (cap)
-        """
-        if streak <= 1:
-            return 1.0
-        elif streak <= 7:
-            return round(1.0 + (streak - 1) * (1.0 / 6), 2)
-        elif streak <= 30:
-            return round(2.0 + (streak - 7) * (2.0 / 23), 2)
-        else:
-            return 4.0

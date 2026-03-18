@@ -38,10 +38,15 @@ class AttendanceController:
             }
 
         # ✅ Insert attendance record
-        attendance_id = self.db.execute_update(
-            'INSERT OR IGNORE INTO attendance (client_id, check_in_date, check_in_time) VALUES (?, ?, ?)',
-            (client_id, check_in_date.strftime('%Y-%m-%d'), check_in_time)
-        )
+        self.db.connect()
+        query = '''
+            INSERT OR IGNORE INTO attendance (client_id, check_in_date, check_in_time)
+            VALUES (?, ?, ?)
+        '''
+        self.db.cursor.execute(query, (client_id, check_in_date.strftime('%Y-%m-%d'), check_in_time))
+        self.db.conn.commit()
+        attendance_id = self.db.cursor.lastrowid
+        self.db.disconnect()
 
         # ✅ Update streaks automatically (and mirror into client_gamification)
         try:
@@ -84,10 +89,13 @@ class AttendanceController:
             }
 
         # ✅ Record check-out time
-        self.db.execute_update(
+        self.db.connect()
+        self.db.cursor.execute(
             'UPDATE attendance SET check_out_time=? WHERE attendance_id=?',
             (check_out_time, attendance['attendance_id'])
         )
+        self.db.conn.commit()
+        self.db.disconnect()
 
         # Calculate session duration
         check_in = datetime.strptime(attendance['check_in_time'], '%H:%M:%S')
@@ -229,10 +237,15 @@ class AttendanceController:
     
     def update_attendance_exp(self, attendance_id, exp_amount):
         """Add EXP earned to an attendance record"""
-        self.db.execute_update(
-            'UPDATE attendance SET exp_earned = exp_earned + ? WHERE attendance_id=?',
-            (exp_amount, attendance_id)
-        )
+        self.db.connect()
+        query = '''
+            UPDATE attendance 
+            SET exp_earned = exp_earned + ?
+            WHERE attendance_id=?
+        '''
+        self.db.cursor.execute(query, (exp_amount, attendance_id))
+        self.db.conn.commit()
+        self.db.disconnect()
     
     def is_checked_in_today(self, client_id):
         """Check if client has checked in today"""

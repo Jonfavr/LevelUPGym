@@ -106,7 +106,7 @@ class GamificationController:
         leveled_up = False
         new_level = current_level
         
-        while new_level < 100 and new_current_exp >= self.EXP_TABLE.get(new_level + 1, float('inf')):
+        while new_level < 20 and new_current_exp >= self.EXP_TABLE.get(new_level + 1, float('inf')):
             new_level += 1
             leveled_up = True
         
@@ -115,10 +115,15 @@ class GamificationController:
             new_current_exp = new_current_exp - self.EXP_TABLE[new_level]
         
         # Update database
-        self.db.execute_update(
-            'UPDATE client_gamification SET current_exp=?, total_exp=?, current_level=? WHERE client_id=?',
-            (new_current_exp, new_total_exp, new_level, client_id)
-        )
+        self.db.connect()
+        query = '''
+            UPDATE client_gamification 
+            SET current_exp=?, total_exp=?, current_level=?
+            WHERE client_id=?
+        '''
+        self.db.cursor.execute(query, (new_current_exp, new_total_exp, new_level, client_id))
+        self.db.conn.commit()
+        self.db.disconnect()
         
         return {
             'exp_gained': exp_gained,
@@ -174,15 +179,87 @@ class GamificationController:
             return {'success': False, 'message': 'Class already selected'}
         
         # Update database
-        self.db.execute_update(
-            'UPDATE client_gamification SET client_class=?, class_unlocked_at_level=? WHERE client_id=?',
-            (class_name, gam_data['current_level'], client_id)
-        )
+        self.db.connect()
+        query = '''
+            UPDATE client_gamification 
+            SET client_class=?, class_unlocked_at_level=?
+            WHERE client_id=?
+        '''
+        self.db.cursor.execute(query, (class_name, gam_data['current_level'], client_id))
+        self.db.conn.commit()
+        self.db.disconnect()
         
         return {
             'success': True, 
             'message': f'Class {class_name} unlocked!',
             'class_info': self.CLASSES[class_name]
+        }
+    
+    def update_streak(self, client_id, check_in_date=None):
+        """
+        Update attendance streak for client
+        Returns: dict with streak info and multiplier
+        """
+        if check_in_date is None:
+            check_in_date = date.today()
+        elif isinstance(check_in_date, str):
+            check_in_date = datetime.strptime(check_in_date, '%Y-%m-%d').date()
+        
+        self.db.connect()
+        
+        # Get current streak data
+        query = 'SELECT * FROM client_streaks WHERE client_id=?'
+        self.db.cursor.execute(query, (client_id,))
+        streak_data = self.db.cursor.fetchone()
+        
+        if not streak_data:
+            self.db.disconnect()
+            return None
+        
+        current_streak = streak_data['current_streak']
+        longest_streak = streak_data['longest_streak']
+        last_date = streak_data['last_attendance_date']
+        
+        if last_date:
+            last_date = datetime.strptime(last_date, '%Y-%m-%d').date()
+            days_diff = (check_in_date - last_date).days
+            
+            if days_diff == 1:
+                # Consecutive day - increase streak
+                current_streak += 1
+            elif days_diff == 0:
+                # Same day - no change
+                pass
+            else:
+                # Streak broken - reset to 1
+                current_streak = 1
+        else:
+            current_streak = 1
+        
+        # Update longest streak if needed
+        if current_streak > longest_streak:
+            longest_streak = current_streak
+        
+        # Calculate multiplier (10% per consecutive day, max 2x)
+        multiplier = min(1.0 + (current_streak - 1) * 0.1, 2.0)
+        
+        # Update database
+        query = '''
+            UPDATE client_streaks 
+            SET current_streak=?, longest_streak=?, last_attendance_date=?, streak_multiplier=?
+            WHERE client_id=?
+        '''
+        self.db.cursor.execute(query, (current_streak, longest_streak, 
+                                       check_in_date.strftime('%Y-%m-%d'), 
+                                       multiplier, client_id))
+        self.db.conn.commit()
+        self.db.disconnect()
+        
+        return {
+            'current_streak': current_streak,
+            'longest_streak': longest_streak,
+            'multiplier': multiplier,
+            'days_to_next_bonus': 1 if multiplier < 2.0 else 0
         }
     
     def get_client_progress(self, client_id):

@@ -256,10 +256,6 @@
 
     .ctrl-select:focus { outline: none; border-color: var(--accent); }
 
-    .ctrl-time-row { display: flex; align-items: center; gap: 3px; }
-    .ctrl-colon { font-size: 14px; font-weight: 700; color: var(--text-muted); padding: 0 1px; }
-    .ctrl-input-sm { width: 38px !important; padding: 0 4px !important; text-align: center; }
-
     .ctrl-exp {
         font-family: 'Rajdhani', sans-serif; font-size: 13px;
         font-weight: 700; color: var(--accent); white-space: nowrap;
@@ -479,105 +475,13 @@
                         Incomplete — auto-assign may not match this routine
                     </span>
                     {% endif %}
-                    <button type="button" id="meta-edit-toggle" class="btn btn-ghost btn-sm" style="margin-left:auto; flex-shrink:0;">
-                        <i class="fa-solid fa-pencil"></i> Edit
-                    </button>
                 </div>
                 <div class="exp-counter">
                     <div class="exp-counter-val" id="exp-total">{{ total_exp }}</div>
                     <div class="exp-counter-lbl">Base EXP</div>
                 </div>
             </div>
-
-            <!-- Edit metadata form (hidden until #meta-edit-toggle is clicked) -->
-            <form method="POST" id="meta-edit-form" class="meta-edit-form"
-                  action="{{ url_for('admin_update_routine', routine_id=routine.routine_id) }}">
-
-                <div class="form-group" style="margin-bottom:12px;">
-                    <label>Routine Name *</label>
-                    <input type="text" name="routine_name"
-                           value="{{ routine.routine_name }}" required>
-                </div>
-
-                <div class="form-group" style="margin-bottom:12px;">
-                    <label>Description</label>
-                    <textarea name="description" rows="2"
-                              style="resize:vertical;">{{ routine.description or '' }}</textarea>
-                </div>
-
-                <div class="meta-grid-2" style="margin-bottom:12px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Difficulty</label>
-                        <select name="difficulty_level">
-                            <option value="beginner"     {% if routine.difficulty_level == 'beginner'     %}selected{% endif %}>🟢 Beginner</option>
-                            <option value="intermediate" {% if routine.difficulty_level == 'intermediate' %}selected{% endif %}>🟡 Intermediate</option>
-                            <option value="advanced"     {% if routine.difficulty_level == 'advanced'     %}selected{% endif %}>🔴 Advanced</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Routine Type</label>
-                        <select name="routine_type">
-                            <option value="strength"    {% if routine.routine_type == 'strength'    %}selected{% endif %}>💪 Strength</option>
-                            <option value="power"       {% if routine.routine_type == 'power'       %}selected{% endif %}>⚡ Power</option>
-                            <option value="cardio"      {% if routine.routine_type == 'cardio'      %}selected{% endif %}>🏃 Cardio</option>
-                            <option value="endurance"   {% if routine.routine_type == 'endurance'   %}selected{% endif %}>🔥 Endurance</option>
-                            <option value="core"        {% if routine.routine_type == 'core'        %}selected{% endif %}>🎯 Core</option>
-                            <option value="functional"  {% if routine.routine_type == 'functional'  %}selected{% endif %}>⚙️ Functional</option>
-                            <option value="hiit"        {% if routine.routine_type == 'hiit'        %}selected{% endif %}>💥 HIIT</option>
-                            <option value="agility"     {% if routine.routine_type == 'agility'     %}selected{% endif %}>🏅 Agility</option>
-                            <option value="balance"     {% if routine.routine_type == 'balance'     %}selected{% endif %}>🧘 Balance</option>
-                            <option value="flexibility" {% if routine.routine_type == 'flexibility' %}selected{% endif %}>🤸 Flexibility</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="meta-grid-2" style="margin-bottom:16px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Primary Muscle Group</label>
-                        <select name="primary_muscle">
-                            <option value="">— None —</option>
-                            <optgroup label="Upper Body — Push">
-                                <option value="Chest"     {% if routine.primary_muscle == 'Chest'     %}selected{% endif %}>Chest</option>
-                                <option value="Shoulders" {% if routine.primary_muscle == 'Shoulders' %}selected{% endif %}>Shoulders</option>
-                                <option value="Triceps"   {% if routine.primary_muscle == 'Triceps'   %}selected{% endif %}>Triceps</option>
-                            </optgroup>
-                            <optgroup label="Upper Body — Pull">
-                                <option value="Back"     {% if routine.primary_muscle == 'Back'     %}selected{% endif %}>Back</option>
-                                <option value="Biceps"   {% if routine.primary_muscle == 'Biceps'   %}selected{% endif %}>Biceps</option>
-                                <option value="Forearms" {% if routine.primary_muscle == 'Forearms' %}selected{% endif %}>Forearms</option>
-                            </optgroup>
-                            <optgroup label="Lower Body">
-                                <option value="Quads"      {% if routine.primary_muscle == 'Quads'      %}selected{% endif %}>Quads</option>
-                                <option value="Hamstrings" {% if routine.primary_muscle == 'Hamstrings' %}selected{% endif %}>Hamstrings</option>
-                                <option value="Glutes"     {% if routine.primary_muscle == 'Glutes'     %}selected{% endif %}>Glutes</option>
-                                <option value="Calves"     {% if routine.primary_muscle == 'Calves'     %}selected{% endif %}>Calves</option>
-                            </optgroup>
-                            <optgroup label="Core &amp; Full Body">
-                                <option value="Core"      {% if routine.primary_muscle == 'Core'      %}selected{% endif %}>Core / Abs</option>
-                                <option value="Full Body" {% if routine.primary_muscle == 'Full Body' %}selected{% endif %}>Full Body</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Class Focus</label>
-                        <select name="main_class">
-                            <option value="">— All Classes —</option>
-                            <option value="Warrior"  {% if routine.main_class == 'Warrior'  %}selected{% endif %}>⚔️ Warrior</option>
-                            <option value="Ranger"   {% if routine.main_class == 'Ranger'   %}selected{% endif %}>🏹 Ranger</option>
-                            <option value="Tank"     {% if routine.main_class == 'Tank'     %}selected{% endif %}>🛡️ Tank</option>
-                            <option value="Assassin" {% if routine.main_class == 'Assassin' %}selected{% endif %}>🗡️ Assassin</option>
-                            <option value="Mage"     {% if routine.main_class == 'Mage'     %}selected{% endif %}>🔮 Mage</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:10px; justify-content:flex-end;">
-                    <button type="button" id="meta-edit-cancel" class="btn btn-ghost btn-sm">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
-                    </button>
-                </div>
-            </form>
+            
         </div>
 
         <!-- Exercise cards -->
@@ -593,7 +497,7 @@
                     <div class="order-badge">{{ loop.index }}</div>
                     <div style="flex:1; min-width:0;">
                         <div class="builder-ex-name">{{ ex.name }}</div>
-                        <div class="builder-ex-sub">{{ ex.primary_muscle }} · {{ ex.exercise_type }}</div>
+                        <div class="builder-ex-sub">{{ ex.target_muscle }} · {{ ex.exercise_type }}</div>
                     </div>
 
                     <div class="move-btns">
@@ -629,22 +533,9 @@
                     </div>
 
                     <div class="ctrl-group">
-                        <div class="ctrl-label ctrl-reps-label">
-                            {% if ex.measurement == 'seconds' %}Duration{% else %}Reps{% endif %}
-                        </div>
-                        <input type="number" name="reps" class="ctrl-input ctrl-reps-val"
-                               value="{{ ex.reps }}" min="1" max="9999"
-                               {% if ex.measurement == 'seconds' %}style="display:none"{% endif %}>
-                        <div class="ctrl-time-row"
-                             {% if ex.measurement != 'seconds' %}style="display:none"{% endif %}>
-                            <input type="number" class="ctrl-input ctrl-input-sm ctrl-min-val"
-                                   value="{{ (ex.reps // 60) if ex.measurement == 'seconds' else '' }}"
-                                   placeholder="m" min="0" max="99">
-                            <span class="ctrl-colon">:</span>
-                            <input type="number" class="ctrl-input ctrl-input-sm ctrl-sec-val"
-                                   value="{{ (ex.reps % 60) if ex.measurement == 'seconds' else '' }}"
-                                   placeholder="ss" min="0" max="59">
-                        </div>
+                        <div class="ctrl-label">Reps</div>
+                        <input type="number" name="reps" class="ctrl-input"
+                               value="{{ ex.reps }}" min="1" max="999">
                     </div>
 
                     <div class="ctrl-group">
@@ -802,35 +693,5 @@ recalcTotalExp();
     const missing = {{ 'true' if not routine.difficulty_level or not routine.routine_type or not routine.primary_muscle else 'false' }};
     if (missing) openEdit();
 })();
-
-/* ════════════════════════════
-   MEASUREMENT TYPE TOGGLE  (Reps ↔ Time)
-════════════════════════════ */
-document.querySelectorAll('.builder-ex-controls').forEach(form => {
-    const measureSel = form.querySelector('[name="measurement"]');
-    const repsVal    = form.querySelector('.ctrl-reps-val');
-    const timeRow    = form.querySelector('.ctrl-time-row');
-    const repsLabel  = form.querySelector('.ctrl-reps-label');
-    if (!measureSel || !repsVal || !timeRow) return;
-
-    function applyMode(mode) {
-        const isTime = mode === 'seconds';
-        repsLabel.textContent = isTime ? 'Duration' : 'Reps';
-        repsVal.style.display  = isTime ? 'none' : '';
-        timeRow.style.display  = isTime ? 'flex' : 'none';
-    }
-
-    measureSel.addEventListener('change', () => applyMode(measureSel.value));
-
-    // On submit: write combined seconds into the reps field
-    form.addEventListener('submit', () => {
-        if (measureSel.value === 'seconds') {
-            const mins = parseInt(form.querySelector('.ctrl-min-val')?.value) || 0;
-            const secs = parseInt(form.querySelector('.ctrl-sec-val')?.value) || 0;
-            repsVal.value = mins * 60 + secs;
-            repsVal.style.display = '';  // ensure it's submitted
-        }
-    });
-});
 </script>
 {% endblock %}

@@ -24,47 +24,55 @@ class WorkoutSessionController:
     
     def _initialize_table(self):
         """🆕 NEW - Create workout session tracking tables"""
-        with self.db.transaction() as cursor:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS workout_sessions (
-                    session_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    client_id INTEGER NOT NULL,
-                    routine_id INTEGER NOT NULL,
-                    workout_date DATE NOT NULL,
-                    status TEXT DEFAULT 'in_progress',
-                    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    completed_at DATETIME,
-                    total_exp_earned INTEGER DEFAULT 0,
-                    FOREIGN KEY (client_id) REFERENCES clients(client_id),
-                    FOREIGN KEY (routine_id) REFERENCES routines(routine_id),
-                    UNIQUE(client_id, routine_id, workout_date)
-                )
-            ''')
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS workout_set_completions (
-                    completion_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id INTEGER NOT NULL,
-                    exercise_id INTEGER NOT NULL,
-                    set_number INTEGER NOT NULL,
-                    reps_completed INTEGER,
-                    weight_used REAL,
-                    completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (session_id) REFERENCES workout_sessions(session_id) ON DELETE CASCADE,
-                    FOREIGN KEY (exercise_id) REFERENCES exercises(exercise_id),
-                    UNIQUE(session_id, exercise_id, set_number)
-                )
-            ''')
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS session_exercise_swaps (
-                    swap_id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id      INTEGER NOT NULL,
-                    old_exercise_id INTEGER NOT NULL,
-                    new_exercise_id INTEGER NOT NULL,
-                    swapped_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (session_id) REFERENCES workout_sessions(session_id) ON DELETE CASCADE,
-                    UNIQUE(session_id, old_exercise_id)
-                )
-            ''')
+        self.db.connect()
+        
+        # 🆕 NEW TABLE: Track overall workout sessions
+        self.db.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS workout_sessions (
+                session_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                routine_id INTEGER NOT NULL,
+                workout_date DATE NOT NULL,
+                status TEXT DEFAULT 'in_progress',
+                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                completed_at DATETIME,
+                total_exp_earned INTEGER DEFAULT 0,
+                FOREIGN KEY (client_id) REFERENCES clients(client_id),
+                FOREIGN KEY (routine_id) REFERENCES routines(routine_id),
+                UNIQUE(client_id, routine_id, workout_date)
+            )
+        ''')
+        
+        # 🆕 NEW TABLE: Track individual set completions
+        self.db.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS workout_set_completions (
+                completion_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                exercise_id INTEGER NOT NULL,
+                set_number INTEGER NOT NULL,
+                reps_completed INTEGER,
+                weight_used REAL,
+                completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES workout_sessions(session_id) ON DELETE CASCADE,
+                FOREIGN KEY (exercise_id) REFERENCES exercises(exercise_id),
+                UNIQUE(session_id, exercise_id, set_number)
+            )
+        ''')
+
+        self.db.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS session_exercise_swaps (
+                swap_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id    INTEGER NOT NULL,
+                old_exercise_id INTEGER NOT NULL,
+                new_exercise_id INTEGER NOT NULL,
+                swapped_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES workout_sessions(session_id) ON DELETE CASCADE,
+                UNIQUE(session_id, old_exercise_id)
+            )
+        ''')
+        
+        self.db.conn.commit()
+        self.db.disconnect()
     
     def start_or_resume_session(self, client_id, routine_id):
         """
@@ -100,10 +108,15 @@ class WorkoutSessionController:
                 }
         
         # Create new session
-        session_id = self.db.execute_update(
-            "INSERT INTO workout_sessions (client_id, routine_id, workout_date, status) VALUES (?, ?, ?, 'in_progress')",
-            (client_id, routine_id, today)
-        )
+        self.db.connect()
+        query = '''
+            INSERT INTO workout_sessions (client_id, routine_id, workout_date, status)
+            VALUES (?, ?, ?, 'in_progress')
+        '''
+        self.db.cursor.execute(query, (client_id, routine_id, today))
+        self.db.conn.commit()
+        session_id = self.db.cursor.lastrowid
+        self.db.disconnect()
         
         return {
             'session_exists': False,
@@ -125,24 +138,39 @@ class WorkoutSessionController:
     
     def mark_set_completed(self, session_id, exercise_id, set_number, reps, weight):
         """🆕 NEW - Mark a set as completed in the session"""
-        self.db.execute_update(
-            'INSERT OR REPLACE INTO workout_set_completions (session_id, exercise_id, set_number, reps_completed, weight_used) VALUES (?, ?, ?, ?, ?)',
-            (session_id, exercise_id, set_number, reps, weight)
-        )
-
+        self.db.connect()
+        query = '''
+            INSERT OR REPLACE INTO workout_set_completions 
+            (session_id, exercise_id, set_number, reps_completed, weight_used)
+            VALUES (?, ?, ?, ?, ?)
+        '''
+        self.db.cursor.execute(query, (session_id, exercise_id, set_number, reps, weight))
+        self.db.conn.commit()
+        self.db.disconnect()
+    
     def update_session_exp(self, session_id, exp_amount):
         """🆕 NEW - Add EXP to session total"""
-        self.db.execute_update(
-            'UPDATE workout_sessions SET total_exp_earned = total_exp_earned + ? WHERE session_id = ?',
-            (exp_amount, session_id)
-        )
-
+        self.db.connect()
+        query = '''
+            UPDATE workout_sessions 
+            SET total_exp_earned = total_exp_earned + ?
+            WHERE session_id = ?
+        '''
+        self.db.cursor.execute(query, (exp_amount, session_id))
+        self.db.conn.commit()
+        self.db.disconnect()
+    
     def complete_session(self, session_id):
         """🆕 NEW - Mark session as completed (locks workout)"""
-        self.db.execute_update(
-            "UPDATE workout_sessions SET status='completed', completed_at=CURRENT_TIMESTAMP WHERE session_id=?",
-            (session_id,)
-        )
+        self.db.connect()
+        query = '''
+            UPDATE workout_sessions 
+            SET status='completed', completed_at=CURRENT_TIMESTAMP
+            WHERE session_id=?
+        '''
+        self.db.cursor.execute(query, (session_id,))
+        self.db.conn.commit()
+        self.db.disconnect()
 
     def get_session_progress(self, session_id, routine, exercises=None):
         # Get detailed progress for a session. Accepts pre-swapped exercise list.\"\"\"
@@ -292,11 +320,16 @@ class WorkoutSessionController:
         return False
     
     def save_session_swap(self, session_id, old_exercise_id, new_exercise_id):
-        # Record a per-session exercise swap (never touches routine_exercises).
-        self.db.execute_update(
-            'INSERT OR REPLACE INTO session_exercise_swaps (session_id, old_exercise_id, new_exercise_id) VALUES (?, ?, ?)',
-            (session_id, old_exercise_id, new_exercise_id)
-        )
+        # Record a per-session exercise swap (never touches routine_exercises).\"\"\"
+        self.db.connect()
+        query = '''
+            INSERT OR REPLACE INTO session_exercise_swaps
+                (session_id, old_exercise_id, new_exercise_id)
+            VALUES (?, ?, ?)
+        '''
+        self.db.cursor.execute(query, (session_id, old_exercise_id, new_exercise_id))
+        self.db.conn.commit()
+        self.db.disconnect()
 
     def get_session_swaps(self, session_id):
         # Return {old_exercise_id: new_exercise_id} for a session.\"\"\"

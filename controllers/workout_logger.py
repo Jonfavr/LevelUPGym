@@ -43,14 +43,20 @@ class WorkoutLogger:
         )
         
         # Log the set
-        log_id = self.db.execute_update(
-            '''INSERT INTO workout_logs
-               (client_id, exercise_id, workout_date, set_number, reps_completed,
-                weight_used, exp_earned, measurement)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-            (client_id, exercise_id, workout_date.strftime('%Y-%m-%d'),
-             set_number, reps_completed, weight_used, exp_result['exp_gained'], measurement)
-        )
+        self.db.connect()
+        query = '''
+            INSERT INTO workout_logs 
+            (client_id, exercise_id, workout_date, set_number, reps_completed, 
+             weight_used, exp_earned, measurement)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        self.db.cursor.execute(query, (
+            client_id, exercise_id, workout_date.strftime('%Y-%m-%d'), 
+            set_number, reps_completed, weight_used, exp_result['exp_gained'], measurement
+        ))
+        self.db.conn.commit()
+        log_id = self.db.cursor.lastrowid
+        self.db.disconnect()
 
         # 🔹 Update session progress and EXP totals
         try:
@@ -399,7 +405,10 @@ class WorkoutLogger:
         set_data = dict(result[0])
         
         # Delete the set
-        self.db.execute_update('DELETE FROM workout_logs WHERE log_id=?', (log_id,))
+        self.db.connect()
+        self.db.cursor.execute('DELETE FROM workout_logs WHERE log_id=?', (log_id,))
+        self.db.conn.commit()
+        self.db.disconnect()
         
         return {
             'success': True,

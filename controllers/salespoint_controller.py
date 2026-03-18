@@ -55,29 +55,39 @@ class SalesPointController:
         total_cents = sum(int(it['price_cents']) * int(it['qty']) for it in cart_items)
 
         # Inicia transacción: insertar sale, sale_items y actualizar stock
-        change_cents = int(paid_amount_cents) - int(total_cents)
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         try:
-            with self.db.transaction() as cursor:
-                cursor.execute(
-                    'INSERT INTO sales (cashier_id, total_cents, payment_type, paid_cents, change_cents, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-                    (cashier_id, total_cents, payment_type, paid_amount_cents, change_cents, now)
-                )
-                sale_id = cursor.lastrowid
+            self.db.connect()
+            # insertar venta
+            insert_sale = """
+                INSERT INTO sales (cashier_id, total_cents, payment_type, paid_cents, change_cents, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """
+            change_cents = int(paid_amount_cents) - int(total_cents)
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.db.cursor.execute(insert_sale, (cashier_id, total_cents, payment_type, paid_amount_cents, change_cents, now))
+            sale_id = self.db.cursor.lastrowid
 
-                for it in cart_items:
-                    item_id = int(it['item_id'])
-                    qty     = int(it['qty'])
-                    price   = int(it['price_cents'])
-                    cursor.execute(
-                        'INSERT INTO sale_items (sale_id, item_id, qty, price_cents) VALUES (?, ?, ?, ?)',
-                        (sale_id, item_id, qty, price)
-                    )
-                    cursor.execute('UPDATE items SET stock = stock - ? WHERE item_id = ?', (qty, item_id))
+            # insertar items vendidos y decrementar stock
+            insert_item = """
+                INSERT INTO sale_items (sale_id, item_id, qty, price_cents)
+                VALUES (?, ?, ?, ?)
+            """
+            update_stock = "UPDATE items SET stock = stock - ? WHERE item_id = ?"
 
+            for it in cart_items:
+                item_id = int(it['item_id'])
+                qty = int(it['qty'])
+                price = int(it['price_cents'])
+                self.db.cursor.execute(insert_item, (sale_id, item_id, qty, price))
+                self.db.cursor.execute(update_stock, (qty, item_id))
+
+            self.db.conn.commit()
             return {"success": True, "sale_id": sale_id, "total_cents": total_cents, "change_cents": change_cents}
         except Exception as e:
+            self.db.conn.rollback()
             return {"success": False, "message": f"DB error: {e}"}
+        finally:
+            self.db.disconnect()
 
     def get_sales_today(self):
         """Lista ventas del día para mostrar historial rápido en admin."""
